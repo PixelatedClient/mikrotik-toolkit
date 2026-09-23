@@ -218,7 +218,7 @@ export const ROUTE_LEVELS: RouteLevel[] = [
       { from: 'pc1', to: '192.168.4.10', label: 'PC1 to PC4' },
       { from: 'pc4', to: '192.168.1.10', label: 'PC4 to PC1' },
     ],
-    par: 4,
+    par: 6,
     solution: {
       r1: [{ dst: '192.168.4.0/24', via: '10.1.12.2' }],
       r2: [{ dst: '192.168.1.0/24', via: '10.1.12.1' }, { dst: '192.168.4.0/24', via: '10.2.23.2' }],
@@ -287,7 +287,7 @@ export const ROUTE_LEVELS: RouteLevel[] = [
       { from: 'pc1', to: '192.168.4.10', label: 'PC1 to Endpoint' },
       { from: 'ep', to: '192.168.1.10', label: 'Endpoint to PC1' },
     ],
-    par: 4,
+    par: 6,
     solution: {
       r1: [{ dst: '192.168.4.0/24', via: '10.0.12.2' }],
       r2: [{ dst: '192.168.4.0/24', via: '10.0.23.2' }, { dst: '192.168.1.0/24', via: '10.0.12.1' }],

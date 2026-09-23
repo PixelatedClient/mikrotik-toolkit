@@ -286,4 +286,165 @@ export const OSPF_LABS: SimLab[] = [
       },
     ],
   },
+  {
+    labId: 'ospf-mesh',
+    intro:
+      'Four routers in a square: R1 top-left, R2 top-right, R4 bottom-right, R3 bottom-left. A diagonal link from R1 to R4 with high cost creates redundancy. PC1 on R1, PC4 on R3. You configure OSPF and watch path selection in a mesh.',
+    setup: [
+      SW('R1', [
+        '/interface bridge add name=loopback',
+        '/ip address add address=10.255.0.1/32 interface=loopback',
+        '/ip address add address=10.0.12.1/30 interface=ether1 comment="to R2"',
+        '/ip address add address=10.0.13.1/30 interface=ether2 comment="to R3"',
+        '/ip address add address=10.0.14.1/30 interface=ether4 comment="to R4 (expensive)"',
+        '/ip address add address=192.168.1.1/24 interface=ether3 comment="LAN1"',
+      ]),
+      SW('R2', [
+        '/interface bridge add name=loopback',
+        '/ip address add address=10.255.0.2/32 interface=loopback',
+        '/ip address add address=10.0.12.2/30 interface=ether1 comment="to R1"',
+        '/ip address add address=10.0.24.1/30 interface=ether2 comment="to R4"',
+      ]),
+      SW('R3', [
+        '/interface bridge add name=loopback',
+        '/ip address add address=10.255.0.3/32 interface=loopback',
+        '/ip address add address=10.0.13.2/30 interface=ether1 comment="to R1"',
+        '/ip address add address=10.0.34.2/30 interface=ether2 comment="to R4"',
+        '/ip address add address=192.168.4.1/24 interface=ether3 comment="LAN4"',
+      ]),
+      SW('R4', [
+        '/interface bridge add name=loopback',
+        '/ip address add address=10.255.0.4/32 interface=loopback',
+        '/ip address add address=10.0.24.2/30 interface=ether2 comment="to R2"',
+        '/ip address add address=10.0.34.1/30 interface=ether1 comment="to R3"',
+        '/ip address add address=10.0.14.2/30 interface=ether3 comment="to R1 (expensive)"',
+      ]),
+      SW('PC1', ['ip 192.168.1.10/24 192.168.1.1']),
+      SW('PC4', ['ip 192.168.4.10/24 192.168.4.1']),
+    ],
+    tasks: [
+      {
+        id: 't1',
+        title: 'Set up OSPF: instances, areas, templates',
+        detail:
+          'On each router: create OSPF instance with loopback as router-id, create backbone area, add templates for all connected links (square edges cost 10, diagonal R1-R4 costs 100).',
+        hints: [
+          'R1: instance router-id 10.255.0.1, then add 3 templates (10.0.12.0/30, 10.0.13.0/30, 10.0.14.0/30 with costs 10,10,100)',
+          'R2: instance router-id 10.255.0.2, then 2 templates (10.0.12.0/30 cost 10, 10.0.24.0/30 cost 10)',
+          'Similarly for R3 and R4. Don\'t forget loopback and LAN as passive.',
+        ],
+        checks: [
+          { kind: 'ran', on: 'R1', pattern: 'ospf\\s+instance\\s+add' },
+          { kind: 'ran', on: 'R2', pattern: 'ospf\\s+interface-template' },
+          { kind: 'ran', on: 'R3', pattern: 'ospf\\s+interface-template' },
+          { kind: 'ran', on: 'R4', pattern: 'ospf\\s+interface-template' },
+        ],
+        solution: [
+          SW('R1', [
+            '/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.1',
+            '/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1',
+            '/routing ospf interface-template add area=backbone networks=10.0.12.0/30 cost=10 type=ptp',
+            '/routing ospf interface-template add area=backbone networks=10.0.13.0/30 cost=10 type=ptp',
+            '/routing ospf interface-template add area=backbone networks=10.0.14.0/30 cost=100 type=ptp',
+            '/routing ospf interface-template add area=backbone networks=192.168.1.0/24 passive',
+            '/routing ospf interface-template add area=backbone networks=10.255.0.1/32 passive',
+          ]),
+          SW('R2', [
+            '/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.2',
+            '/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1',
+            '/routing ospf interface-template add area=backbone networks=10.0.12.0/30 cost=10 type=ptp',
+            '/routing ospf interface-template add area=backbone networks=10.0.24.0/30 cost=10 type=ptp',
+            '/routing ospf interface-template add area=backbone networks=10.255.0.2/32 passive',
+          ]),
+          SW('R3', [
+            '/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.3',
+            '/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1',
+            '/routing ospf interface-template add area=backbone networks=10.0.13.0/30 cost=10 type=ptp',
+            '/routing ospf interface-template add area=backbone networks=10.0.34.0/30 cost=10 type=ptp',
+            '/routing ospf interface-template add area=backbone networks=192.168.4.0/24 passive',
+            '/routing ospf interface-template add area=backbone networks=10.255.0.3/32 passive',
+          ]),
+          SW('R4', [
+            '/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.4',
+            '/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1',
+            '/routing ospf interface-template add area=backbone networks=10.0.24.0/30 cost=10 type=ptp',
+            '/routing ospf interface-template add area=backbone networks=10.0.34.0/30 cost=10 type=ptp',
+            '/routing ospf interface-template add area=backbone networks=10.0.14.0/30 cost=100 type=ptp',
+            '/routing ospf interface-template add area=backbone networks=10.255.0.4/32 passive',
+          ]),
+        ],
+      },
+      {
+        id: 't2',
+        title: 'Verify all neighbours formed and check path to PC4',
+        detail:
+          'Each router should see: R1(3 neighbours), R2(2), R3(2), R4(3). Check the route from R1 to 192.168.4.0/24 - it should prefer the R1→R3→R4 path (cost 21) over the diagonal (cost 101).',
+        hints: [
+          '/routing ospf neighbor print on each router',
+          '/ip route print where ospf on R1 to see the route',
+          'Traceroute should show: PC1 → 192.168.1.1 → 10.0.13.2 (R3) → 192.168.4.1 (R4 LAN address)',
+        ],
+        checks: [
+          { kind: 'ospf-neighbors', on: 'R1', count: 3 },
+          { kind: 'ospf-neighbors', on: 'R2', count: 2 },
+          { kind: 'ospf-neighbors', on: 'R3', count: 2 },
+          { kind: 'ospf-neighbors', on: 'R4', count: 3 },
+          { kind: 'route', on: 'R1', dst: '192.168.4.0/24', via: '10.0.13.2' },
+          { kind: 'ping', from: 'PC1', to: '192.168.4.10', expect: 'reply' },
+        ],
+        solution: [
+          SW('R1', ['/ip route print where ospf']),
+          SW('PC1', ['ping 192.168.4.10']),
+        ],
+      },
+      {
+        id: 't3',
+        title: 'Break the R1-R3 link',
+        detail:
+          'Disable R1 ether2 (link to R3). R1 should now take the R1→R2→R4 path instead (same cost 21). Traceroute should now go through R2.',
+        hints: [
+          '/interface disable ether2 on R1',
+          'Check the route again: should still be cost 21 but via 10.0.12.2 (R2) instead of 10.0.13.2',
+        ],
+        checks: [
+          { kind: 'ran', on: 'R1', pattern: 'interface\\s+disable\\s+ether2' },
+          { kind: 'ospf-neighbors', on: 'R1', count: 2 },
+          { kind: 'route', on: 'R1', dst: '192.168.4.0/24', via: '10.0.12.2' },
+          { kind: 'ping', from: 'PC1', to: '192.168.4.10', expect: 'reply' },
+        ],
+        solution: [SW('R1', ['/interface disable ether2', '/ip route print where ospf']), SW('PC1', ['ping 192.168.4.10'])],
+      },
+      {
+        id: 't4',
+        title: 'Break the R1-R2 link and force the diagonal',
+        detail:
+          'Disable R1 ether1 (link to R2) as well. Now only the expensive diagonal remains (cost 101). Both R3 and R2 neighbours should be gone. Traceroute now goes direct R1→R4.',
+        hints: ['/interface disable ether1 on R1', 'Route cost jumps to 101, via 10.0.14.2 (R4 direct)'],
+        checks: [
+          { kind: 'ran', on: 'R1', pattern: 'interface\\s+disable\\s+ether1' },
+          { kind: 'ospf-neighbors', on: 'R1', count: 1 },
+          { kind: 'route', on: 'R1', dst: '192.168.4.0/24', via: '10.0.14.2' },
+          { kind: 'ping', from: 'PC1', to: '192.168.4.10', expect: 'reply' },
+        ],
+        solution: [SW('R1', ['/interface disable ether1', '/routing ospf neighbor print', '/ip route print where ospf']), SW('PC1', ['ping 192.168.4.10'])],
+      },
+      {
+        id: 't5',
+        title: 'Restore the chain',
+        detail:
+          'Enable both R1 ether1 and ether2. Neighbours return, the cheaper paths reappear. R1 should go back to using R3 as the first-hop neighbor (cost 21 again).',
+        hints: [
+          '/interface enable ether2 and ether1 on R1',
+          'Verify 3 neighbours are back on R1',
+          'Route should now be via 10.0.13.2 again (or 10.0.12.2, both cost 21)',
+        ],
+        checks: [
+          { kind: 'ran', on: 'R1', pattern: 'interface\\s+enable' },
+          { kind: 'ospf-neighbors', on: 'R1', count: 3 },
+          { kind: 'ping', from: 'PC1', to: '192.168.4.10', expect: 'reply' },
+        ],
+        solution: [SW('R1', ['/interface enable ether2', '/interface enable ether1', '/routing ospf neighbor print']), SW('R1', ['/ip route print where ospf'])],
+      },
+    ],
+  },
 ];
