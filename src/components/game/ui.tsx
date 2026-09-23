@@ -2,10 +2,10 @@ import type { ReactNode } from 'react';
 import { nextLevel } from '../../data/game/world';
 import type { LevelReward } from './useGame';
 
-export const panel = 'min-w-0 rounded-xl border bg-surface p-4';
-export const primary = 'rounded-md bg-accent px-4 py-2 text-sm text-accent-fg disabled:opacity-40';
-export const ghost = 'rounded-md border-2 border-line px-3 py-1.5 text-sm hover:border-muted';
-export const sel = 'rounded-md border-2 border-line bg-bg px-2 py-1.5 font-mono text-sm text-fg';
+export const panel = 'min-w-0 rounded-xl border bg-surface p-4 sm:p-4';
+export const primary = 'rounded-md bg-accent px-4 py-2.5 text-sm text-accent-fg disabled:opacity-40 md:py-2 min-h-11 md:min-h-auto';
+export const ghost = 'rounded-md border-2 border-line px-3 py-2 text-sm hover:border-muted md:py-1.5 min-h-11 md:min-h-auto';
+export const sel = 'rounded-md border-2 border-line bg-bg px-3 py-2 font-mono text-sm text-fg md:px-2 md:py-1.5 min-h-11 md:min-h-auto';
 
 export function Stars({ n, of = 3, size = 20 }: { n: number; of?: number; size?: number }) {
   return (

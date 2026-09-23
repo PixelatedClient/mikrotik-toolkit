@@ -58,7 +58,7 @@ export default function SubnetGate({ levelId }: { levelId: string }) {
               const state = !picked ? '' : o === round.answer ? 'border-good bg-accent-soft' : o === picked ? 'border-danger' : 'opacity-60';
               return (
                 <button key={o} type="button" disabled={!!picked} onClick={() => choose(o)}
-                  className={`rounded-md border-2 border-line bg-bg px-3 py-3 text-left font-mono text-sm hover:border-accent disabled:cursor-default ${state}`}>
+                  className={`rounded-md border-2 border-line bg-bg px-3 py-3 text-left font-mono text-sm hover:border-accent disabled:cursor-default min-h-11 md:min-h-auto ${state}`}>
                   {o}{picked && o === round.answer ? ' ✓' : ''}
                 </button>
               );

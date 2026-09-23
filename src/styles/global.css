@@ -6,6 +6,14 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Mobile-first optimization: 16px minimum font size, proper touch targets */
+@media (max-width: 640px) {
+  html { font-size: 16px; }
+  body { overflow-x: hidden; }
+  button, a, input, select { min-height: 44px; }
+  input[type="checkbox"], input[type="radio"], svg { min-height: auto; }
+}
+
 /* Pixel-adventure theme. Dark navy is the default; parchment is the light variant. */
 :root {
   --bg: #f4ecd8;

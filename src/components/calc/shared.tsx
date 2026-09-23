@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from 'react';
 
 export const input =
-  'w-full rounded-md border border-line bg-bg px-3 py-2 font-mono text-sm text-fg placeholder:text-muted focus:border-accent';
-export const card = 'not-prose my-8 rounded-xl border border-line bg-surface p-5';
-export const btn = 'rounded-md border border-line px-3 py-1.5 text-sm hover:border-muted';
-export const btnPrimary = 'rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg hover:opacity-90';
+  'w-full rounded-md border border-line bg-bg px-3 py-2.5 font-mono text-base text-fg placeholder:text-muted focus:border-accent md:py-2 md:text-sm';
+export const card = 'not-prose my-8 rounded-xl border border-line bg-surface p-4 sm:p-5';
+export const btn = 'rounded-md border border-line px-3 py-2 text-sm hover:border-muted md:py-1.5 min-h-11 md:min-h-auto';
+export const btnPrimary = 'rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-fg hover:opacity-90 md:py-1.5 min-h-11 md:min-h-auto';
 
 export function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: ReactNode }) {
   return (

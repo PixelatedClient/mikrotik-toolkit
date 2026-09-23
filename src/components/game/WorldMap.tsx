@@ -42,7 +42,7 @@ export default function WorldMap() {
                 <p className="font-semibold"><span aria-hidden="true">🔒 </span>{featureInfo(gate!).name} needs a login.</p>
                 <p className="mt-1 text-muted">{featureInfo(gate!).perk} Log in to unlock every feature; the stars you have already earned come with you.</p>
                 {canLogin
-                  ? <button type="button" onClick={openAuthDialog} className="mt-2 rounded-md bg-accent px-3 py-1.5 text-accent-fg">Log in or create an account</button>
+                  ? <button type="button" onClick={openAuthDialog} className="mt-2 rounded-md bg-accent px-3 py-2 text-accent-fg md:py-1.5 min-h-11 md:min-h-auto">Log in or create an account</button>
                   : <p className="mt-1 text-xs text-muted">Accounts are not enabled on this site yet.</p>}
               </div>
             )}
