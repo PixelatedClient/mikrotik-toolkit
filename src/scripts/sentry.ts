@@ -29,14 +29,12 @@ export async function initSentry() {
         }),
         browserTracingIntegration(),
       ],
-      // Performance monitoring
+      // Performance monitoring (through browserTracingIntegration)
       tracesSampleRate: ENV === 'production' ? 0.1 : 1.0,
       replaysSessionSampleRate: 0.1,
       replaysOnErrorSampleRate: 1.0,
       // Attach stack traces to all messages
       attachStacktrace: true,
-      // Capture performance metrics
-      enablePerformanceMonitoring: true,
     });
   } catch (e) {
     console.error('Failed to initialize Sentry:', e);
