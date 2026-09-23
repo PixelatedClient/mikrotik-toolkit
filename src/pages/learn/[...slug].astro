@@ -9,6 +9,7 @@ import { INCIDENTS } from '../../data/game/nocIncidents';
 import SimLab from '../../components/sim/SimLab';
 import LessonQuiz from '../../components/LessonQuiz';
 import { NocRunner } from '../../components/game/Gates';
+import AffiliateSidebar from '../../components/AffiliateSidebar';
 
 export async function getStaticPaths() {
   const all = await getCollection('courses');
@@ -133,14 +134,26 @@ const extraToc = [
 
     {(toc.length > 0 || extraToc.length > 0) && (
       <aside class="hidden xl:block">
-        <nav aria-label="On this page" class="sticky top-20 text-sm">
-          <p class="font-semibold">On this page</p>
-          <ul class="mt-2 space-y-1.5 border-l border-line">
-            {[...toc, ...extraToc].map((h) => (
-              <li><a href={`#${h.slug}`} class="-ml-px block border-l border-transparent pl-3 text-muted hover:border-accent hover:text-fg">{h.text}</a></li>
-            ))}
-          </ul>
-        </nav>
+        <div class="sticky top-20 text-sm">
+          <nav aria-label="On this page">
+            <p class="font-semibold">On this page</p>
+            <ul class="mt-2 space-y-1.5 border-l border-line">
+              {[...toc, ...extraToc].map((h) => (
+                <li><a href={`#${h.slug}`} class="-ml-px block border-l border-transparent pl-3 text-muted hover:border-accent hover:text-fg">{h.text}</a></li>
+              ))}
+            </ul>
+          </nav>
+          <AffiliateSidebar
+            client:visible
+            tags={[
+              entry.data.track,
+              entry.data.track === 'mikrotik' ? 'routeros' : '',
+              entry.data.track === 'routing' ? 'bgp' : '',
+              entry.data.track === 'isp-ops' ? 'isp' : '',
+              entry.data.track === 'layer2' ? 'switching' : '',
+            ].filter(Boolean)}
+          />
+        </div>
       </aside>
     )}
   </div>

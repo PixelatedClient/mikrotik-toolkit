@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import AffiliateLinks from './AffiliateLinks';
 
 interface Source { title: string; url: string; publisher: string; accessed: string }
 interface Props {
@@ -10,8 +11,10 @@ interface Props {
   sources?: Source[];
   related?: { href: string; label: string }[];
   narrow?: boolean;
+  affiliateTag?: string;
+  affiliateCategory?: 'hardware' | 'learning' | 'tools' | 'service' | 'hosting';
 }
-const { title, description, heading, intro, sources = [], related = [], narrow = false } = Astro.props;
+const { title, description, heading, intro, sources = [], related = [], narrow = false, affiliateTag, affiliateCategory } = Astro.props;
 ---
 <Base title={title} description={description}>
   <div class:list={['mx-auto px-4 py-12 sm:px-6', narrow ? 'max-w-2xl' : 'max-w-4xl']}>
@@ -19,6 +22,15 @@ const { title, description, heading, intro, sources = [], related = [], narrow =
     <h1 class="mt-3 text-4xl font-bold tracking-tight">{heading}</h1>
     <p class="mt-2 max-w-2xl text-muted">{intro}</p>
     <slot />
+    {(affiliateTag || affiliateCategory) && (
+      <AffiliateLinks
+        client:load
+        tag={affiliateTag}
+        category={affiliateCategory}
+        title="Recommended tools"
+      />
+    )}
+
     {related.length > 0 && (
       <section aria-labelledby="related" class="mt-2">
         <h2 id="related" class="text-lg font-semibold">Keep going</h2>

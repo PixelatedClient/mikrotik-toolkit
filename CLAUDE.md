@@ -51,12 +51,39 @@ RouterOS snippets in lessons have not been run on a real device. Where property 
 ## Roadmap
 
 See `src/data/roadmap.ts` (displayed at `/roadmap`). Current work:
-- Step 9 (next): Monetization & sponsorship (affiliate links, Patreon, email capture)
+- Step 9 (in progress): Monetization & sponsorship (affiliate links, sponsor banner, `/sponsors` page)
 - Step 10-17 (planned): User auth (built, needs Supabase keys), analytics, video, legal compliance, community features, observability
+
+## Monetization & Sponsorship (Step 9)
+
+**Affiliate system** (`src/data/affiliates.ts`, `src/components/AffiliateLinks.tsx`):
+- Centralized affiliate link catalogue: MikroTik hardware (hEX, hEX S, CHR, RouterOS), GNS3, Wireshark, MikroTik Academy, Vercel, AWS, Linode.
+- Each link has `id`, `name`, `url`, `category` ('hardware', 'learning', 'tools', 'service', 'hosting'), `tags` (for contextual linking), and `description`.
+- `getAffiliatesByTag(tag)` and `getAffiliatesByCategory(category)` retrieve links for embedding in lessons and tools.
+- Click tracking via localStorage (`na-affiliate-clicks`; no backend yet). Tracks clicks by partner ID for future revenue attribution.
+
+**Sponsor banner** (`src/components/SponsorBanner.tsx`):
+- Dismissible banner below the header (on all pages via `Base.astro`). Explains the model (affiliate partnerships sustain free content).
+- Dismissal state persisted in localStorage (`na-sponsor-banner-dismissed`).
+- Links to `/sponsors` for more details.
+
+**Sponsors page** (`src/pages/sponsors.astro`):
+- Public-facing page listing all partners, grouped by category (Networking Hardware, Hosting & Cloud, Tools & Utilities, Learning & Certification).
+- Explains how affiliate revenue funds the site: hosting, maintenance, new content, tools.
+- Partner application email (`partners@networkacademy.example`) for future partnerships.
+- Placeholder sections for Patreon and GitHub Sponsors (coming in Step 10+).
+- Affiliate disclosure and transparency notice.
+
+**Contextual affiliate links**:
+- `AffiliateSidebar.tsx`: Right-side component in lesson pages, showing 3 relevant tools/services based on lesson tags. Uses lesson `track` to infer tags (e.g., mikrotik → routeros, routing → bgp).
+- `ToolPage.astro` enhanced with `affiliateTag` and `affiliateCategory` props. Subnet Calculator wired with tag `lab` as example.
+- Example shown: subnet calculator now displays "Recommended tools" with lab-related affiliates (GNS3, Wireshark, CHR, etc.).
+
+**No backend yet**: Click counts live in localStorage for local analytics; a future step will sync with a server for global view.
 
 Key gaps being addressed:
 - Backend: accounts and saved progress are built (Supabase, see below) but need a Supabase project and keys to go live
-- Revenue: affiliate links, sponsorship, premium tiers
+- Revenue: email newsletter signup, Patreon/GitHub Sponsors (Step 10+)
 - Legal: T&C, privacy policy, disclaimers, contact page
 - Community: Discord, user labs, comments, certifications
 - Quality: error tracking, performance monitoring, mobile optimization

@@ -358,6 +358,52 @@ export const LABS: Lab[] = [
       { href: '/learn/mikrotik/05-firewall-and-nat', label: 'Firewall and NAT rules' },
     ],
   },
+  {
+    id: 'ospf-chain',
+    title: 'OSPF linear chain: 4 routers',
+    level: 'Advanced',
+    minutes: 45,
+    summary: 'Four routers in a line with a LAN on each end. Configure OSPF to route traffic through the chain and watch path selection based on cost.',
+    objectives: ['Build OSPF on a linear 4-router topology', 'Understand how OSPF chooses paths based on accumulated cost', 'Manipulate link costs to control path selection', 'Observe convergence when links fail'],
+    nodes: [
+      { id: 'R1', label: 'R1', kind: 'router', x: 80, y: 130, file: 'R1.rsc' },
+      { id: 'R2', label: 'R2', kind: 'router', x: 210, y: 130, file: 'R2.rsc' },
+      { id: 'R3', label: 'R3', kind: 'router', x: 340, y: 130, file: 'R3.rsc' },
+      { id: 'R4', label: 'R4', kind: 'router', x: 470, y: 130, file: 'R4.rsc' },
+      { id: 'PC1', label: 'PC1', kind: 'pc', x: 80, y: 220 },
+      { id: 'PC4', label: 'PC4', kind: 'pc', x: 470, y: 220 },
+    ],
+    links: [
+      { a: 'PC1', ai: 'eth0', b: 'R1', bi: 'ether3', net: '192.168.10.0/24' },
+      { a: 'R1', ai: 'ether1', b: 'R2', bi: 'ether1', net: '10.0.12.0/30 (cost 10)' },
+      { a: 'R2', ai: 'ether2', b: 'R3', bi: 'ether1', net: '10.0.23.0/30 (cost 10)' },
+      { a: 'R3', ai: 'ether2', b: 'R4', bi: 'ether1', net: '10.0.34.0/30 (cost 10)' },
+      { a: 'R4', ai: 'ether3', b: 'PC4', bi: 'eth0', net: '192.168.40.0/24' },
+    ],
+    setup: [
+      'Add four CHR routers and two VPCS nodes in GNS3 and wire them in a line as shown.',
+      'Paste each config. Wait about 40 seconds for neighbours to reach Full.',
+      'On the PCs run: ip 192.168.10.10/24 192.168.10.1 (PC1) and ip 192.168.40.10/24 192.168.40.1 (PC4).',
+    ],
+    tasks: [
+      { title: 'Bring up OSPF', detail: 'Create an instance on each router with its loopback as router-id (10.255.0.1 to .4), then create a backbone area and interface templates for every link.' },
+      { title: 'Check neighbours', detail: 'Verify that each router has the expected neighbours: R1 (1), R2 (2), R3 (2), R4 (1). All should be in state Full.' },
+      { title: 'Predict and confirm the path', detail: 'From R1, traffic to 192.168.40.0/24 will go through all three hops (R1→R2→R3→R4) with a total cost of 10+10+10+1=31. Confirm with the routing table and traceroute from PC1.' },
+      { title: 'Disable the first link', detail: 'On R1 disable ether1 (the link to R2). The chain breaks and PC1 can no longer reach PC4. Ping should fail.' },
+      { title: 'Restore the link and change costs', detail: 'Enable ether1 again. Then lower the cost on R3 ether2 (the link to R4) from 10 to 5. Check the routing table: does R1 see a different path? Why or why not?' },
+    ],
+    verify: [
+      { node: 'R1', title: 'Neighbours', cmd: '/routing ospf neighbor print', expect: 'One neighbour: R2 (10.255.0.2), in state Full.' },
+      { node: 'R2', title: 'Neighbours on R2', cmd: '/routing ospf neighbor print', expect: 'Two neighbours: R1 (10.255.0.1) and R3 (10.255.0.3), both Full.' },
+      { node: 'R3', title: 'Check R3 has two neighbours', cmd: '/routing ospf neighbor print', expect: 'Two neighbours: R2 (10.255.0.2) and R4 (10.255.0.4), both Full.' },
+      { node: 'R1', title: 'Path to LAN4', cmd: '/ip route print where ospf', expect: 'A route to 192.168.40.0/24 via R2 (10.0.12.2).' },
+      { node: 'R1', title: 'End-to-end ping', cmd: '/ping 192.168.40.1 src-address=192.168.10.1 count=3', expect: 'Three replies.' },
+    ],
+    related: [
+      { href: '/learn/routing/04-ospf-for-enterprise', label: 'OSPF for enterprise networks' },
+      { href: '/learn/routing/07-bfd-fast-failover', label: 'BFD and fast failover' },
+    ],
+  },
 ];
 
 export const labById = (id: string) => LABS.find((l) => l.id === id);

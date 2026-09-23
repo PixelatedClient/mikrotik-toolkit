@@ -6,6 +6,16 @@ interface Props {
   title?: string;
 }
 
+const trackAffiliateClick = (partnerId: string) => {
+  try {
+    const clicks = JSON.parse(localStorage.getItem('na-affiliate-clicks') || '{}');
+    clicks[partnerId] = (clicks[partnerId] || 0) + 1;
+    localStorage.setItem('na-affiliate-clicks', JSON.stringify(clicks));
+  } catch (e) {
+    // localStorage access blocked
+  }
+};
+
 export default function AffiliateLinks({ tag, category, title }: Props) {
   let links: AffiliateLink[] = [];
 
@@ -29,6 +39,7 @@ export default function AffiliateLinks({ tag, category, title }: Props) {
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackAffiliateClick(link.id || link.name.toLowerCase().replace(/\s+/g, '-'))}
               className="text-accent hover:underline"
             >
               {link.name}

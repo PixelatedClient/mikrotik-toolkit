@@ -1,0 +1,138 @@
+---
+import Base from '../layouts/Base.astro';
+import AffiliateLinks from '../components/AffiliateLinks';
+import { getAffiliatesByCategory } from '../data/affiliates';
+
+const hardware = getAffiliatesByCategory('hardware');
+const hosting = getAffiliatesByCategory('hosting');
+const tools = getAffiliatesByCategory('tools');
+const learning = getAffiliatesByCategory('learning');
+---
+<Base title="Sponsors & Partnerships" description="Support Network Academy through partnerships and affiliate links. We partner with tools and services we use and recommend.">
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">Sponsors & Partnerships</h1>
+    <div class="prose prose-neutral mt-6 dark:prose-invert max-w-none">
+      <p>
+        Network Academy is free and always will be. We're sustained by partnerships with tools, services, and platforms that network engineers use every day.
+      </p>
+
+      <h2>How it works</h2>
+      <p>
+        When you click an affiliate link below and make a purchase, Network Academy earns a small commission at no extra cost to you. This helps us:
+      </p>
+      <ul>
+        <li>Pay for hosting and infrastructure</li>
+        <li>Maintain course content and keep lessons up to date with RouterOS releases</li>
+        <li>Add new labs and interactive tools</li>
+        <li>Keep the site free for everyone</li>
+      </ul>
+
+      <h2>Our partners</h2>
+      <p>
+        We only partner with tools and services we recommend and use ourselves. If it's on this list, we believe it's worth your time.
+      </p>
+    </div>
+
+    <section aria-labelledby="hardware-partners" class="mt-8">
+      <h2 id="hardware-partners" class="text-2xl font-bold mb-4">Networking Hardware</h2>
+      <div class="grid gap-6 md:grid-cols-2">
+        {hardware.map((partner) => (
+          <div class="rounded-lg border border-line bg-surface p-4">
+            <h3 class="font-semibold text-fg mb-2">{partner.name}</h3>
+            <p class="text-sm text-muted mb-3">{partner.description}</p>
+            <a
+              href={partner.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-block text-sm font-medium text-accent hover:underline"
+            >
+              Learn more →
+            </a>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section aria-labelledby="hosting-partners" class="mt-8">
+      <h2 id="hosting-partners" class="text-2xl font-bold mb-4">Hosting & Cloud</h2>
+      <div class="grid gap-6 md:grid-cols-2">
+        {hosting.map((partner) => (
+          <div class="rounded-lg border border-line bg-surface p-4">
+            <h3 class="font-semibold text-fg mb-2">{partner.name}</h3>
+            <p class="text-sm text-muted mb-3">{partner.description}</p>
+            <a
+              href={partner.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-block text-sm font-medium text-accent hover:underline"
+            >
+              Learn more →
+            </a>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section aria-labelledby="tools-partners" class="mt-8">
+      <h2 id="tools-partners" class="text-2xl font-bold mb-4">Tools & Utilities</h2>
+      <div class="grid gap-6 md:grid-cols-2">
+        {tools.map((partner) => (
+          <div class="rounded-lg border border-line bg-surface p-4">
+            <h3 class="font-semibold text-fg mb-2">{partner.name}</h3>
+            <p class="text-sm text-muted mb-3">{partner.description}</p>
+            <a
+              href={partner.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-block text-sm font-medium text-accent hover:underline"
+            >
+              Learn more →
+            </a>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section aria-labelledby="learning-partners" class="mt-8">
+      <h2 id="learning-partners" class="text-2xl font-bold mb-4">Learning & Certification</h2>
+      <div class="grid gap-6 md:grid-cols-2">
+        {learning.map((partner) => (
+          <div class="rounded-lg border border-line bg-surface p-4">
+            <h3 class="font-semibold text-fg mb-2">{partner.name}</h3>
+            <p class="text-sm text-muted mb-3">{partner.description}</p>
+            <a
+              href={partner.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-block text-sm font-medium text-accent hover:underline"
+            >
+              Learn more →
+            </a>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <div class="prose prose-neutral mt-12 dark:prose-invert max-w-none">
+      <h2>Become a partner</h2>
+      <p>
+        If you operate a tool, service, or platform that network engineers use, we'd love to work with you. Email us at <a href="mailto:partners@networkacademy.example">partners@networkacademy.example</a> to discuss partnership opportunities.
+      </p>
+
+      <h2>Support directly</h2>
+      <p>
+        Prefer to support Network Academy directly? You can also:
+      </p>
+      <ul>
+        <li><strong>Become a patron on Patreon</strong> (coming soon) — get early access to new content and direct input on what we build next</li>
+        <li><strong>Sponsor via GitHub</strong> (coming soon) — one-time or recurring support</li>
+        <li><strong>Share with others</strong> — the best support is telling colleagues about Network Academy</li>
+      </ul>
+
+      <h2>Affiliate disclosure</h2>
+      <p>
+        Network Academy is part of affiliate programs for the products listed on this page. When you click a link and make a purchase, we earn a commission. This does not affect the price you pay. We only recommend products and services we genuinely believe in and use ourselves.
+      </p>
+    </div>
+  </div>
+</Base>

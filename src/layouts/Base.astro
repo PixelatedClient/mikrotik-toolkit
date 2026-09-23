@@ -3,6 +3,7 @@ import '../styles/global.css';
 import GameHud from '../components/game/GameHud';
 import AuthBar from '../components/auth/AuthBar';
 import Companion from '../components/game/Companion';
+import SponsorBanner from '../components/SponsorBanner';
 
 interface Props {
   title: string;
@@ -93,6 +94,8 @@ const active = (href: string) => path === href || path.startsWith(href + '/');
       </nav>
     </header>
 
+    <SponsorBanner client:load />
+
     <main id="main" class="flex-1"><slot /></main>
 
     <footer class="mt-16 border-t border-line">
@@ -111,6 +114,7 @@ const active = (href: string) => path === href || path.startsWith(href + '/');
             <li><a class="hover:text-fg" href="/learn">All courses</a></li>
             <li><a class="hover:text-fg" href="/roadmap">Roadmap</a></li>
             <li><a class="hover:text-fg" href="/sources">Sources</a></li>
+            <li><a class="hover:text-fg" href="/sponsors">Sponsors</a></li>
           </ul>
         </div>
         <div>
