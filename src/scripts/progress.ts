@@ -1,6 +1,7 @@
 // Per-browser lesson progress stored in localStorage. Safe if storage is unavailable.
 // When the visitor is logged in, changes are also saved to their account (see auth.ts).
 import { notifyLocalSave } from './session';
+import { trackLessonCompletion } from './analytics';
 
 const KEY = 'na-progress';
 const LAST = 'na-last';
@@ -23,6 +24,11 @@ export function setDone(id: string, done: boolean): void {
     /* storage blocked: progress simply isn't saved */
   }
   notifyLocalSave();
+
+  // Track lesson completion to analytics
+  if (done) {
+    trackLessonCompletion(id);
+  }
 }
 
 export function setLast(id: string): void {

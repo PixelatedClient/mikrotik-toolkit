@@ -1,4 +1,5 @@
 import { getAffiliatesByTag, getAffiliatesByCategory, type AffiliateLink } from '../data/affiliates';
+import { trackAffiliateClick as analyticsTrack } from '../scripts/analytics';
 
 interface Props {
   tag?: string;
@@ -6,7 +7,8 @@ interface Props {
   title?: string;
 }
 
-const trackAffiliateClick = (partnerId: string) => {
+const trackAffiliateClick = (partnerId: string, partnerName: string, category?: string) => {
+  // Track in localStorage for local analytics
   try {
     const clicks = JSON.parse(localStorage.getItem('na-affiliate-clicks') || '{}');
     clicks[partnerId] = (clicks[partnerId] || 0) + 1;
@@ -14,6 +16,9 @@ const trackAffiliateClick = (partnerId: string) => {
   } catch (e) {
     // localStorage access blocked
   }
+
+  // Track in Plausible analytics
+  analyticsTrack(partnerId, partnerName, category);
 };
 
 export default function AffiliateLinks({ tag, category, title }: Props) {
@@ -39,7 +44,7 @@ export default function AffiliateLinks({ tag, category, title }: Props) {
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => trackAffiliateClick(link.id || link.name.toLowerCase().replace(/\s+/g, '-'))}
+              onClick={() => trackAffiliateClick(link.id || link.name.toLowerCase().replace(/\s+/g, '-'), link.name, link.category)}
               className="text-accent hover:underline"
             >
               {link.name}

@@ -10,6 +10,8 @@ import { mergePayload, parsePayload, samePayload, type CloudPayload } from '../l
 import { load as loadGame, replaceFromCloud, reset as resetGame } from './game-store';
 import { clearLessons, getDone, getLast, replaceLessons } from './progress';
 import { LOGIN_EVENT, RECOVERY_EVENT, getSession, onLocalSave, setSession, type AuthMode } from './session';
+import { trackAuthEvent } from './analytics';
+import { setSentryUser, clearSentryUser } from './sentry';
 
 const URL_ = import.meta.env.PUBLIC_SUPABASE_URL as string | undefined;
 const KEY_ = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string | undefined;
@@ -130,6 +132,7 @@ async function flush() {
 
 async function enter(id: string, email: string, announce: boolean) {
   userId = id;
+  setSentryUser(id, email);
   setSession({ status: 'signedIn', email, sync: 'idle' });
   onLocalSave(schedulePush);
   const res = await syncNow();
@@ -138,6 +141,7 @@ async function enter(id: string, email: string, announce: boolean) {
 
 function leave() {
   userId = null;
+  clearSentryUser();
   if (timer) { clearTimeout(timer); timer = null; }
   onLocalSave(null);
   setSession({ status: 'guest', email: null, sync: 'idle' });
@@ -200,6 +204,7 @@ export async function signUp(email: string, password: string): Promise<Result> {
     localStorage.setItem(DEMO_USERS, JSON.stringify(users));
     localStorage.setItem(DEMO_SESSION, email);
     await enter(email, email, true);
+    trackAuthEvent('signup');
     return { ok: true, message: 'Account created.' };
   }
   try {
@@ -207,6 +212,7 @@ export async function signUp(email: string, password: string): Promise<Result> {
     const { data, error } = await c.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
     if (error) return { ok: false, message: error.message };
     if (!data.session) return { ok: true, message: 'Check your email and click the confirmation link to finish creating your account.' };
+    trackAuthEvent('signup');
     return { ok: true, message: 'Account created.' };
   } catch {
     return { ok: false, message: 'Could not reach the login service. Try again in a moment.' };
@@ -225,12 +231,14 @@ export async function signIn(email: string, password: string): Promise<Result> {
     if (users[email] !== password) return { ok: false, message: 'Wrong email or password.' };
     localStorage.setItem(DEMO_SESSION, email);
     await enter(email, email, true);
+    trackAuthEvent('login');
     return { ok: true, message: 'Logged in.' };
   }
   try {
     const c = await supabase();
     const { error } = await c.auth.signInWithPassword({ email, password });
     if (error) return { ok: false, message: error.message };
+    trackAuthEvent('login');
     return { ok: true, message: 'Logged in.' };
   } catch {
     return { ok: false, message: 'Could not reach the login service. Try again in a moment.' };
@@ -322,6 +330,7 @@ export async function deleteAccount(): Promise<Result> {
 
 /** Log out. Progress stays on the account; it is cleared from this browser so a shared computer is left clean. */
 export async function signOut(): Promise<void> {
+  trackAuthEvent('logout');
   await flush();
   if (authMode() === 'supabase') { try { await (await supabase()).auth.signOut(); } catch { /* fall through and clear locally */ } }
   else if (DEMO) localStorage.removeItem(DEMO_SESSION);

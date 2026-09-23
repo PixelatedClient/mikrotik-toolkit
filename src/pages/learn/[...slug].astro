@@ -8,8 +8,11 @@ import { LABS } from '../../data/labs';
 import { INCIDENTS } from '../../data/game/nocIncidents';
 import SimLab from '../../components/sim/SimLab';
 import LessonQuiz from '../../components/LessonQuiz';
+import VideoLesson from '../../components/VideoLesson';
 import { NocRunner } from '../../components/game/Gates';
 import AffiliateSidebar from '../../components/AffiliateSidebar';
+import UserLabs from '../../components/UserLabs';
+import LessonComments from '../../components/LessonComments';
 
 export async function getStaticPaths() {
   const all = await getCollection('courses');
@@ -28,6 +31,7 @@ const labs = (kit?.labs ?? []).map((id) => findLab(id)).filter((l) => !!l);
 const gns3 = (kit?.gns3Labs ?? []).map((id) => findLab(id)).filter((l) => !!l);
 const incidents = (kit?.incidents ?? []).map((id) => INCIDENTS.find((i) => i.id === id)).filter((i) => !!i);
 const extraToc = [
+  ...(kit?.video ? [{ slug: 'video', text: 'Video' }] : []),
   ...(labs.length || gns3.length ? [{ slug: 'lab', text: 'Lab' }] : []),
   ...(kit?.quiz?.length ? [{ slug: 'quiz', text: 'Quiz' }] : []),
   ...(incidents.length ? [{ slug: 'troubleshooting', text: 'Troubleshooting' }] : []),
@@ -55,6 +59,22 @@ const extraToc = [
         <Content />
       </article>
 
+      {kit?.video && (
+        <section id="video" aria-labelledby="video-h" class="mt-12 max-w-3xl">
+          <h2 id="video-h" class="text-2xl font-bold tracking-tight">Video</h2>
+          <p class="mt-1 text-sm text-muted">Watch a video introduction to this topic.</p>
+          <div class="mt-6">
+            <VideoLesson
+              client:load
+              videoUrl={kit.video.url}
+              title={entry.data.title}
+              duration={kit.video.duration}
+              lessonId={entry.id}
+            />
+          </div>
+        </section>
+      )}
+
       {(labs.length > 0 || gns3.length > 0) && (
         <section id="lab" aria-labelledby="lab-h" class="mt-12 max-w-4xl">
           <h2 id="lab-h" class="text-2xl font-bold tracking-tight">Lab</h2>
@@ -63,6 +83,9 @@ const extraToc = [
             <div class="mt-6">
               {labs.length > 1 && <h3 class="mb-2 text-lg font-semibold">Lab {i + 1}: {lab!.title}</h3>}
               <SimLab client:visible labId={lab!.id} />
+              <div class="mt-4">
+                <UserLabs client:visible labId={lab!.id} labTitle={lab!.title} />
+              </div>
               {LABS.some((l) => l.id === lab!.id) && <p class="mt-3 text-sm text-muted">Prefer real routers? <a class="text-accent underline" href={`/labs/${lab!.id}`}>Run this lab in GNS3</a> with free MikroTik CHR images.</p>}
             </div>
           ))}
@@ -108,6 +131,8 @@ const extraToc = [
           <p class="mt-3 text-xs text-muted">Found a mistake or an outdated command? See <a class="underline" href="/sources">how we verify</a>.</p>
         </section>
       )}
+
+      <LessonComments client:visible lessonId={entry.id} lessonTitle={entry.data.title} />
 
       <div class="mt-10 max-w-3xl rounded-xl border border-line bg-surface p-4">
         <button id="complete" data-id={entry.id} type="button" aria-pressed="false"

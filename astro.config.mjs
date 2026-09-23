@@ -3,6 +3,7 @@ import react from '@astrojs/react';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
+import sentry from '@sentry/astro';
 
 // Set SITE_URL in the deploy environment to your real domain.
 const site = process.env.SITE_URL ?? 'https://networkacademy.example';
@@ -11,7 +12,7 @@ export default defineConfig({
   site,
   // The floating Astro dev toolbar only exists in `npm run dev`; it is switched off so it never covers the page.
   devToolbar: { enabled: false },
-  integrations: [react(), mdx(), sitemap()],
+  integrations: [sentry(), react(), mdx(), sitemap()],
   vite: {
     plugins: [tailwindcss()],
     build: {

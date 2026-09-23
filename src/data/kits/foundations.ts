@@ -5,6 +5,10 @@ export const FOUNDATIONS_KITS: LessonKit[] = [
     lesson: 'foundations/01-what-is-a-network',
     level: 'Beginner',
     labs: ['first-link'],
+    video: {
+      url: 'https://www.youtube.com/embed/3QhU9jd0giI',
+      duration: '8 min',
+    },
     quiz: [
       { q: 'What does a router do that a switch does not?', options: ['Forwards frames by MAC address', 'Forwards packets between different IP networks', 'Assigns MAC addresses', 'Encrypts all traffic'], answer: 1, explain: 'A switch moves frames inside one network using MAC addresses. A router looks at the destination IP address and moves packets between networks.' },
       { q: 'Data on the wire is split into small pieces. What are the pieces called at layer 3?', options: ['Frames', 'Packets', 'Segments', 'Bits'], answer: 1, explain: 'Layer 3 (IP) carries packets. Layer 2 carries frames, and TCP carries segments.' },

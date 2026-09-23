@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { trackSponsorBannerInteraction } from '../scripts/analytics';
 
 export default function SponsorBanner() {
   const [dismissed, setDismissed] = useState(true);
@@ -7,6 +8,9 @@ export default function SponsorBanner() {
     try {
       const isDismissed = localStorage.getItem('na-sponsor-banner-dismissed') === 'true';
       setDismissed(isDismissed);
+      if (!isDismissed) {
+        trackSponsorBannerInteraction('view');
+      }
     } catch (e) {
       // localStorage access blocked
       setDismissed(true);
@@ -20,6 +24,7 @@ export default function SponsorBanner() {
     } catch (e) {
       // localStorage access blocked
     }
+    trackSponsorBannerInteraction('dismiss');
   };
 
   const handleAffiliateClick = (partnerId: string) => {

@@ -1,0 +1,97 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Sentry Test">
+  <div class="mx-auto max-w-2xl px-4 py-16">
+    <h1 class="text-3xl font-bold text-fg">Sentry Integration Test</h1>
+    <p class="mt-4 text-muted">Test various error tracking scenarios. Check your Sentry dashboard for incoming events.</p>
+
+    <div class="mt-8 space-y-4">
+      <div class="rounded-lg border border-line bg-surface p-6">
+        <h2 class="font-semibold text-fg">JavaScript Error</h2>
+        <p class="mt-2 text-sm text-muted">Trigger an unhandled JavaScript error</p>
+        <button
+          id="js-error-btn"
+          class="mt-4 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:opacity-90"
+        >
+          Throw JavaScript Error
+        </button>
+      </div>
+
+      <div class="rounded-lg border border-line bg-surface p-6">
+        <h2 class="font-semibold text-fg">Async Error</h2>
+        <p class="mt-2 text-sm text-muted">Trigger an error in an async function</p>
+        <button
+          id="async-error-btn"
+          class="mt-4 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:opacity-90"
+        >
+          Throw Async Error
+        </button>
+      </div>
+
+      <div class="rounded-lg border border-line bg-surface p-6">
+        <h2 class="font-semibold text-fg">Fetch Error</h2>
+        <p class="mt-2 text-sm text-muted">Trigger a fetch error (404)</p>
+        <button
+          id="fetch-error-btn"
+          class="mt-4 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:opacity-90"
+        >
+          Trigger Fetch Error
+        </button>
+      </div>
+
+      <div class="rounded-lg border border-line bg-surface p-6">
+        <h2 class="font-semibold text-fg">Manual Message</h2>
+        <p class="mt-2 text-sm text-muted">Send a manual debug message to Sentry</p>
+        <button
+          id="message-btn"
+          class="mt-4 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-fg hover:opacity-90"
+        >
+          Send Debug Message
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-8 rounded-lg border border-line bg-surface-2 p-4">
+      <h3 class="font-semibold text-fg">Debug Info</h3>
+      <p class="mt-2 text-sm text-muted">
+        Sentry DSN: <code class="text-xs">{import.meta.env.PUBLIC_SENTRY_DSN ? 'Configured' : 'Not configured'}</code>
+      </p>
+      <p class="mt-1 text-sm text-muted">
+        Environment: <code class="text-xs">{import.meta.env.MODE}</code>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    import { captureMessage } from '../scripts/sentry';
+
+    document.getElementById('js-error-btn')?.addEventListener('click', () => {
+      throw new Error('Test JavaScript error from button click');
+    });
+
+    document.getElementById('async-error-btn')?.addEventListener('click', async () => {
+      try {
+        await new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Test async error from promise rejection')), 100);
+        });
+      } catch (e) {
+        throw e;
+      }
+    });
+
+    document.getElementById('fetch-error-btn')?.addEventListener('click', async () => {
+      try {
+        await fetch('/nonexistent-api-endpoint-12345');
+      } catch (e) {
+        console.error('Fetch error caught:', e);
+      }
+    });
+
+    document.getElementById('message-btn')?.addEventListener('click', () => {
+      captureMessage('Test manual message from Sentry test page', 'info');
+      alert('Debug message sent to Sentry');
+    });
+  </script>
+</Base>

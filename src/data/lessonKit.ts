@@ -24,6 +24,11 @@ export interface LessonKit {
   quiz?: QuizQuestion[];
   /** NOC incident ids (nocIncidents.ts) that practise troubleshooting this topic. */
   incidents?: string[];
+  /** Optional video URL (YouTube or .mp4) for this lesson. */
+  video?: {
+    url: string;
+    duration: string;
+  };
 }
 
 import { FOUNDATIONS_KITS } from './kits/foundations';

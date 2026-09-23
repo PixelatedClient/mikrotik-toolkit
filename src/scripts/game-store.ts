@@ -1,5 +1,6 @@
 import { awardBadges, emptyState, sanitize, type Badge, type GameState } from '../lib/gamify';
 import { isSignedIn, notifyLocalSave } from './session';
+import { trackLevelWin, trackBadgeAwarded } from './analytics';
 
 const KEY = 'na-game';
 export const EVENT = 'na-game-change';

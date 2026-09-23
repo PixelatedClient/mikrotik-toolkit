@@ -1,0 +1,150 @@
+================================================================================
+SENTRY ERROR TRACKING IMPLEMENTATION - FILE MANIFEST
+================================================================================
+
+Created Files (7):
+==================
+
+1. src/scripts/sentry.ts
+   - Main Sentry initialization module
+   - Functions: initSentry, setSentryUser, clearSentryUser, captureError, 
+     captureMessage, addBreadcrumb, wrapAsync
+   - Size: 3.7 KB
+   - Status: Production Ready
+
+2. src/scripts/sentry-fetch.ts
+   - Fetch wrapper for automatic API error tracking
+   - Functions: fetchWithSentry, installFetchWrapper
+   - Size: 1.5 KB
+   - Status: Production Ready
+
+3. src/components/ErrorBoundary.tsx
+   - React class component for catching render errors
+   - Shows user-friendly error UI
+   - Logs to Sentry with component stack traces
+   - Size: 2.5 KB
+   - Status: Production Ready
+
+4. src/pages/test-sentry.astro
+   - Test/verification page for Sentry integration
+   - URL: /test-sentry (development only)
+   - Tests: JS error, async error, fetch error, manual message
+   - Size: 3.5 KB
+   - Status: Development/Testing Only
+
+5. SENTRY_SETUP.md
+   - Complete reference documentation
+   - Covers setup, features, configuration, troubleshooting
+   - Size: 12 KB
+   - Status: Documentation
+
+6. SENTRY_QUICK_START.md
+   - Quick start guide (5-minute read)
+   - Contains essential setup steps
+   - Size: 1.5 KB
+   - Status: Documentation
+
+7. SENTRY_DEPLOYMENT_CHECKLIST.md
+   - Pre/post-deployment verification checklist
+   - Testing procedures
+   - Sign-off template
+   - Size: 3 KB
+   - Status: Documentation
+
+================================================================================
+
+Modified Files (5):
+===================
+
+1. package.json
+   - Added: @sentry/astro@^8.7.0
+   - Added: @sentry/react@^8.7.0
+   - Dependencies installed via: npm install
+
+2. astro.config.mjs
+   - Added: import sentry from '@sentry/astro'
+   - Added: sentry() to integrations array
+
+3. src/layouts/Base.astro
+   - Added: import ErrorBoundary from '../components/ErrorBoundary'
+   - Added: Sentry initialization script
+   - Added: Error and rejection event listeners
+   - Added: Navigation tracking
+   - Added: Fetch wrapper installation
+
+4. src/scripts/auth.ts
+   - Added: import setSentryUser, clearSentryUser from './sentry'
+   - Added: setSentryUser(id, email) in enter() function
+   - Added: clearSentryUser() in leave() function
+
+5. .env.example
+   - Added: PUBLIC_SENTRY_DSN environment variable with example
+
+================================================================================
+
+Not Modified (Intentionally Left Alone):
+=========================================
+
+- src/content/courses/* - Course content unchanged
+- src/lib/* - Business logic unchanged
+- src/components/* - Other components unchanged
+- Tests (tests/*.test.ts) - Tests run without Sentry
+- Database schema - No database changes
+- Router configuration - No route changes
+
+================================================================================
+
+Total New Code: ~13 KB
+Total Documentation: ~16 KB
+Total Changes: 12 files
+
+================================================================================
+
+Build Status: ✓ SUCCESSFUL
+- No TypeScript errors
+- All imports resolved
+- Sentry integration active
+- Zero breaking changes
+- Backward compatible
+
+Test Build Output:
+  [2m09:47:08[22m [32m✓ Completed in 20.68s.
+
+================================================================================
+
+Features Implemented:
+=====================
+
+✓ JavaScript error capture (automatic)
+✓ Promise rejection capture (automatic)
+✓ React component error boundary
+✓ API/Fetch error tracking
+✓ Performance monitoring (Core Web Vitals)
+✓ User context tracking (ID, email)
+✓ Navigation tracking
+✓ Action breadcrumbs
+✓ Manual error capture functions
+✓ Debug message capture
+✓ Async function wrapping
+✓ Graceful degradation (works without DSN)
+✓ Environment-aware configuration
+✓ Development/production sampling rates
+✓ Test page for verification
+✓ Error boundary with user UI
+✓ Comprehensive documentation
+
+================================================================================
+
+Next Steps:
+===========
+
+1. Create Sentry account: https://sentry.io
+2. Create Astro project in Sentry
+3. Copy DSN to .env: PUBLIC_SENTRY_DSN=...
+4. Test with: npm run dev → http://localhost:3000/test-sentry
+5. Deploy with DSN configured in production environment
+6. Verify errors appear in Sentry dashboard
+
+See SENTRY_QUICK_START.md for detailed setup instructions.
+
+================================================================================

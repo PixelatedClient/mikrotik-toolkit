@@ -1,0 +1,80 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+import { kitFor } from '../data/lessonKit';
+import { trackById } from '../data/tracks';
+
+const all = await getCollection('courses');
+const withVideos = all
+  .map((entry) => {
+    const kit = kitFor(entry.id);
+    if (!kit?.video) return null;
+    const track = trackById(entry.data.track);
+    return {
+      id: entry.id,
+      title: entry.data.title,
+      track,
+      module: entry.data.module,
+      duration: entry.data.duration,
+      videoDuration: kit.video.duration,
+      summary: entry.data.summary,
+    };
+  })
+  .filter((v) => v !== null);
+
+const grouped = Array.from(
+  withVideos.reduce((map, v) => {
+    const trackName = v!.track?.name || 'Unknown';
+    if (!map.has(trackName)) map.set(trackName, []);
+    map.get(trackName)!.push(v);
+    return map;
+  }, new Map<string, typeof withVideos>())
+);
+---
+
+<Base title="Video Lessons" description="Video introductions to networking topics">
+  <div class="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+    <div class="mb-10">
+      <h1 class="text-4xl font-bold tracking-tight">Video Lessons</h1>
+      <p class="mt-3 text-lg text-muted">
+        Watch video introductions to key networking topics. Each video complements the written lesson and is tracked in your progress.
+      </p>
+    </div>
+
+    {grouped.length === 0 ? (
+      <div class="rounded-lg border border-line bg-surface p-6 text-center">
+        <p class="text-muted">No video lessons available yet. Check back soon!</p>
+      </div>
+    ) : (
+      <div class="space-y-12">
+        {grouped.map(([trackName, videos]) => (
+          <section>
+            <h2 class="text-2xl font-bold tracking-tight mb-4">{trackName}</h2>
+            <div class="grid gap-4 sm:grid-cols-2">
+              {videos.map((v) => (
+                v && (
+                  <a
+                    href={`/learn/${v.id}#video`}
+                    class="group rounded-lg border border-line bg-surface p-4 transition hover:border-accent hover:bg-bg"
+                  >
+                    <div class="mb-2 flex items-start justify-between">
+                      <div>
+                        <p class="text-xs font-medium text-accent">Module {v.module}</p>
+                        <h3 class="mt-1 font-semibold group-hover:text-accent">{v.title}</h3>
+                      </div>
+                    </div>
+                    <p class="text-sm text-muted line-clamp-2">{v.summary}</p>
+                    <div class="mt-3 flex gap-4 text-xs text-muted">
+                      <span>Lesson: {v.duration}</span>
+                      <span>Video: {v.videoDuration}</span>
+                    </div>
+                  </a>
+                )
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    )}
+  </div>
+</Base>

@@ -51,7 +51,7 @@ describe('lesson frontmatter', () => {
 
 describe('internal links', () => {
   const ids = new Set(lessons.map((l) => l.id));
-  const routes = new Set(['/', '/learn', '/tools', '/labs', '/tools/subnet-calculator', '/tools/mikrotik-config-generator', '/tools/bgp-lab', '/tools/subnet-trainer', '/tools/vlan-designer', '/tools/stp-lab']);
+  const routes = new Set(['/', '/learn', '/tools', '/labs', '/tools/subnet-calculator', '/tools/mikrotik-config-generator', '/tools/bgp-lab', '/tools/subnet-trainer', '/tools/vlan-designer', '/tools/stp-lab', '/community']);
   const links = lessons.flatMap((l) => [...l.body.matchAll(/\]\((\/[^)\s]*)\)/g)].map((m) => ({ from: l.id, href: m[1] })));
 
   it('has links to check', () => expect(links.length).toBeGreaterThan(10));
@@ -75,7 +75,7 @@ describe('lab downloads', () => {
   });
 });
 
-const COMPONENTS = ['SubnetCalculator', 'SubnetTrainer', 'PacketJourney', 'BgpLab', 'BgpSession', 'Challenge', 'StpLab', 'AffiliateLinks'];
+const COMPONENTS = ['SubnetCalculator', 'SubnetTrainer', 'PacketJourney', 'BgpLab', 'BgpSession', 'Challenge', 'StpLab', 'AffiliateLinks', 'VideoLesson'];
 
 describe('MDX safety', () => {
   for (const l of lessons) {
