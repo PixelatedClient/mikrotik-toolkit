@@ -12,7 +12,25 @@ export default defineConfig({
   // The floating Astro dev toolbar only exists in `npm run dev`; it is switched off so it never covers the page.
   devToolbar: { enabled: false },
   integrations: [react(), mdx(), sitemap()],
-  vite: { plugins: [tailwindcss()] },
+  vite: {
+    plugins: [tailwindcss()],
+    build: {
+      // Enable code splitting for better caching and parallel loading
+      rollupOptions: {
+        output: {
+          // Use function form for Rolldown compatibility
+          manualChunks: (id) => {
+            if (id.includes('AuthBar')) return 'auth-ui';
+            if (id.includes('game/ui')) return 'game-ui';
+          },
+        },
+      },
+      // Warn if chunks exceed 200KB (to catch bloat)
+      chunkSizeWarningLimit: 200,
+      // Target modern browsers for smaller output
+      target: 'es2020',
+    },
+  },
   markdown: {
     shikiConfig: {
       themes: { light: 'github-light', dark: 'github-dark' },
