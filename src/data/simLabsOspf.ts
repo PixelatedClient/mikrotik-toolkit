@@ -380,7 +380,7 @@ export const OSPF_LABS: SimLab[] = [
         detail:
           'Each router should see: R1(3 neighbours), R2(2), R3(2), R4(3). Check the route from R1 to 192.168.4.0/24 - it should prefer the R1→R3→R4 path (cost 21) over the diagonal (cost 101).',
         hints: [
-          '/routing ospf neighbor print on each router',
+          '/routing ospf neighbor print on each router to verify all neighbours are Full',
           '/ip route print where ospf on R1 to see the route',
           'Traceroute should show: PC1 → 192.168.1.1 → 10.0.13.2 (R3) → 192.168.4.1 (R4 LAN address)',
         ],
@@ -391,8 +391,10 @@ export const OSPF_LABS: SimLab[] = [
           { kind: 'ospf-neighbors', on: 'R4', count: 3 },
           { kind: 'route', on: 'R1', dst: '192.168.4.0/24', via: '10.0.13.2' },
           { kind: 'ping', from: 'PC1', to: '192.168.4.10', expect: 'reply' },
+          { kind: 'ran', on: 'R1', pattern: 'ospf\\s+neighbor\\s+print' },
         ],
         solution: [
+          SW('R1', ['/routing ospf neighbor print']),
           SW('R1', ['/ip route print where ospf']),
           SW('PC1', ['ping 192.168.4.10']),
         ],
