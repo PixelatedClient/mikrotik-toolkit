@@ -1,0 +1,22 @@
+---
+import Base from '../../layouts/Base.astro';
+import { PracticeRunner } from '../../components/game/Gates';
+import { TOPICS } from '../../lib/practice';
+
+export function getStaticPaths() {
+  return [
+    { params: { topic: 'daily' }, props: { name: 'Daily challenge' } },
+    { params: { topic: 'mixed' }, props: { name: 'Mixed' } },
+    ...TOPICS.map((t) => ({ params: { topic: t.id }, props: { name: t.name } })),
+  ];
+}
+const { topic } = Astro.params;
+const { name } = Astro.props;
+---
+<Base title={`${name} practice`} description={`Practice networking questions: ${name}. Instant explanations, XP and streaks.`}>
+  <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <p class="text-sm"><a class="text-accent underline" href="/practice">All topics</a></p>
+    <h1 class="mt-3 text-xl font-bold">{name}</h1>
+    <div class="mt-6"><PracticeRunner client:load topic={topic as string} /></div>
+  </div>
+</Base>

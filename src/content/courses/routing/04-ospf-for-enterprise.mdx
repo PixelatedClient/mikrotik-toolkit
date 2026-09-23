@@ -1,0 +1,100 @@
+---
+title: "OSPF for Enterprise Networks"
+track: "routing"
+module: "5.4"
+order: 4
+duration: "45 min"
+summary: "Areas, network types, costs and designing a stable OSPF network."
+status: "sourced"
+verifiedAgainst: "RFC 2328 and this project's own GNS3 verification on real RouterOS 7.16"
+sources:
+  - title: "RFC 2328: OSPF Version 2"
+    url: "https://www.rfc-editor.org/rfc/rfc2328"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "OSPF"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/9863229/OSPF"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+---
+
+## Link-state in brief
+
+Every OSPF router builds a database of the network from **link-state advertisements** (LSAs), then runs the SPF algorithm to compute shortest paths. All routers in an **area** have the same database.
+
+It suits an internal network: fast convergence, no manual routes, cost-based paths.
+
+## Areas
+
+- **Backbone (area 0)**: RFC 2328 calls this "the special OSPF Area 0" that every other area connects to.
+- **Regular areas**: contain routers and links. Limit LSA flooding to the area.
+- Design rule: keep areas small (tens of routers), and **summarise** at the area border (ABR).
+
+A single-area design is fine up to a modest size. Add areas when the flood domain grows or when you need summarisation.
+
+## Neighbours and adjacency
+
+Routers form neighbours with Hello packets. Both sides must agree on: area, network type, hello/dead timers, subnet, and authentication. When neighbours are stuck, compare exactly those.
+
+Neighbour states end at **Full** (RFC 2328: complete database synchronisation) or **2-Way** for non-DR routers on a shared segment (a working bidirectional relationship that never becomes a full adjacency).
+
+## Network types
+
+- **Broadcast**: RFC 2328 requires "each broadcast and NBMA network that has at least two attached routers" to elect a **DR** and **BDR**, specifically to reduce the number of adjacencies needed.
+- **Point-to-point**: only two routers are ever involved, so RFC 2328 notes no election is needed at all — faster. Use it for router-to-router links, even over Ethernet.
+
+```
+/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.1
+/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1
+/routing ospf interface-template add area=backbone networks=10.0.12.0/30 type=ptp
+/routing ospf interface-template add area=backbone networks=192.168.1.0/24 passive
+```
+
+Mark LAN-facing interfaces **passive**: the prefix is advertised, but no neighbours form there. Write `passive` bare, with no `=yes` — this project confirmed directly on a real RouterOS 7.16 router that `passive=yes` is a syntax error, and `type=ptp` (not `point-to-point`) is what that same router actually accepts.
+
+## Cost
+
+RFC 2328 leaves link cost "configurable by the system administrator," and most implementations (including RouterOS) default to deriving it from interface bandwidth, so a fast link wins by default. In modern networks all links exceed the reference bandwidth and look equal, so set costs by hand:
+
+```
+/routing ospf interface-template set [find networks=10.0.12.0/30] cost=10
+```
+
+Choose a scheme: e.g. 10 for a 10G link, 100 for 1G, 1000 for a backup path.
+
+## Redistribution
+
+Bring outside routes in with care:
+
+```
+/routing ospf instance set ospf1 redistribute=connected,static
+```
+
+Filter what you redistribute so a mistake does not inject the whole world. For a default route, originate it from the edge only.
+
+## Router ID and stability
+
+- Set the router ID from a **loopback** address, not from an interface that can go down.
+- Give each router a /32 loopback and advertise it as passive. It is the target for management and iBGP.
+
+## Verify
+
+```
+/routing ospf neighbor print
+/routing ospf lsa print
+/ip route print where ospf
+```
+
+## Convergence
+
+Timers can be tightened, but the better fix is **BFD**, which detects link failure in milliseconds regardless of hello timers. See [BFD and fast failover](/learn/routing/07-bfd-fast-failover).
+
+## Lab on real routers (GNS3)
+
+Bring up the [OSPF triangle lab](/labs/ospf-triangle), cut the cheap path and measure the failover.
+
+## Check yourself
+
+- Why does a point-to-point link need no DR/BDR election, when a broadcast segment does?
+- What syntax mistake does a bare `passive` flag prevent, on real RouterOS 7.16?
+- Why might every link in a modern network "look equal" to OSPF's default cost calculation, and what's the fix?

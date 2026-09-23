@@ -1,0 +1,145 @@
+{
+ "name": "routing-basics",
+ "description": "Addresses, connected/static routes, ping, traceroute, drop vs reject across ISP1 - ISP2 and R4 - R2.",
+ "devices": [
+  "ISP1",
+  "ISP2",
+  "R4",
+  "R2"
+ ],
+ "steps": [
+  [
+   "ISP1",
+   "/ip address add address=10.0.0.1/30 interface=ether1"
+  ],
+  [
+   "ISP2",
+   "/ip address add address=10.0.0.2/30 interface=ether1"
+  ],
+  [
+   "ISP1",
+   "/ping 10.0.0.2 count=3",
+   "warm"
+  ],
+  [
+   "ISP2",
+   "/ping 10.0.0.1 count=3",
+   "warm"
+  ],
+  [
+   "ISP1",
+   "/ip address add address=10.0.0.1/30 interface=ether1"
+  ],
+  [
+   "ISP1",
+   "/ip address add address=10.0.0.9/99 interface=ether1"
+  ],
+  [
+   "ISP1",
+   "/ip address add address=10.1.1.1/24 interface=ether9"
+  ],
+  [
+   "ISP1",
+   "/ip address print where interface=ether1"
+  ],
+  [
+   "ISP1",
+   "/ip route print where dst-address=10.0.0.0/30"
+  ],
+  [
+   "ISP1",
+   "/ping 10.0.0.2 count=2"
+  ],
+  [
+   "ISP1",
+   "/ping 10.9.9.9 count=2"
+  ],
+  [
+   "ISP1",
+   "/ip route add dst-address=192.168.50.0/24 gateway=10.0.0.2"
+  ],
+  [
+   "ISP1",
+   "/ip route add dst-address=192.168.60.0/24 gateway=10.7.7.7"
+  ],
+  [
+   "ISP1",
+   "/ip route print where dst-address~\"^192.168.[56]\""
+  ],
+  [
+   "ISP2",
+   "/ip address add address=192.168.50.1/24 interface=ether3"
+  ],
+  [
+   "ISP1",
+   "/ping 192.168.50.1 count=3",
+   "warm"
+  ],
+  [
+   "ISP1",
+   "/ping 192.168.50.1 count=2"
+  ],
+  [
+   "ISP1",
+   "/ping 192.168.60.1 count=2"
+  ],
+  [
+   "ISP2",
+   "/ip firewall filter add chain=input action=drop protocol=icmp"
+  ],
+  [
+   "ISP1",
+   "/ping 10.0.0.2 count=3",
+   "warm"
+  ],
+  [
+   "ISP1",
+   "/ping 10.0.0.2 count=2"
+  ],
+  [
+   "ISP2",
+   "/ip firewall filter remove [find]"
+  ],
+  [
+   "ISP2",
+   "/ip firewall filter add chain=input action=reject protocol=icmp reject-with=icmp-host-unreachable"
+  ],
+  [
+   "ISP1",
+   "/ping 10.0.0.2 count=3",
+   "warm"
+  ],
+  [
+   "ISP1",
+   "/ping 10.0.0.2 count=2"
+  ],
+  [
+   "ISP2",
+   "/ip firewall filter print"
+  ],
+  [
+   "ISP1",
+   "/ip route remove [find where dst-address=192.168.50.0/24]"
+  ],
+  [
+   "ISP1",
+   "/ip route print count-only where dst-address~\"^192.168.[56]\""
+  ],
+  [
+   "ISP1",
+   "/interface disable ether1"
+  ],
+  [
+   "ISP1",
+   "/ip route print where dst-address=10.0.0.0/30"
+  ],
+  [
+   "ISP1",
+   "/system identity set name=edge-a"
+  ],
+  [
+   "ISP1",
+   "/system identity print"
+  ]
+ ]
+}

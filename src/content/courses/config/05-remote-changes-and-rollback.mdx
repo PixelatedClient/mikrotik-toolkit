@@ -1,0 +1,75 @@
+---
+title: "Remote Changes and Rollback"
+track: "config"
+module: "8.5"
+order: 5
+duration: "40 min"
+summary: "Change a router you cannot walk up to: safe mode, timed reverts, watching connectivity and knowing how to recover."
+---
+
+## The fear is real
+
+When you change a router over the network, one wrong line can cut the connection you are using. You then cannot undo it, and the router may be hundreds of kilometres away. Good habits make this rare, and a rollback plan makes it survivable.
+
+## Safe mode
+
+Safe mode records the changes you make in a session. If your connection drops, RouterOS undoes them. In the terminal you toggle it with **Ctrl+X**. Winbox has a Safe Mode button.
+
+Typical use:
+
+1. Turn on safe mode.
+2. Make the risky change.
+3. If you can still talk to the router and everything works, leave safe mode to keep the changes.
+4. If the change cuts you off, the router reverts and you reconnect.
+
+Safe mode keeps a limited history of changes, so it is for one change at a time, not for a long editing session.
+
+## A timed revert
+
+If you cannot use safe mode, use the scheduler as a dead man switch. Before the risky change, schedule an undo. If everything works, cancel it.
+
+```
+/system scheduler add name=undo-change start-time=[/system clock get time] interval=0 on-event={ /import file-name=known-good.rsc }
+```
+
+That form is only a sketch: the exact undo depends on your change. Some simpler versions are good enough:
+
+- schedule a `/ip firewall filter disable` of the rule you are adding,
+- schedule re-enabling an interface you are about to disable,
+- schedule a reboot to a known configuration you saved.
+
+After the change, verify. If it is fine, remove the scheduled entry:
+
+```
+/system scheduler remove undo-change
+```
+
+Set the delay to a few minutes so you have time to test, and always confirm you removed it.
+
+## Watch the path
+
+While you work, keep a ping running from another window to the router and to something behind it. If the ping stops, stop typing and decide, do not keep pasting.
+
+Netwatch can also react when a host stops answering, for example to run a script that restores a route:
+
+```
+/tool netwatch add host=10.0.99.1 interval=10s down-script={ :log warning "gateway down" }
+```
+
+## An out-of-band way in
+
+For routers that matter, have a second path that does not depend on the one you are changing: a management VLAN on a different link, a serial console server, a 4G modem on a separate address, or a person on site with a phone. Decide this before you need it.
+
+## Recovery when you did lock yourself out
+
+- **Reach it another way**: a neighbouring router on the same network can reach a router by its link-local IPv6 address, or by MAC address using the MAC-telnet or MAC-Winbox tools. Both work without any IPv4 address.
+- **Use the console**: a virtual router has a console in your lab software. Real hardware has a serial port.
+- **Last resort**: a reset with your saved export ready to import.
+
+This is why the previous lessons matter: a current backup and export turn a lockout into an annoying hour instead of a disaster.
+
+## Check yourself
+
+- What does safe mode do when your connection drops?
+- Why is a timed revert only as good as your check that you cancelled it?
+- Which out-of-band path would you set up for a remote site?

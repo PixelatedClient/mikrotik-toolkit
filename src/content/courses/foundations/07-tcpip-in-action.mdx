@@ -1,0 +1,99 @@
+---
+title: "TCP/IP in Action"
+track: "foundations"
+module: "1.7"
+order: 7
+duration: "40 min"
+summary: "TCP handshakes, UDP, ports, and reading real traffic with tcpdump and Wireshark."
+status: "sourced"
+verifiedAgainst: "RFC 9293 and RFC 768"
+sources:
+  - title: "RFC 9293: Transmission Control Protocol (TCP)"
+    url: "https://www.rfc-editor.org/rfc/rfc9293"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 768: User Datagram Protocol"
+    url: "https://www.rfc-editor.org/rfc/rfc768"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+## Ports and sockets
+
+An IP address finds the host; a **port** finds the application. A connection is identified by five things: protocol, source IP, source port, destination IP, destination port.
+
+| Port | Service |
+|---|---|
+| 22 | SSH |
+| 53 | DNS |
+| 80 / 443 | HTTP / HTTPS |
+| 179 | BGP |
+
+Servers listen on well-known ports. Clients pick a random high source port.
+
+## TCP vs UDP
+
+- **TCP**: reliable, ordered, connection-oriented. Retransmits lost data. Web, SSH, BGP.
+- **UDP**: RFC 768 describes it as "transaction oriented," with delivery and duplicate protection "not guaranteed" — no connection, no guarantees, low overhead. DNS queries, VoIP, video, games, WireGuard.
+
+## The TCP handshake
+
+```
+Client → Server   SYN
+Server → Client   SYN, ACK
+Client → Server   ACK
+```
+
+RFC 9293 describes this three-message exchange as necessary because sequence numbers "are not tied to a global clock in the network," so each side has to state and confirm its own starting sequence number before data can safely flow. Closing uses `FIN` in each direction — RFC 9293 notes the two directions of a connection close independently, which is why a `FIN` from one side does not necessarily mean the other side is done sending — or `RST` to abort immediately, which RFC 9293 specifies for cases like a segment arriving for a connection that no longer exists.
+
+Diagnosing from the flags:
+
+- **SYN with no reply**: firewall drop or host down.
+- **SYN then RST**: host is up, nothing listening on that port.
+- **Many retransmissions**: packet loss on the path.
+
+## MTU and fragmentation
+
+Ethernet carries up to **1500 bytes** of IP packet (the MTU). PPPoE and tunnels add headers, lowering it (1492 for PPPoE, ~1420 for WireGuard). If a packet is too big and cannot be fragmented, it is dropped. Symptom: small pages load, large downloads hang. The fix is to lower the MSS or MTU.
+
+## Capture with tcpdump
+
+```
+sudo tcpdump -i eth0 -n host 8.8.8.8
+sudo tcpdump -i eth0 -n port 53
+sudo tcpdump -i eth0 -n 'tcp[tcpflags] & tcp-syn != 0'
+sudo tcpdump -i eth0 -w capture.pcap
+```
+
+`-n` skips name resolution, so output is fast and does not create its own DNS traffic. Save with `-w` and open in Wireshark for a proper look.
+
+## Wireshark display filters
+
+```
+ip.addr == 192.168.1.10
+tcp.port == 443
+dns
+tcp.flags.syn == 1 && tcp.flags.ack == 0
+tcp.analysis.retransmission
+```
+
+Useful views: **Statistics → Conversations** (who talks most) and **Follow TCP Stream** (reassemble a session).
+
+## On a MikroTik
+
+```
+/tool sniffer quick ip-address=8.8.8.8
+/tool torch interface=ether1
+```
+
+## Lab on real routers (GNS3)
+
+1. Run `ping` and `curl https://example.com` while capturing.
+2. Find the DNS query, the TCP handshake, and the TLS hello.
+3. Block port 443 in a firewall rule and repeat. What changes in the capture: silence (drop) or a `RST` (reject)?
+
+## Check yourself
+
+- Why does TCP need a three-way handshake instead of the client just starting to send data?
+- What does UDP explicitly not guarantee, according to RFC 768, and why does that make it a poor fit for a file transfer but a fine fit for a DNS query?
+- If a SYN gets a RST back immediately, what does that tell you that a SYN with no reply at all does not?

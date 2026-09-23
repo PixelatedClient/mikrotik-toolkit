@@ -1,0 +1,65 @@
+---
+title: "Designing an IP Addressing Plan"
+track: "design"
+module: "7.2"
+order: 2
+duration: "40 min"
+summary: "Build an addressing plan that survives growth: hierarchy, summarisation, a size for every segment and room to grow."
+---
+
+## Why a plan at all
+
+Addresses handed out in the order of arrival end up scattered. Routing tables grow, firewall rules become long lists, and nobody remembers what 10.4.77.0/24 was for. A plan makes addresses **meaningful**: from an address you can tell where it is and what it is.
+
+## Rules of thumb
+
+1. **Use one private block and slice it.** For example 10.0.0.0/8 or a part of it. Keep 172.16.0.0/12 and 192.168.0.0/16 for special cases such as customer networks that must not overlap.
+2. **Give every site a block that can be summarised.** A site with 4 VLANs gets a /22, a small site gets a /24 or /23. Then the rest of the network needs one route per site instead of one per VLAN.
+3. **Align to the bit boundary.** A /22 must start on a multiple of 4 in the third octet: 10.1.0.0, 10.1.4.0, 10.1.8.0. Misaligned blocks cannot be summarised.
+4. **Leave gaps for growth.** Never pack blocks tightly. If you use only half of a /22 today, the other half is your future.
+5. **Reserve small blocks for infrastructure.** Router to router links use /30 or /31, loopbacks use /32, management gets its own /24.
+6. **Write it down.** A spreadsheet or a wiki page is part of the design.
+
+## Sizing a segment
+
+Count hosts, add growth, round up to the next power of two, add two (network and broadcast).
+
+| Hosts needed (with growth) | Prefix | Usable |
+|---|---|---|
+| Up to 6 | /29 | 6 |
+| Up to 14 | /28 | 14 |
+| Up to 30 | /27 | 30 |
+| Up to 62 | /26 | 62 |
+| Up to 126 | /25 | 126 |
+| Up to 254 | /24 | 254 |
+
+## An example: three sites from 10.10.0.0/16
+
+| Site | Block | What lives in it |
+|---|---|---|
+| Head office | 10.10.0.0/20 | 16 x /24 for VLANs, servers, management |
+| Branch A | 10.10.16.0/22 | 4 x /24 |
+| Branch B | 10.10.20.0/22 | 4 x /24 |
+| Infrastructure | 10.10.255.0/24 | loopbacks and links |
+| Spare | 10.10.24.0/21 onward | future sites |
+
+Inside the head office, use a pattern for the third octet. For example VLAN 10 staff is 10.10.10.0/24, VLAN 20 guest is 10.10.20.0/24 ... and keep the pattern identical at every site. This is what the VLAN designer in this site does: it derives the subnet from the VLAN number so a name and an address always agree.
+
+Head office summary route: one line, 10.10.0.0/20, instead of sixteen.
+
+## Use the tools
+
+Check your slicing with the subnet calculator, and the trainer is good practice for the quick mental maths.
+
+## Mistakes to avoid
+
+- **Overlaps.** Two sites using 192.168.1.0/24 cannot be joined later without NAT. Check before you connect a partner or a VPN.
+- **Public addresses on private networks** because "it works".
+- **One giant /16 flat network.** Broadcast traffic and troubleshooting both suffer.
+- **No management network.** Put device management on its own segment.
+
+## Check yourself
+
+- Why must a /22 start at a multiple of 4 in the third octet?
+- Which prefix would you give a link between two routers?
+- What does summarisation save you?

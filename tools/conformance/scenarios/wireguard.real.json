@@ -1,0 +1,97 @@
+[
+  {
+    "dev": "ISP1",
+    "cmd": "/interface wireguard add name=wg0 listen-port=13231",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface wireguard print",
+    "out": "Flags: X - disabled; R - running \n 0  R name=\"wg0\" mtu=1420 listen-port=13231 \n      private-key=\"aJ03z5Dnv85KXyhEnfOIlqieR6hXCqywI6sAjah7a0s=\" \n      public-key=\"bJ9EcHhSOozg9B8MmaPhDe8EIG/JU44kSzfURG9UFHw=\" \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface wireguard print detail",
+    "out": "Flags: X - disabled; R - running \n 0  R name=\"wg0\" mtu=1420 listen-port=13231 \n      private-key=\"aJ03z5Dnv85KXyhEnfOIlqieR6hXCqywI6sAjah7a0s=\" \n      public-key=\"bJ9EcHhSOozg9B8MmaPhDe8EIG/JU44kSzfURG9UFHw=\" \n\n"
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/interface wireguard add name=wg0 listen-port=13231",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.9.9.1/30 interface=wg0",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip address add address=10.9.9.2/30 interface=wg0",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.1.1.1/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip address add address=10.1.1.2/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface wireguard peers add interface=wg0 public-key=\"wCBSeaW8oKLUZxJsxnxlPkT869AEmno1gYQalFQW5wA=\" endpoint-address=10.1.1.2 endpoint-port=13231 allowed-address=10.9.9.2/32,192.168.20.0/24",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/interface wireguard peers add interface=wg0 public-key=\"gbBBjNTTNCrNtPlGhUBGiDGaYO3tWRGeoyPeEsE1jHo=\" endpoint-address=10.1.1.1 endpoint-port=13231 allowed-address=10.9.9.1/32,192.168.10.0/24",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "#sleep 6",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface wireguard peers print",
+    "out": "Columns: INTERFACE, PUBLIC-KEY, ENDPOINT-ADDRESS, ENDPOINT-PORT\n# INTERFACE  PUBLIC-KEY                                    ENDPOINT  ENDPO\n0 wg0        wCBSeaW8oKLUZxJsxnxlPkT869AEmno1gYQalFQW5wA=  10.1.1.2  13231\n                                                                          \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface wireguard peers print detail",
+    "out": "Flags: X - disabled; D - dynamic \n 0    interface=wg0 name=\"peer8\" \n      public-key=\"wCBSeaW8oKLUZxJsxnxlPkT869AEmno1gYQalFQW5wA=\" \n      private-key=\"\" endpoint-address=10.1.1.2 endpoint-port=13231 \n      current-endpoint-address=10.1.1.2 current-endpoint-port=13231 \n      allowed-address=10.9.9.2/32,192.168.20.0/24 preshared-key=\"\" \n      client-endpoint=\"\" rx=0 tx=0 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 10.9.9.2 count=3",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 10.9.9.2                                                     timeout     \n    1 10.9.9.2                                                     timeout     \n    2 10.9.9.2                                                     timeout     \n    sent=3 received=0 packet-loss=100% \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route add dst-address=192.168.20.0/24 gateway=wg0",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip route add dst-address=192.168.10.0/24 gateway=wg0",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print where dst-address=192.168.20.0/24",
+    "out": "Flags: A - ACTIVE; s - STATIC\nColumns: DST-ADDRESS, GATEWAY, DISTANCE\n#    DST-ADDRESS      GATEWAY  DISTANCE\n0 As 192.168.20.0/24  wg0             1\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print detail where dst-address=192.168.20.0/24",
+    "out": "Flags: D - dynamic; X - disabled, I - inactive, A - active; \nc - connect, s - static, r - rip, b - bgp, o - ospf, i - is-is, d - dhcp, v - vpn, m - modem, y - bgp-mpls-vpn; \nH - hw-offloaded; + - ecmp \n 0  As   dst-address=192.168.20.0/24 routing-table=main gateway=wg0 \n         immediate-gw=wg0 distance=1 scope=30 target-scope=10 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/export",
+    "out": "# 2026-09-22 00:56:19 by RouterOS 7.16\n# software id = \n#\n/interface ethernet\nset [ find default-name=ether1 ] disable-running-check=no\nset [ find default-name=ether2 ] disable-running-check=no\nset [ find default-name=ether3 ] disable-running-check=no\nset [ find default-name=ether4 ] disable-running-check=no\nset [ find default-name=ether5 ] disable-running-check=no\nset [ find default-name=ether6 ] disable-running-check=no\nset [ find default-name=ether7 ] disable-running-check=no\nset [ find default-name=ether8 ] disable-running-check=no\n/interface wireguard\nadd listen-port=13231 mtu=1420 name=wg0\n/port\nset 0 name=serial0\n/ip neighbor discovery-settings\nset discover-interface-list=all\n/interface wireguard peers\nadd allowed-address=10.9.9.2/32,192.168.20.0/24 endpoint-address=10.1.1.2 \\\n    endpoint-port=13231 interface=wg0 name=peer8 public-key=\\\n    \"wCBSeaW8oKLUZxJsxnxlPkT869AEmno1gYQalFQW5wA=\"\n/ip address\nadd address=10.9.9.1/30 interface=wg0 network=10.9.9.0\nadd address=10.1.1.1/30 interface=ether1 network=10.1.1.0\n/ip dhcp-client\nadd add-default-route=no interface=ether8\n/ip route\nadd dst-address=192.168.20.0/24 gateway=wg0\n/system note\nset show-at-login=no\n/tool mac-server\nset allowed-interface-list=*2000015\n/tool mac-server mac-winbox\nset allowed-interface-list=*2000015\n/tool sniffer\nset filter-interface=ether1 filter-ip-protocol=udp,icmp memory-limit=1000KiB\n"
+  }
+]

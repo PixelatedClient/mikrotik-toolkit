@@ -1,0 +1,52 @@
+---
+title: "VXLAN and EVPN Concepts"
+track: "cloud-dc"
+module: "12.1"
+order: 1
+duration: "35 min"
+summary: "How data centres stretch Layer 2 networks across a routed fabric, and how EVPN gives that fabric a control plane."
+status: "sourced"
+verifiedAgainst: "RFC 7348, RFC 7432, RFC 8365"
+sources:
+  - title: "RFC 7348: Virtual eXtensible Local Area Network (VXLAN) — A Framework for Overlaying Virtualized Layer 2 Networks over Layer 3 Networks"
+    url: "https://www.rfc-editor.org/rfc/rfc7348"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 7432: BGP MPLS-Based Ethernet VPN"
+    url: "https://www.rfc-editor.org/rfc/rfc7432"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 8365: A Network Virtualization Overlay Solution Using Ethernet VPN (EVPN)"
+    url: "https://www.rfc-editor.org/rfc/rfc8365"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+---
+
+## The problem VXLAN solves
+
+Traditional VLANs (Layer 2 in Depth track) are limited to 4094 IDs and don't cross routed boundaries — a VLAN can't span two data centres connected only by routed links without a tunnel of some kind. Large data centres and multi-tenant clouds need far more than 4094 isolated segments, and need those segments reachable across a routed (Layer 3) core rather than one big fragile spanning-tree domain.
+
+## What VXLAN actually does
+
+VXLAN (**Virtual Extensible LAN**) wraps an entire Ethernet frame — including its original header — inside a UDP packet, and sends that UDP packet across an ordinary routed IP network. The receiving end unwraps it and delivers the original frame as if it had arrived on a local switch port. This is why VXLAN is called an **overlay**: a Layer 2 network logically laid on top of a Layer 3 network that has no idea it's carrying Ethernet frames at all, only UDP packets between two IP endpoints.
+
+Two ideas make this work:
+
+- **VNI (VXLAN Network Identifier)**: a 24-bit segment ID, VXLAN's answer to the VLAN's 12-bit limit — about 16 million segments instead of 4094.
+- **VTEP (VXLAN Tunnel Endpoint)**: the device (physical switch or virtual switch on a hypervisor) that wraps and unwraps frames at each end of the tunnel. Two VTEPs on the same VNI, however many routed hops apart, behave like they're on the same Layer 2 segment.
+
+## The control-plane gap, and EVPN
+
+Original VXLAN had no built-in way for VTEPs to learn where a given MAC address lives — it relied on flooding unknown traffic to every VTEP (via multicast or a manually configured list), which doesn't scale and behaves a lot like the flooding problem plain switching already has.
+
+**EVPN (Ethernet VPN)** fixes this by using BGP (Advanced Routing track) as VXLAN's control plane: VTEPs advertise "this MAC address is reachable through me" as a BGP update, the same way a router advertises a reachable prefix. Other VTEPs learn MAC reachability from BGP instead of from flooding, which is why EVPN pairs with VXLAN so often in modern data-centre design — it directly reuses BGP's proven scaling to solve VXLAN's missing control plane, instead of inventing a new protocol.
+
+## Where this fits
+
+VXLAN with an EVPN control plane is the standard modern replacement for stretching VLANs across a data centre fabric or between data centres — it gives the segment scale VLANs can't (16 million vs 4094), keeps the core a plain routed IP network (avoiding a fabric-wide spanning tree domain), and uses BGP, an already well-understood protocol, to distribute MAC reachability instead of relying on flooding.
+
+## Check yourself
+
+- What does a VTEP do, and what does "overlay" mean in that context?
+- Why does the VNI's larger ID space (24-bit vs a VLAN's 12-bit) matter for a large multi-tenant data centre?
+- What specific problem does EVPN solve that plain VXLAN, on its own, does not?

@@ -1,0 +1,59 @@
+---
+title: "A Safe Change Workflow"
+track: "config"
+module: "8.1"
+order: 1
+duration: "30 min"
+summary: "Plan, back up, change, verify and be ready to roll back: the five steps that turn risky edits into routine work."
+---
+
+## Why a workflow
+
+Most outages that a network team causes come from changes, not from hardware. A workflow does not make you slower for long. It makes each change small, checked and reversible.
+
+## The five steps
+
+1. **Plan.** Write what you will change, why, and how you will know it worked. Two or three lines are enough. Also write what "broken" would look like.
+2. **Back up.** Save the current configuration before you touch anything (next lesson). A backup you have not looked at is a hope, not a backup.
+3. **Change.** Make the change in small pieces. Keep a way back into the router open while you do it (safe mode, an out-of-band path, or a scheduled revert).
+4. **Verify.** Run the checks you wrote down. Test from the user side, not only from the router.
+5. **Record or roll back.** If the checks pass, save the new export and note the change. If they fail, undo it now, not after an hour of tweaking.
+
+## Small pieces
+
+A 200 line paste that fails on line 143 leaves a half-configured router. Prefer several short steps, each with a check:
+
+```
+/ip address add address=10.0.99.2/24 interface=vlan99
+/ping 10.0.99.1 count=3
+```
+
+The first line changes something, the second proves it works. The VLAN lab uses the same idea: management VLAN first, filtering last.
+
+## Order matters
+
+Some changes can cut off your own access. Order them so the last one is the risky one:
+
+- create the management path before you enable filtering,
+- add a firewall accept rule for your admin address before you add the drop rule,
+- change the remote end after the near end only if you can still reach it.
+
+A classic mistake is an input drop rule that also catches your own SSH session. A working accept rule for your address, placed above the drop, prevents that.
+
+## Verify from the outside
+
+A router saying "I added the route" is not the same as the user reaching the server. After each change:
+
+- ping and traceroute from a host in the affected segment,
+- check the counters on the firewall rules you touched (`/ip firewall filter print stats`),
+- look at the log for errors.
+
+## Change windows and communication
+
+For anything that can interrupt users, agree a time, tell the people affected, and keep a rollback ready. If you cannot describe how to undo a change, you are not ready to make it.
+
+## Check yourself
+
+- Why is the backup step before the change, not after?
+- Which change would you do last when adding a management VLAN and a firewall drop rule?
+- What do you test from the user side?

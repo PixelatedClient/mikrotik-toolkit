@@ -1,0 +1,115 @@
+---
+title: "BGP in ISP Networks"
+track: "routing"
+module: "5.3"
+order: 3
+duration: "50 min"
+summary: "Customers, peers and upstreams: relationships, filtering, communities and route hygiene."
+status: "sourced"
+verifiedAgainst: "RFC 6480 and MANRS"
+sources:
+  - title: "RFC 6480: An Infrastructure to Support Secure Internet Routing"
+    url: "https://www.rfc-editor.org/rfc/rfc6480"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "MANRS for Network Operators"
+    url: "https://manrs.org/netops/"
+    publisher: "MANRS"
+    accessed: "2026-09-22"
+---
+
+import Challenge from '../../../components/Challenge';
+
+## Three relationships
+
+Every BGP neighbour is one of:
+
+| Relationship | Money | You announce to them | They announce to you |
+|---|---|---|---|
+| **Customer** | They pay you | Everything (full table or default) | Only their prefixes |
+| **Peer** | Settlement-free | Your prefixes + customers' | Their prefixes + their customers' |
+| **Upstream (transit)** | You pay them | Your prefixes + customers' | Everything |
+
+The golden rule that prevents leaks: **routes learned from peers or upstreams are never announced to other peers or upstreams.** Only your own and your customers' routes go outward. If you break this you become free transit and may carry huge traffic, or cause an outage for someone else.
+
+<Challenge client:visible
+  question="You learn a prefix from a peer at the IX. Should you announce it to your paid upstream?"
+  options={["Yes, so the upstream can reach it too", "No: routes from peers are only announced to customers", "Yes, but with a longer AS path", "Only if the peer asks"]}
+  answer={1}
+  explain="Announcing a peer's routes to an upstream would make you carry their traffic for free, and often causes an outage or a huge bill. Peer and upstream routes go to customers only."
+/>
+
+## Preference by relationship
+
+Use local-pref to prefer the cheapest correct path:
+
+```
+customer routes  -> local-pref 300
+peer routes      -> local-pref 200
+upstream routes  -> local-pref 100
+```
+
+Traffic to a customer prefers the customer link, then a peer, and only then a paid transit.
+
+## Tagging on ingress, acting on egress
+
+Mark each route with a community when it arrives, then use that tag in outbound filters:
+
+```
+# ingress: tag customer routes
+/routing filter rule add chain=cust-in rule="set bgp-communities 64512:100; set bgp-local-pref 300; accept"
+
+# egress to a peer or upstream: announce only tagged customer and own routes
+/routing filter rule add chain=peer-out rule="if (bgp-communities any 64512:100) { accept }"
+/routing filter rule add chain=peer-out rule="if (dst == 198.51.100.0/24) { accept }"
+/routing filter rule add chain=peer-out rule="reject"
+```
+
+Adapt the property names to your RouterOS version. The pattern is the point.
+
+## Filtering customers
+
+Never trust a customer. On the session with a customer:
+
+- Accept **only the prefixes assigned to them** (build a prefix list per customer, from IRR data or your records).
+- Set a **maximum prefix** limit so a mistake cannot flood your table.
+- Reject bogons, your own space, and anything longer than /24.
+- Strip any communities you use for internal signalling.
+
+Customers who do not run BGP simply get a static route to their block, redistributed into your announcement or covered by your aggregate.
+
+## Bogons and hygiene
+
+Reject on every external session: private ranges, loopback, link-local, multicast, documentation ranges, and the default route (unless you asked for it). Reject AS paths that are too long or contain private ASNs where they should not.
+
+## RPKI and IRR
+
+- **IRR** objects (`route`, `as-set`) declare who may originate which prefix. Peers build filters from them.
+- **RPKI ROAs** cryptographically authorise an ASN to originate a prefix: RFC 6480 defines a ROA as "an attestation that the holder of a set of prefixes has authorized an autonomous system to originate routes for those prefixes." Route origin validation is what a network does with that attestation — a router or upstream that checks ROAs can then drop or deprioritise routes that come back **invalid**.
+- Publish ROAs for your own prefixes at your registry. It takes minutes and prevents hijacks.
+
+Follow MANRS practices: their network operator actions are filtering (anti-spoofing so forged source addresses can't leave your network), coordination (keeping contact details reachable so an incident can actually be resolved), and global validation (publishing your routing policy, ASNs and intended prefixes so others can build filters against it).
+
+## Blackholing
+
+Under a DDoS you can ask your upstream to drop traffic to a single victim address using their **blackhole community**. It sacrifices that IP to save everything else. See [DDoS mitigation basics](/learn/isp-ops/08-ddos-mitigation-basics).
+
+## Worked design
+
+A small ISP with two upstreams and one IX:
+
+1. Upstream A: local-pref 100, upstream B: 90.
+2. IX peers: local-pref 200.
+3. Customers: 300.
+4. Announce the aggregate /22 to all, more specifics only where needed.
+5. Filters on every session, communities for blackhole and prepend.
+
+## Lab on real routers (GNS3)
+
+Build a multihomed edge in the [two-upstream BGP lab](/labs/bgp-two-isp), then steer traffic with local-pref and prepending.
+
+## Check yourself
+
+- Why does announcing a peer's routes to your upstream risk becoming "free transit"?
+- What does a ROA actually authorize, and what can a network do once it knows a route fails origin validation?
+- Which two of the four MANRS actions does this lesson describe, and what does each one actually require you to do?

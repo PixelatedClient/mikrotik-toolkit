@@ -1,0 +1,108 @@
+---
+title: "Routing Policy & Policy-Based Routing"
+track: "routing"
+module: "5.2"
+order: 2
+duration: "45 min"
+summary: "Steer BGP with filters, local-pref, prepending and communities, then steer packets with routing tables."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation, cross-checked against real RouterOS v7 syntax by this project"
+sources:
+  - title: "BGP"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328220/BGP"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "RFC 4271: A Border Gateway Protocol 4 (BGP-4)"
+    url: "https://www.rfc-editor.org/rfc/rfc4271"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+import Challenge from '../../../components/Challenge';
+
+## Route maps in RouterOS
+
+Other vendors call them **route maps**. RouterOS v7 calls them **routing filters**: named chains of rules that match routes and change attributes. A chain is attached to a BGP session's **input** or **output**.
+
+```
+/routing filter rule add chain=upstream-in rule="if (dst-len > 24) { reject }"
+/routing filter rule add chain=upstream-in rule="accept"
+```
+
+Rules evaluate top to bottom; an `accept` or `reject` ends the chain. A route that runs off the end of a chain without a decision is **rejected**: the default action of a routing filter chain is `reject` — cross-checked against MikroTik's own v7 documentation for this project's RouterOS syntax provenance work. That is the opposite default from a firewall filter chain (no match accepts there), so say what you mean anyway, and end every chain with an explicit `accept` or `reject`.
+
+The filter syntax below (`dst == prefix`, `dst in prefix`, `dst-len`, `set bgp-local-pref`, `set bgp-med`, `set bgp-path-prepend`, `set bgp-communities`, `append bgp-communities`) follows the RouterOS v7 documentation. Syntax has changed between v7 releases, so check your version's docs before deploying.
+
+## Preferring one upstream (outbound)
+
+Set a higher **local-pref** on routes from the primary:
+
+```
+/routing filter rule add chain=primary-in rule="set bgp-local-pref 200; accept"
+/routing filter rule add chain=backup-in rule="set bgp-local-pref 100; accept"
+```
+
+Higher wins, and it stays inside your AS.
+
+## Influencing inbound traffic
+
+You cannot force others, only influence them:
+
+- **AS-path prepending**: make the backup path look longer.
+
+```
+/routing filter rule add chain=backup-out rule="if (dst == 198.51.100.0/24) { set bgp-path-prepend 3; accept }"
+```
+
+- **Communities**: many upstreams publish communities that set local-pref, prepend, or blackhole on their side. Read your provider's community list, it is the strongest tool you have.
+- **MED**: RFC 4271 defines it for discriminating "among multiple exit or entry points to the same neighboring AS" — only meaningfully compared between routes from that same neighbouring AS.
+- **More specifics**: announce two /24s from a /23 on the preferred link only (use carefully: it grows the global table).
+
+<Challenge client:visible
+  question="You have two upstreams and want incoming traffic to prefer upstream A. Which tool actually influences what other networks do?"
+  options={["Set a high LOCAL_PREF on your routes from A", "Prepend your AS on the announcements you send to B", "Lower the MED on the link to your customers", "Disable BGP on the backup link"]}
+  answer={1}
+  explain="LOCAL_PREF only affects your own outbound choice. To influence inbound traffic you change what the world sees: a longer AS path on the backup makes it less attractive to everyone comparing paths."
+/>
+
+## Communities
+
+```
+/routing filter rule add chain=cust-in rule="set bgp-communities 64512:100; accept"
+```
+
+A community convention like `64512:100 = customer`, `:200 = peer`, `:300 = upstream` lets you write policy once on the tag instead of on every neighbour.
+
+## Policy-based routing (PBR)
+
+PBR chooses the path by something other than the destination: source address, port, or interface.
+
+Use it to send one customer or one service out a specific link:
+
+```
+/routing table add name=via-isp2 fib
+/ip route add dst-address=0.0.0.0/0 gateway=198.51.100.1 routing-table=via-isp2
+/ip firewall mangle add chain=prerouting action=mark-routing \
+    new-routing-mark=via-isp2 src-address=192.168.88.50 passthrough=no
+```
+
+In v7, routing marks map to **routing tables**. The route's `routing-table=` must match the mark's name.
+
+## Testing policy
+
+```
+/routing route print detail where dst-address=198.51.100.0/24
+/routing bgp session print
+```
+
+Use `print detail` to see the attributes actually attached to a route. Change policy, then refresh the session (soft reset) instead of dropping it.
+
+## Rule of thumb
+
+Write the policy on paper first: who may send you what, and what you announce to whom. Then make the config match the paper.
+
+## Check yourself
+
+- What happens to a route that reaches the end of a routing filter chain without matching an explicit accept or reject?
+- Why does prepending your AS on the backup link influence other networks' inbound choice, when local-pref cannot?
+- Why is MED only meaningful when comparing routes from the same neighbouring AS?

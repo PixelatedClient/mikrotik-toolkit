@@ -1,0 +1,117 @@
+---
+title: "Monitoring and Diagnostic Tools"
+track: "mikrotik-ops"
+module: "4.7"
+order: 7
+duration: "35 min"
+summary: "See live traffic with Torch, watch hosts with Netwatch, and keep the logs that let you explain an outage afterwards."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation"
+sources:
+  - title: "Torch"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/8323150/Torch"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Netwatch"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/8323208/Netwatch"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Log"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328094/Log"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Command Line Interface"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328134/Command+Line+Interface"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+---
+
+When something breaks, you need three answers: **what is happening right now**, **what changed**, and **what happened while nobody was watching**. RouterOS has a tool for each.
+
+## Torch: what is happening right now
+
+Torch shows live traffic on an interface, grouped the way you choose, with the transmit and receive rate for each group.
+
+```
+/tool torch interface=ether1
+```
+
+You can group and filter by source and destination address (IPv4 and IPv6), port, protocol, MAC address, VLAN ID and DSCP value. It is the fastest way to answer "who is using all my bandwidth?"
+
+Two limits from the documentation:
+
+- Torch sees traffic **before** the firewall filters it. Packets that a rule later drops still show up, so a packet in Torch does not prove it was delivered.
+- It cannot show wireless client-to-client traffic that is forwarded directly, or packets handled by **hardware offloading** on a bridge. On a switch chip, some traffic never reaches the CPU, so it is invisible to Torch.
+
+## Netwatch: is it still up?
+
+Netwatch probes hosts on a schedule and runs a script when one changes state. RouterOS v7 supports several probe types:
+
+| Type | What it does |
+|---|---|
+| `icmp` | Pings the address |
+| `tcp-conn` | Opens a TCP connection to a port |
+| `http-get`, `https-get` | Requests a web page |
+| `dns` | Sends a DNS query to a server |
+| `simple` | Ping, without the advanced metrics (the default) |
+
+```
+/tool netwatch add host=8.8.8.8 interval=30s up-script=":log info \"8.8.8.8 is reachable\""
+```
+
+- `interval` is how often it tests (default 10 seconds), and `timeout` is how long it waits (default 3 seconds).
+- `up-script` and `down-script` run when the status changes. Use them to log an event, send a message, or switch a backup route.
+- `status` and `since` show the current state and when it last changed.
+
+Do not set the interval so low that the probes themselves become traffic. A few seconds is enough for most links.
+
+## Logs: what happened while you were not looking
+
+Every log message has a **topic** that says where it came from (`dhcp`, `firewall`, `system`, `error` and so on), plus a severity such as `info` or `debug`. A message can carry several topics.
+
+Read the log in memory, and filter by topic:
+
+```
+/log print
+/log print where topics~"dhcp.info"
+/log print follow where topics~".info"
+```
+
+`follow` keeps printing new messages until you press `Ctrl+C`.
+
+### Where the logs go
+
+A **logging rule** joins topics to an **action**, and the action decides where the messages are stored:
+
+```
+/system logging add topics=dhcp action=memory
+```
+
+Actions can keep messages in router memory, on disk, in a file, send them by email, or send them to a **remote syslog server**:
+
+```
+/system logging action add name=remote target=remote remote-port=192.0.2.50:514
+```
+
+(The address above is a documentation example.) In the v7 documentation the property that holds the server is named `remote-port` and takes `address:port`, defaulting to `0.0.0.0:514`. The same action also has `remote-protocol` (`udp` by default, or `tcp` or `tls`) and `src-address`. Property names have changed between versions, so if your router rejects one, use the built-in help to see the name it expects. Add `!` to leave a topic out, for example `topics=ntp,debug,!packet` logs NTP debug messages but skips packet-level detail.
+
+**Keep logs off the router.** Memory logs disappear at a reboot, and an attacker who gains access can delete local logs. A remote syslog server keeps the evidence.
+
+**Be careful with debug topics.** MikroTik warns that they can produce a large volume of messages. Turn them on to find a problem, then turn them off again.
+
+## Putting them together
+
+A simple monitoring setup for a small ISP router:
+
+1. A logging rule that sends `error`, `critical` and `warning` messages to a remote syslog server.
+2. Netwatch probes for your upstream gateway and a public address, with `down-script` events logged.
+3. Torch for live investigation.
+4. SNMP and flow export for long-term graphs and traffic analysis. See [SNMP](/learn/isp-ops/04-snmp-management) and [network monitoring](/learn/isp-ops/03-network-monitoring).
+
+Our [troubleshooting lesson](/learn/mikrotik/10-troubleshooting) shows how these tools fit a step-by-step method. MikroTik also provides a graphing feature, the **Dude** monitoring server, a CPU profiler and support output files. These are covered in their own documentation.
+
+## Check yourself
+
+- Why does a packet shown in Torch not prove it reached its destination?
+- What triggers a Netwatch `down-script`, and how long can it take to notice?
+- Why should logs be sent to another machine?

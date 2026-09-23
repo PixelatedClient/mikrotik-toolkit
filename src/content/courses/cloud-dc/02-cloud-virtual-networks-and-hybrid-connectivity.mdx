@@ -1,0 +1,47 @@
+---
+title: "Cloud Virtual Networks and Hybrid Connectivity"
+track: "cloud-dc"
+module: "12.2"
+order: 2
+duration: "35 min"
+summary: "How a cloud provider's virtual network maps onto the networking ideas already covered, and how to connect it back to a physical office or data centre."
+status: "sourced"
+verifiedAgainst: "Cloud networking and routing concepts from RFC 4271 and RFC 5880"
+sources:
+  - title: "RFC 4271: A Border Gateway Protocol 4 (BGP-4)"
+    url: "https://www.rfc-editor.org/rfc/rfc4271"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 5880: IANA Considerations for OSPF"
+    url: "https://www.rfc-editor.org/rfc/rfc5880"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+---
+
+## A cloud VPC is still a network
+
+Every major cloud provider offers a private virtual network — AWS calls it a VPC (Virtual Private Cloud), Azure a Virtual Network (VNet), Google Cloud a VPC Network — and despite the marketing name, the underlying ideas are the ones already covered in this course:
+
+- **Subnets** carve the VPC's address range into smaller ranges, usually one per availability zone or tier, the same subnetting math from the Foundations track.
+- **Route tables** decide where traffic goes, conceptually identical to a router's routing table, just presented through the provider's console or API instead of a RouterOS CLI.
+- **Security groups / network security groups** are stateful firewalls attached to instances or subnets — the cloud version of the firewall chain concepts from the MikroTik Operations track, minus the explicit connection-state tracking syntax.
+
+The main practical difference from a physical network: almost everything is provisioned through an API or console instead of console cable and CLI, and the underlying physical switches and routers are the provider's, never visible or directly configurable.
+
+## Connecting a VPC to somewhere real
+
+A cloud network is only useful once it can talk to an office, a data centre or another cloud. Three common approaches, in order of typical cost and reliability:
+
+- **Site-to-site VPN**: an IPsec tunnel (Network Security track) over the public internet between the cloud provider's VPN gateway and an on-premises router. Cheapest, quick to set up, subject to internet path variability.
+- **Direct connect / express route / cloud interconnect**: a dedicated private circuit from the customer's network to the cloud provider, bypassing the public internet entirely. Higher cost and lead time, but stable bandwidth and latency — the choice for production workloads sensitive to either.
+- **VPC peering / transit gateway**: connecting two VPCs (same provider, sometimes same or different accounts) directly, without traversing the public internet, or via a hub-and-spoke transit gateway when many VPCs need to reach each other and a full mesh of individual peerings would be unmanageable.
+
+## Hybrid connectivity in practice
+
+A common real pattern: production workloads split between an on-premises data centre and one or more cloud regions, connected by a direct-connect-style private circuit for the steady baseline traffic, with a site-to-site VPN as a cheaper backup path if the primary circuit fails. This mirrors the primary/backup routing patterns already covered in the Advanced Routing track — the cloud path is just another next hop with its own metric.
+
+## Check yourself
+
+- What cloud concept plays the same role as a router's routing table?
+- Why might a company pay for a dedicated direct-connect circuit instead of just using a site-to-site VPN?
+- How does a direct-connect-plus-VPN-backup hybrid setup relate to primary/backup routing already covered elsewhere in this course?

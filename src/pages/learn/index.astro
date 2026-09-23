@@ -1,0 +1,113 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { TRACKS } from '../../data/tracks';
+import { kitFor, type Level } from '../../data/lessonKit';
+
+const LEVELS: { id: Level; blurb: string }[] = [
+  { id: 'Beginner', blurb: 'Start here. No experience needed.' },
+  { id: 'Associate', blurb: 'Build and run real networks: switching, MikroTik, design and configuration.' },
+  { id: 'Professional', blurb: 'Routing at scale and ISP operations.' },
+];
+
+const all = (await getCollection('courses')).sort((a, b) => a.data.order - b.data.order);
+---
+<Base title="Learn" description="Structured networking courses from IP basics to MikroTik and BGP.">
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">Learn</h1>
+    <p class="mt-2 text-muted">Work through a track in order. Progress is saved in your browser only.</p>
+
+    <div id="overall" hidden class="mt-6 rounded-xl border border-line bg-surface p-4">
+      <div class="flex items-center justify-between text-sm">
+        <span class="font-medium"><span id="overall-count">0</span> of {all.length} lessons complete</span>
+        <a id="continue" href="/learn" hidden class="rounded-md bg-accent px-3 py-1.5 font-medium text-accent-fg">Continue</a>
+      </div>
+      <div class="mt-2 h-2 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-label="Overall progress" aria-valuemin="0" aria-valuemax={all.length} aria-valuenow="0" id="overall-bar">
+        <div id="overall-fill" class="h-full w-0 bg-accent transition-all"></div>
+      </div>
+    </div>
+
+    <p class="mt-6 rounded-xl border border-line bg-surface p-4 text-sm text-muted">
+      Every lesson ends with a <strong class="text-fg">Lab</strong> you run in your browser, a <strong class="text-fg">Quiz</strong> and a <strong class="text-fg">Troubleshooting</strong> ticket. The labs get bigger as the lessons get deeper.
+    </p>
+
+    {LEVELS.map((lv) => (
+      <section id={`level-${lv.id.toLowerCase()}`} class="mt-14">
+        <h2 class="pixel text-lg text-accent">{lv.id}</h2>
+        <p class="mt-1 text-sm text-muted">{lv.blurb}</p>
+        {TRACKS.filter((t) => t.level === lv.id).map((t) => {
+          const mods = all.filter((m) => m.data.track === t.id);
+          return (
+            <section id={t.id} data-track={t.id} class="mt-8">
+              <div class="flex items-baseline justify-between">
+                <h3 class="text-2xl font-semibold tracking-tight">{t.name}</h3>
+                <span class="text-xs font-medium text-accent"><span data-track-count={t.id}>0</span>/{mods.length} done</span>
+              </div>
+              <p class="mt-1 text-sm text-muted">{t.blurb}</p>
+              {mods.length > 0 ? (
+                <ol class="mt-4 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+                  {mods.map((m) => {
+                    const kit = kitFor(m.id);
+                    return (
+                      <li>
+                        <a href={`/learn/${m.id}`} class="flex items-center gap-4 px-4 py-3.5 hover:bg-surface-2">
+                          <span class="w-9 font-mono text-sm text-muted">{m.data.module}</span>
+                          <span class="flex-1">
+                            <span class="block font-medium">{m.data.title}</span>
+                            <span class="block text-sm text-muted">{m.data.summary}</span>
+                            <span class="mt-1 flex flex-wrap gap-1.5 text-[0.7rem] text-muted">
+                              {((kit?.labs?.length ?? 0) > 0 || (kit?.gns3Labs?.length ?? 0) > 0) && <span class="rounded border border-line px-1.5 py-0.5">Lab</span>}
+                              {(kit?.quiz?.length ?? 0) > 0 && <span class="rounded border border-line px-1.5 py-0.5">Quiz</span>}
+                              {(kit?.incidents?.length ?? 0) > 0 && <span class="rounded border border-line px-1.5 py-0.5">Fix-it ticket</span>}
+                            </span>
+                          </span>
+                          <span data-done={m.id} hidden class="text-accent" aria-label="Completed">✓</span>
+                          <span class="hidden text-xs text-muted sm:block">{m.data.duration}</span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <p class="mt-4 rounded-xl border border-dashed border-line p-4 text-sm text-muted">Coming soon.</p>
+              )}
+            </section>
+          );
+        })}
+      </section>
+    ))}
+  </div>
+
+  <script>
+    import { getDone, getLast } from '../../scripts/progress';
+    const done = new Set(getDone());
+    document.querySelectorAll<HTMLElement>('[data-done]').forEach((el) => {
+      el.hidden = !done.has(el.dataset.done ?? '');
+    });
+    document.querySelectorAll<HTMLElement>('[data-track]').forEach((sec) => {
+      const n = sec.querySelectorAll('[data-done]:not([hidden])').length;
+      const c = sec.querySelector('[data-track-count]');
+      if (c) c.textContent = String(n);
+    });
+    const links = [...document.querySelectorAll<HTMLAnchorElement>('ol a[href^="/learn/"]')];
+    const count = links.filter((a) => done.has(a.getAttribute('href')!.replace('/learn/', ''))).length;
+    const last = getLast();
+    if (count > 0 || last) {
+      document.getElementById('overall')!.hidden = false;
+      document.getElementById('overall-count')!.textContent = String(count);
+      const pct = (count / links.length) * 100;
+      (document.getElementById('overall-fill') as HTMLElement).style.width = `${pct}%`;
+      document.getElementById('overall-bar')!.setAttribute('aria-valuenow', String(count));
+      // Continue: the first lesson after the last one visited that isn't done, else the first undone lesson.
+      const ids = links.map((a) => a.getAttribute('href')!.replace('/learn/', ''));
+      const from = last ? Math.max(0, ids.indexOf(last)) : 0;
+      const target = [...ids.slice(from), ...ids.slice(0, from)].find((id) => !done.has(id));
+      const btn = document.getElementById('continue') as HTMLAnchorElement;
+      if (target) {
+        btn.href = `/learn/${target}`;
+        btn.hidden = false;
+        btn.textContent = count === 0 ? 'Continue' : 'Continue where you left off';
+      }
+    }
+  </script>
+</Base>

@@ -1,0 +1,17 @@
+---
+import Base from '../../layouts/Base.astro';
+import ConfigGenerator from '../../components/ConfigGenerator';
+---
+<Base title="MikroTik Config Generator" description="Generate a hardened RouterOS v7 .rsc for an office gateway, ISP edge router with BGP, or VLAN switch.">
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">MikroTik config generator</h1>
+    <p class="mt-2 max-w-2xl text-muted">
+      Choose a role and device, fill in the details, and get a RouterOS v7 script with a sane firewall and hardening.
+      Everything runs in your browser.
+    </p>
+    <div class="mt-8"><ConfigGenerator client:load /></div>
+    <p class="mt-6 max-w-2xl text-sm text-muted">
+      Learn what each block does in the <a class="text-accent underline" href="/learn#mikrotik">MikroTik track</a>.
+    </p>
+  </div>
+</Base>

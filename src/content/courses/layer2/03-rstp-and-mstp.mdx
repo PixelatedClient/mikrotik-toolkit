@@ -1,0 +1,127 @@
+---
+title: "RSTP and MSTP: Fast Convergence"
+track: "layer2"
+module: "2.3"
+order: 3
+duration: "40 min"
+summary: "How Rapid Spanning Tree recovers in a fraction of a second, what edge ports are for, and where MSTP fits."
+status: "sourced"
+verifiedAgainst: "Cisco RSTP documentation and MikroTik RouterOS v7 documentation"
+sources:
+  - title: "Understand Rapid Spanning Tree Protocol (802.1w)"
+    url: "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/24062-146.html"
+    publisher: "Cisco"
+    accessed: "2026-09-20"
+  - title: "Spanning Tree Protocol"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/21725254/Spanning+Tree+Protocol"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Bridge (bridge and bridge port properties)"
+    url: "https://help.mikrotik.com/docs/pages/viewpage.action?pageId=8323229"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Layer2 misconfiguration"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/19136718/Layer2+misconfiguration"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+---
+
+import Challenge from '../../../components/Challenge';
+
+The [previous lesson](/learn/layer2/02-loops-and-spanning-tree) showed classic STP: correct, but it can take 30 to 50 seconds to react to a failure. **Rapid Spanning Tree (RSTP, IEEE 802.1w)** keeps the same election and the same tree, and makes it react far faster. MikroTik recommends it, and `rstp` is the default `protocol-mode` on a RouterOS bridge.
+
+## Roles and states are separate ideas
+
+Classic STP used one word, *blocking*, for every port that was not forwarding. RSTP splits that into more precise **roles**:
+
+| Role | Meaning |
+|---|---|
+| **Root port** | Receives the best BPDU on the bridge: the way to the root |
+| **Designated port** | Sends the best BPDU on its segment: the way away from the root |
+| **Alternate port** | Receives a better BPDU from *another* bridge. A standby path to the root that can replace the root port at once if it fails |
+| **Backup port** | Receives a better BPDU from *the same* bridge. Redundant connection to the same segment, and no guarantee of a path to the root |
+| **Disabled** | Not participating |
+
+The classic five **states** shrink to three: **discarding** (covers disabled, blocking and listening), **learning** and **forwarding**. Cisco's document states the key point plainly: RSTP **decouples the role and the state** of a port. A port can be designated and still be discarding for a moment while it negotiates.
+
+The alternate port is the reason RSTP is fast. Its replacement path is already known before anything fails.
+
+## Proposal and agreement
+
+Instead of waiting for timers, neighbouring switches negotiate. On a point-to-point link:
+
+1. A **designated** port that is not yet forwarding sends a BPDU with the **proposal** bit set: "I would like to forward on this link."
+2. The switch that receives it performs a **sync**: it temporarily blocks its own non-edge designated ports, so it cannot create a loop behind the proposal.
+3. It replies with an **agreement** BPDU.
+4. The proposing port receives the agreement and moves to **forwarding immediately**.
+
+No timer is involved, and the handshake ripples through the network switch by switch. If a proposal never gets an agreement (for example, a neighbour that only speaks classic STP), the port falls back to the slow classic behaviour. Cisco reports convergence "sometimes in the order of a few hundred milliseconds".
+
+## Edge ports and link types
+
+Only two kinds of port can use the fast path:
+
+- **Edge ports** are connected to end devices, with no other switch behind them. They cannot form a loop, so they go straight to forwarding. Cisco compares this to the PortFast feature. RouterOS calls it the `edge` setting, which is `auto` by default, and you can set it to `yes` for access ports.
+- **Point-to-point links** between two switches. A **full-duplex** link is treated as point-to-point by default, and a half-duplex link as shared. On RouterOS, `point-to-point=auto` does the same.
+
+```
+/interface bridge port add bridge=bridge1 interface=ether5 edge=yes
+```
+
+If an edge port receives a BPDU anyway, someone has plugged a switch into it. With `edge=auto`, RouterOS detects that and treats the port as a non-edge port. Protecting edge ports properly is the subject of the [protection lesson](/learn/layer2/06-layer2-protection).
+
+## Other differences from classic STP
+
+- **Every bridge sends BPDUs**, every hello time (2 seconds by default), even when it does not receive any from the root.
+- **Failure is noticed fast.** If a port misses **three** hellos in a row, its information is aged out immediately, without waiting for max age.
+- **Inferior information is accepted immediately** from a neighbour, which speeds up recovery after an indirect failure.
+- **Topology changes are handled differently.** Only a non-edge port that starts *forwarding* counts as a topology change, and losing connectivity does not. The bridge that detects the change floods the news through the network itself, rather than waiting for the root to do it.
+
+## RSTP on RouterOS
+
+```
+/interface bridge add name=bridge1 protocol-mode=rstp priority=0x1000
+/interface bridge port add bridge=bridge1 interface=ether1
+/interface bridge port add bridge=bridge1 interface=ether2
+```
+
+The default for `protocol-mode` is `rstp`. The other choices are `stp`, `mstp` and `none`. Look at the result with:
+
+```
+/interface bridge monitor bridge1
+/interface bridge port monitor [find]
+```
+
+The port monitor shows each port's `role`, and whether it is `forwarding` or `learning`.
+
+<Challenge client:visible
+  question="In RSTP, which port role can replace a failed root port immediately, without waiting for any timer?"
+  options={["Designated port", "Alternate port", "Edge port", "Disabled port"]}
+  answer={1}
+  explain="An alternate port already receives a better BPDU from another bridge, so it holds a known path to the root. When the root port fails, it takes over at once."
+/>
+
+## MSTP: one tree per group of VLANs
+
+RSTP builds **one** tree for the whole network, no matter how many VLANs run over it. That leaves the blocked links idle for all VLANs. **MSTP (802.1s)** lets you build several trees, called **instances**, and assign VLANs to them. VLAN 10 can use one tree and VLAN 20 another, so both sets of links carry traffic.
+
+On RouterOS, MSTP has strict requirements:
+
+- All bridges in a **region** must have the same **region name**, **region revision** and **VLAN-to-instance mapping**. The defaults (empty name, revision 0) are valid, but they must match on every bridge.
+- **VLAN filtering must be enabled** for MSTP to work.
+
+```
+/interface bridge set bridge region-name=Rx region-revision=1 protocol-mode=mstp
+/interface bridge msti add bridge=bridge identifier=1 priority=0x1000 vlan-mapping=10,20
+```
+
+Two port settings, `restricted-role` and `restricted-tcn`, only take effect in MSTP mode. The first forbids a port from becoming a root port, and the second stops it sending topology change notifications, which lets a provider stop a customer's changes from spreading into its network.
+
+MikroTik's advice is to prefer MSTP when your topology depends on VLANs, because it is VLAN-aware and can balance load per group of VLANs. It also suggests setting the values by hand on larger networks instead of relying on defaults.
+
+## Check yourself
+
+- What is the difference between a port's role and its state in RSTP?
+- Why does an alternate port make recovery fast?
+- Which two kinds of port can skip the timers?
+- Why do all bridges in an MSTP region need identical region settings?

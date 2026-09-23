@@ -1,0 +1,70 @@
+---
+title: "Templates and Repeatable Deployments"
+track: "config"
+module: "8.4"
+order: 4
+duration: "40 min"
+summary: "Stop typing the same router twice: a template plus a few variables gives every new site the same secure baseline."
+---
+
+## The problem with hand-built routers
+
+Ten branch routers configured by hand end up with ten small differences. One has a forgotten firewall rule, one still has telnet open, one has a typo in the DNS server. Troubleshooting then starts with "which router is this?".
+
+A **template** is a configuration written once with placeholders, and a **variables list** with the values for each site. Each router is the template plus its own values.
+
+## Anatomy of a template
+
+Keep three layers:
+
+1. **Baseline** (identical everywhere): user hardening, disabled services, input chain drop by default, logging, NTP, backups.
+2. **Role** (per type of router): gateway, switch, ISP edge.
+3. **Site values**: name, WAN address, LAN prefix, VLAN list, passwords.
+
+A tiny example with placeholders in curly braces:
+
+```
+/system identity set name={site}-gw
+/ip address add address={lan_ip}/24 interface=bridge1
+/ip dhcp-server network add address={lan_net}/24 gateway={lan_ip} dns-server={lan_ip}
+```
+
+For the site "north", `lan_ip` is 10.20.1.1 and `lan_net` is 10.20.1.0. A short script or a spreadsheet mail-merge replaces the placeholders.
+
+## Use the generator as a baseline
+
+The config generator on this site produces complete RouterOS scripts for a gateway, an ISP edge or a VLAN switch. They include the safe defaults every router should have: input drop by default, invalid drop and service hardening. Generate, read every line, adjust, and keep the result in your repository as the template for that role.
+
+Load a script on a router that starts with no default configuration, so nothing collides:
+
+```
+/import file-name=north-gw.rsc verbose=yes
+```
+
+## Keep the template testable
+
+- Apply a new template to a virtual router or lab first (the browser labs and a GNS3 CHR are both fine).
+- Read the log or `verbose` output for errors.
+- Compare `/export` of the result with what you expected.
+
+When a real problem needs a fix, change the template, then apply the fix to every router that uses it. The template stays the source of truth.
+
+## Order inside a script
+
+Scripts run top to bottom. Put dangerous steps last:
+
+1. identity, users and services,
+2. interfaces, bridge and VLAN entries,
+3. addresses and routes,
+4. firewall,
+5. enable VLAN filtering and other access-limiting settings last.
+
+## When something is different on purpose
+
+Some sites really do differ. Keep those differences in the site values or a clearly marked extra file, not scattered edits on the router. Then a diff against the template shows exactly the intended differences and nothing else.
+
+## Check yourself
+
+- What are the three layers of a template?
+- Why load a script on a router with no default configuration?
+- What should you do when you find a bug in a deployed router?

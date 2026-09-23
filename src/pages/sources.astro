@@ -1,0 +1,72 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { TRACKS } from '../data/tracks';
+
+const all = await getCollection('courses');
+const sourced = all.filter((l) => l.data.status === 'sourced');
+// group every cited URL by publisher, remembering which lessons cite it
+const byPublisher = new Map<string, Map<string, { title: string; lessons: string[] }>>();
+for (const l of sourced) {
+  for (const s of l.data.sources) {
+    const pub = byPublisher.get(s.publisher) ?? new Map();
+    const entry = pub.get(s.url) ?? { title: s.title, lessons: [] };
+    entry.lessons.push(l.data.module);
+    pub.set(s.url, entry);
+    byPublisher.set(s.publisher, pub);
+  }
+}
+const publishers = [...byPublisher.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+const counts = TRACKS.map((t) => ({
+  name: t.name,
+  total: all.filter((l) => l.data.track === t.id).length,
+  sourced: sourced.filter((l) => l.data.track === t.id).length,
+}));
+---
+<Base title="Sources and how we verify" description="How Network Academy checks its lessons against primary sources, what is still draft, and our policy on third-party content.">
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">Sources and how we verify</h1>
+    <p class="mt-3 text-muted">Networking advice that is slightly wrong causes outages. So every lesson is labelled, and the labels are honest.</p>
+
+    <h2 class="mt-10 text-2xl font-bold tracking-tight">The two labels</h2>
+    <ul class="mt-3 space-y-3 text-sm">
+      <li><span class="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">✓ Sources cited</span> Every command, default value and figure was checked against the primary sources listed at the bottom of the lesson, on the date shown.</li>
+      <li><span class="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium text-muted">Draft</span> Not yet checked. Useful for orientation, but verify against vendor documentation before relying on it. The <a class="text-accent underline" href="/roadmap">roadmap</a> shows when each draft will be checked.</li>
+    </ul>
+
+    <h2 class="mt-10 text-2xl font-bold tracking-tight">Progress</h2>
+    <table class="mt-3 w-full text-sm">
+      <thead><tr class="text-left text-xs text-muted"><th class="py-1 font-normal" scope="col">Track</th><th class="py-1 font-normal" scope="col">Sourced</th><th class="py-1 font-normal" scope="col">Lessons</th></tr></thead>
+      <tbody>
+        {counts.map((c) => (
+          <tr class="border-t border-line"><td class="py-1.5">{c.name}</td><td class="py-1.5">{c.sourced}</td><td class="py-1.5">{c.total}</td></tr>
+        ))}
+      </tbody>
+    </table>
+
+    <h2 class="mt-10 text-2xl font-bold tracking-tight">How a lesson gets checked</h2>
+    <ol class="mt-3 list-decimal space-y-2 pl-5 text-sm">
+      <li>Prefer primary sources: the vendor's own documentation for commands, and the RFC or standard for how a protocol works.</li>
+      <li>Read the page itself, note the date, and record it in the lesson.</li>
+      <li>Check the publication date. Older material (for example conference slides from 2009 or a 2016 course outline) is used to decide <em>which topics matter</em>, never as the source of a command or a figure.</li>
+      <li>Write the lesson in our own words. We do not copy text, diagrams or videos.</li>
+      <li>Automated tests confirm that every sourced lesson lists at least two sources with valid links and dates.</li>
+    </ol>
+    <p class="mt-3 text-sm text-muted">Commands are documented for RouterOS v7. Software changes, so vendor documentation always wins when it disagrees with us: tell us and we will fix the lesson.</p>
+
+    <h2 class="mt-10 text-2xl font-bold tracking-tight">Third-party content policy</h2>
+    <p class="mt-3 text-sm">Courses such as Cisco Networking Academy and NetworkLessons, and MikroTik's own training, are copyrighted. We use them only to check that our topic coverage is complete. We do not copy their text, embed their videos or reproduce their labs. We may link to a public page as further reading, and where a lesson links out, it says why.</p>
+
+    <h2 class="mt-10 text-2xl font-bold tracking-tight">Everything cited so far</h2>
+    {publishers.length === 0 ? <p class="mt-3 text-sm text-muted">No sourced lessons yet.</p> : publishers.map(([pub, urls]) => (
+      <section class="mt-5">
+        <h3 class="font-semibold">{pub}</h3>
+        <ul class="mt-2 space-y-1 text-sm">
+          {[...urls.entries()].map(([url, e]) => (
+            <li><a class="text-accent underline" href={url} target="_blank" rel="noopener noreferrer">{e.title}</a> <span class="text-muted">· cited in {e.lessons.join(', ')}</span></li>
+          ))}
+        </ul>
+      </section>
+    ))}
+  </div>
+</Base>

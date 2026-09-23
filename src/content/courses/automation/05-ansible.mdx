@@ -1,0 +1,71 @@
+---
+title: "Ansible for Network Devices"
+track: "automation"
+module: "10.5"
+order: 5
+duration: "35 min"
+summary: "Describe the state you want across a fleet of routers, and let Ansible work out how to get there."
+status: "sourced"
+verifiedAgainst: "Ansible documentation"
+sources:
+  - title: "Ansible Documentation — Getting Started"
+    url: "https://docs.ansible.com/ansible/latest/getting_started/index.html"
+    publisher: "Ansible/Red Hat"
+    accessed: "2026-09-23"
+  - title: "Ansible Documentation — Network Automation"
+    url: "https://docs.ansible.com/ansible/latest/network/getting_started/index.html"
+    publisher: "Ansible/Red Hat"
+    accessed: "2026-09-23"
+---
+
+## What Ansible adds
+
+The earlier lessons in this track cover scripting a change with Python and templating configs. Ansible packages both ideas into a tool built specifically for managing fleets of devices: you describe the desired state in a file, and Ansible applies it across every host in your inventory, the same way, every time.
+
+## Inventory
+
+A plain text (or YAML) list of hosts, grouped:
+
+```ini
+[routers]
+edge-1 ansible_host=10.0.0.1
+edge-2 ansible_host=10.0.0.2
+
+[routers:vars]
+ansible_user=api-svc
+```
+
+## A playbook
+
+A playbook is a YAML file describing tasks to run against an inventory group. For RouterOS, most community modules work over the API this track already covers:
+
+```yaml
+- name: Ensure guest VLAN address exists
+  hosts: routers
+  gather_facts: no
+  tasks:
+    - name: add guest VLAN address
+      routeros_command:
+        commands:
+          - /ip address add address=10.0.99.1/24 interface=vlan99
+```
+
+Run it against every host in `[routers]` with `ansible-playbook -i inventory.ini playbook.yml`.
+
+## Why this beats a hand-written loop for a fleet
+
+A Python `for` loop calling the REST API, from the earlier lesson, works and is worth understanding — it's what a tool like Ansible does underneath. Ansible adds, without you writing it yourself:
+
+- a report of what changed and what didn't on every host, every run,
+- built-in idempotence for most modules (re-running a playbook that already applied cleanly makes no further change, the property covered in the templating lesson),
+- separating **what** you want (the playbook) from **which hosts** (the inventory), so the same playbook targets one lab router or a hundred production ones.
+
+## A realistic use
+
+Roll out a firewall rule change to every edge router: write the rule once as a task, list every router in the inventory, run the playbook, and read the per-host report to confirm all of them, not just the one you tested on, ended up in the same state.
+
+## Check yourself
+
+- What does an Ansible inventory file describe that a playbook does not?
+- Why is idempotence in a playbook module valuable specifically when the same playbook targets many hosts?
+- What does Ansible give you, after a run, that a hand-written script would need extra code to produce?

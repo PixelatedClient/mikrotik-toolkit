@@ -1,0 +1,64 @@
+---
+title: "Redundancy and Failure Domains"
+track: "design"
+module: "7.4"
+order: 4
+duration: "40 min"
+summary: "Remove single points of failure where they matter, keep failures small, and make sure failover is fast enough to be useful."
+---
+
+## Find the single points of failure
+
+Look at every path from a user to what they need and ask "what if this one thing dies?" Typical single points:
+
+- the one internet link and the one router in front of it,
+- the one core switch everything hangs off,
+- a single power supply or a single circuit,
+- one DNS or DHCP server,
+- one person who knows the configuration.
+
+You do not remove all of them. You remove the ones whose failure costs more than the fix. Availability targets from the requirements lesson tell you which.
+
+## Failure domains
+
+A **failure domain** is everything that is affected when one thing fails. A flat network with one big VLAN has one large failure domain: a loop takes down everything. Splitting the network into VLANs and routing between sites makes each domain smaller.
+
+Design so that no single failure affects more than you can accept. Ask of every device: "how many users go down with this?"
+
+## Redundant links at layer 2
+
+Two links between switches would form a loop, so you need a protocol to handle them:
+
+- **Spanning tree (RSTP)** blocks one path and uses it only after a failure. Real tests on RouterOS showed about 3 seconds for RSTP after a silent failure, and about 34 seconds for classic STP.
+- **Link aggregation (bonding/LACP)** uses both links at once and survives one failing.
+
+Set the root bridge on purpose. Give the switch you want as root the lowest priority, and a second switch the next lowest.
+
+## Redundant links at layer 3
+
+Routing protocols handle redundancy well because they recalculate:
+
+- **Two upstream links** with static routes of different distance (floating static) or with BGP.
+- **OSPF** between routers gives automatic reroute when a link fails.
+- **Fast detection**: routing protocols wait for timers. BGP's hold timer was about 3 minutes in tests. **BFD** cut that to about 2 seconds. If failover time matters, use it.
+
+## Gateway redundancy
+
+Users have one default gateway address. For two routers to share it, use a gateway redundancy protocol such as VRRP, where the pair answers for one virtual address and the backup takes over if the master fails.
+
+## Do not forget the boring parts
+
+- **Power**: UPS for critical devices, two power feeds if available.
+- **Spares**: a configured spare router in a cupboard is cheap redundancy.
+- **Backups**: a config backup is redundancy for the configuration itself.
+- **Testing**: an untested failover is not redundancy. Unplug the link on purpose in a maintenance window and see what happens.
+
+## A small example
+
+Clinic design from lesson 1: two routers (primary and spare) with VRRP, fibre and 4G uplinks with a floating static route for the backup, two switches with RSTP where the core has the lowest priority, a UPS, and a nightly config export. Each part costs little and removes one single point of failure.
+
+## Check yourself
+
+- What is a failure domain, and how does VLAN segmentation help?
+- Why is BFD useful on top of a routing protocol?
+- What makes a failover design "tested"?

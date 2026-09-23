@@ -1,0 +1,74 @@
+---
+title: "Reference Designs and Design Review"
+track: "design"
+module: "7.5"
+order: 5
+duration: "45 min"
+summary: "Three complete designs from a home office to an ISP edge, and a checklist for reviewing any design before you build it."
+---
+
+## Three reference designs
+
+### 1. Small office (up to about 30 users)
+
+- One router with a firewall, doing NAT, DHCP and inter-VLAN routing.
+- One switch (or the router built-in switching) with VLANs for staff, guests and management.
+- One internet link, optionally a cheap backup link.
+- Addressing: one /24 per VLAN from a /22 block.
+- Failure story: if the router dies, everything is down, so keep a configured spare and a recent export.
+
+### 2. Multi-site business (offices connected by VPN)
+
+- One router per site, each with a summarisable block (a /22 per site).
+- Site-to-site VPN (WireGuard or IPsec) between sites, with static routes or OSPF over the tunnel.
+- Central services at head office, reached through the tunnel.
+- Failure story: each site keeps working locally if the tunnel or head office fails. Give branches local DNS or cached resolution if this matters.
+- Watch for overlapping addresses when adding a site.
+
+### 3. Small ISP edge
+
+- Two edge routers, each with an upstream link and BGP to its provider, iBGP between the routers.
+- Anti-spoofing and BGP input and output filters on every session.
+- An anchor route for each announced prefix, and a blackhole route to protect the network during an attack.
+- Customers behind aggregation switches and a BNG or PPPoE concentrator, addressed from the ISP block, with CGNAT where public IPv4 is short.
+- Monitoring (SNMP, flows) from day one, and an out-of-band way in.
+
+## The design review checklist
+
+Go through a design like an inspector before building. For each answer "yes", "no" or "not needed, because...".
+
+**Requirements**
+- Are users, applications, availability and growth written down?
+- Does every part of the design trace back to a requirement?
+
+**Addressing**
+- Are blocks per site summarisable and aligned?
+- Is there room to grow, and no overlap with partners or VPNs?
+- Is there a separate management network?
+
+**Segmentation and security**
+- Are flows between segments drawn and the rest denied?
+- Is the input chain default-drop on every router?
+- Are unused services and ports closed?
+
+**Resilience**
+- Which single failures take users down? Is each accepted on purpose?
+- Is failover fast enough, and has it been tested?
+- Are there backups and a spare?
+
+**Operations**
+- Can a person you have not met run this from the documentation?
+- Is there monitoring and a place to see logs?
+- How are changes made and rolled back? (The configuration techniques track covers this.)
+
+## Practise a review
+
+Take the small office design and the checklist. Find at least three questions where the design answers "no". Common findings: no management VLAN, no test of the backup link, no tested restore of the router config. Write down the fix for each and how much it costs.
+
+Then try the same on your own network at home or at work. Most real networks fail several items, and finding them on paper is far cheaper than finding them during an outage.
+
+## Check yourself
+
+- Which reference design needs the most careful filtering, and why?
+- What does "not needed, because..." force you to do?
+- Which single failure would take your own network down?

@@ -1,0 +1,134 @@
+---
+title: "Loops and the Spanning Tree Protocol"
+track: "layer2"
+module: "2.2"
+order: 2
+duration: "45 min"
+summary: "Why Layer 2 loops are dangerous, and how the Spanning Tree Protocol elects a root and blocks ports to make a loop-free tree."
+status: "sourced"
+verifiedAgainst: "Cisco STP documentation and MikroTik RouterOS v7 documentation"
+sources:
+  - title: "Understand and Tune Spanning Tree Protocol Timers"
+    url: "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/19120-122.html"
+    publisher: "Cisco"
+    accessed: "2026-09-20"
+  - title: "Understand Rapid Spanning Tree Protocol (802.1w)"
+    url: "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/24062-146.html"
+    publisher: "Cisco"
+    accessed: "2026-09-20"
+  - title: "Spanning Tree Protocol"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/21725254/Spanning+Tree+Protocol"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Layer2 misconfiguration"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/19136718/Layer2+misconfiguration"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "RFC 894: IP over Ethernet"
+    url: "https://www.rfc-editor.org/rfc/rfc894"
+    publisher: "IETF"
+    accessed: "2026-09-20"
+---
+
+import StpLab from '../../../components/StpLab';
+import Challenge from '../../../components/Challenge';
+
+## The problem: redundancy creates loops
+
+You add a second cable between two switches, so that one failure does not cut the network. Now there are two paths, and a broadcast arriving at one switch is flooded out of both cables. The other switch receives two copies and floods each of them again. The frame format has no hop counter (see the [previous lesson](/learn/layer2/01-ethernet-frames-and-mac-learning)), so nothing stops the copies: they multiply until the links are full. That is a **broadcast storm**.
+
+Loops also confuse learning. The same source MAC address arrives on different ports, so the switch keeps changing its mind about where that device is. MikroTik's documentation names this **MAC flapping** and uses it to detect loops.
+
+We want both: the extra cables for redundancy, and no loop while everything works. The **Spanning Tree Protocol (STP)** does this by switching some ports **off** (blocking them) until they are needed.
+
+## The idea
+
+STP picks a **tree**. It chooses one switch as the **root**, and every other switch keeps exactly one best path towards the root. Any port that would create a second path is blocked. If a working link fails, a blocked port is unblocked and takes over.
+
+The switches talk with small messages called **BPDUs** (Bridge Protocol Data Units). A BPDU carries the sending bridge's identity, its priority and the cost of its path to the root, and every switch uses what it receives to work out the tree.
+
+## Step 1: elect the root bridge
+
+Every bridge has a **bridge ID**: a **priority** followed by its **MAC address**. The bridge with the **lowest** bridge ID becomes the root. Priority is compared first, and the MAC address only breaks a tie.
+
+The default priority on RouterOS is **32768** (`0x8000`), so on a network where nobody changed it, the switch with the lowest MAC address wins. That is usually an old, random device. MikroTik recommends setting these values manually on larger networks. Priority is set in steps of 4096, written in hex: `0x1000` is 4096, `0x2000` is 8192, and so on.
+
+## Step 2: each bridge finds its root port
+
+Each non-root bridge measures the **cost** of every path to the root. A link's cost depends on its speed, and RouterOS documents these default values:
+
+| Link speed | Path cost |
+|---|---|
+| 10 Mbps | 2,000,000 |
+| 100 Mbps | 200,000 |
+| 1 Gbps | 20,000 |
+| 10 Gbps | 2,000 |
+| 25 Gbps | 800 |
+| 100 Gbps | 200 |
+
+(This is the "long" cost mode. A "short" mode also exists, where 1 Gbps costs 4; RouterOS selects it with the bridge's `port-cost-mode`. Our advice: use the same mode on every switch, so the costs you compare mean the same thing.)
+
+The costs of the links along a path add up. The port on the **cheapest path to the root** becomes the **root port**. If two paths cost the same, the tie is broken by the lower neighbour bridge ID, then the lower port number.
+
+## Step 3: one designated port per link
+
+On every link, the two ends compare what they offer: their cost to the root, then their bridge ID, then their port ID. The end with the **better offer** is the **designated port** and forwards traffic on that link. The other end, if it is not a root port, is **blocked**.
+
+The result is three kinds of port: **root** (the way up to the root), **designated** (the way down, away from the root), and **blocked**. Blocked ports still listen for BPDUs, so they notice when they are needed.
+
+## Try it
+
+The lab below is exactly this calculation. Change a priority to move the root, change a link speed to change costs, and click a link to cut it. The panel on the right explains each decision.
+
+<StpLab compact client:visible />
+
+For the missions, open the [full spanning tree lab](/tools/stp-lab).
+
+<Challenge client:visible
+  question="Two switches have the default priority. Switch X has MAC address 00:0C:42:00:00:0B and switch Y has 00:0C:42:00:00:0A. Which becomes the root?"
+  options={["X, because it was powered on first", "Y, because its MAC address is lower", "X, because its MAC address is higher", "Neither: they share the role"]}
+  answer={1}
+  explain="The bridge ID is the priority followed by the MAC address, and the lowest wins. Priorities are equal, so the lower MAC address decides."
+/>
+
+## Timers and how slow the classic protocol is
+
+Original 802.1D STP does not react instantly, because it protects against temporary loops with timers. All the values are carried in the BPDUs, and only the ones configured on the **root bridge** matter, because everyone else follows them.
+
+| Timer | Default | What it is |
+|---|---|---|
+| Hello | 2 s | How often BPDUs are sent |
+| Forward delay | 15 s | Time spent in each of the listening and learning states |
+| Max age | 20 s | How long information from a BPDU is kept before it is considered stale |
+
+A port that has to go from blocking to forwarding passes through two states in turn, so it spends **listening (15 s)**, then **learning (15 s)**, before it forwards. In the listening state the port sends and receives BPDUs to settle the topology, and in the learning state it builds its MAC table but does not forward user data. Cisco's timer document puts total convergence at around **50 seconds** (max age plus two forward delays) with default timers on a network seven bridges across, and the RSTP document quotes **30 seconds** (twice the forward delay) as the classic figure. Half a minute of outage per failure is why the next lesson exists.
+
+## Making the root predictable
+
+Do not leave the root to chance. Pick the switch in the middle of the network, with the best connections, and give it the lowest priority. On RouterOS:
+
+```
+/interface bridge add name=bridge priority=0x1000
+```
+
+Then give the intended backup root the next value (`0x2000`). See what the bridge decided with:
+
+```
+/interface bridge monitor bridge
+/interface bridge port monitor [find]
+```
+
+The bridge monitor shows the `root-bridge` and `root-port`. The port monitor shows each port's `role` and whether it is forwarding.
+
+## Mistakes MikroTik documents
+
+- **Bridging VLAN interfaces on different physical ports** creates loops: a broadcast leaves through one VLAN interface, crosses a switch, and returns through the other.
+- **Building a bridge on top of a VLAN interface that sits on another bridge** makes the switch send *tagged* BPDUs, which the documentation says violates the 802.1w standard. The symptoms are ports blocked by RSTP and ports that flap.
+- **PVST** (Cisco's per-VLAN STP) is not supported: RouterOS treats PVST BPDUs as ordinary multicast traffic.
+
+## Check yourself
+
+- What are the three kinds of port that STP creates, and which of them carry user traffic?
+- What decides which bridge becomes root when nobody has configured priorities?
+- A blocked port in classic STP needs to start forwarding. About how long does it take, and why?
+- Which bridge's timers are the ones that count?

@@ -1,0 +1,61 @@
+---
+title: "Templating and Idempotent Changes"
+track: "automation"
+module: "10.4"
+order: 4
+duration: "30 min"
+summary: "Generate configs from a template instead of copy-paste, and write scripts safe to run twice."
+status: "sourced"
+verifiedAgainst: "Ansible documentation and configuration management best practices"
+sources:
+  - title: "Ansible Glossary — Idempotency"
+    url: "https://docs.ansible.com/ansible/latest/reference_appendices/glossary.html"
+    publisher: "Ansible/Red Hat"
+    accessed: "2026-09-23"
+---
+
+## The copy-paste problem
+
+Copying one router's config as a starting point for the next one works until it doesn't: an address left over from the source router, a VLAN ID that should have changed but didn't. Templating fixes this at the source — write the shape once, fill in what differs per device.
+
+## A template, concretely
+
+This project's own config generator (`src/lib/mikrotik.ts`) is a template: a fixed structure of RouterOS commands with a handful of values (device role, addresses, VLAN list) substituted in. The same idea applies to a plain text template:
+
+```
+/interface bridge add name=bridge1
+/ip address add address={{ mgmt_ip }}/24 interface=bridge1
+/system identity set name={{ hostname }}
+```
+
+A script fills `{{ hostname }}` and `{{ mgmt_ip }}` per device from a list, and every router gets the same structure with only the values that should differ actually differing.
+
+## Idempotence
+
+A script is **idempotent** if running it twice produces the same result as running it once — the second run makes no further change, because the target state is already reached. This matters because scripts get re-run: after a partial failure, as a scheduled check, by a teammate who doesn't know it already ran.
+
+Compare:
+
+```
+/ip address add address=10.0.0.1/24 interface=ether1
+```
+
+Run this twice and you get two addresses, one now stale or conflicting. The idempotent version checks first:
+
+```
+:if ([:len [/ip address find where address=10.0.0.1/24]] = 0) do={
+  /ip address add address=10.0.0.1/24 interface=ether1
+}
+```
+
+Now a second run finds the address already present and changes nothing.
+
+## Why this matters more as fleets grow
+
+On one router, checking before you `add` is a nice habit. Across fifty routers run from a script, it's the difference between a safe re-run after a network blip halfway through, and fifty routers in an unknown, inconsistent state that now need to be checked by hand.
+
+## Check yourself
+
+- What problem does filling values into a fixed template solve that copy-pasting a config does not?
+- What does it mean for a script to be idempotent?
+- Why does idempotence matter more as the number of devices a script manages grows?

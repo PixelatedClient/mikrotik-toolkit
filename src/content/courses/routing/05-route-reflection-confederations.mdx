@@ -1,0 +1,86 @@
+---
+title: "Route Reflection & Confederations"
+track: "routing"
+module: "5.5"
+order: 5
+duration: "35 min"
+summary: "Scale iBGP beyond a full mesh."
+status: "sourced"
+verifiedAgainst: "RFC 4456"
+sources:
+  - title: "RFC 4456: BGP Route Reflection: An Alternative to Full Mesh Internal BGP (IBGP)"
+    url: "https://www.rfc-editor.org/rfc/rfc4456"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 4271: A Border Gateway Protocol 4 (BGP-4)"
+    url: "https://www.rfc-editor.org/rfc/rfc4271"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+## The full-mesh problem
+
+An iBGP router does not re-advertise routes learned from one iBGP neighbour to another. To make sure every router hears every route, every router must peer with every other: **n(n-1)/2** sessions.
+
+| Routers | Sessions |
+|---|---|
+| 5 | 10 |
+| 20 | 190 |
+| 100 | 4,950 |
+
+That is unmanageable, so large networks use route reflectors or confederations.
+
+## Route reflectors
+
+A **route reflector (RR)** is allowed to re-advertise iBGP routes to other iBGP peers. Other routers, the **clients**, peer only with the RR, not with each other.
+
+Rules the RR follows, per RFC 4456:
+
+- Route from a **client**: reflect to all clients and non-clients.
+- Route from a **non-client**: reflect to clients only.
+- Route from eBGP: send to all (the standard case a route reflector's normal iBGP advertisement rules already cover).
+
+Loop prevention uses two attributes, both defined in RFC 4456: **ORIGINATOR_ID** carries "the BGP Identifier of the originator of the route in the local AS" (a router discards a route whose ORIGINATOR_ID matches its own), and **CLUSTER_LIST** is "a sequence of CLUSTER_ID values representing the reflection path the route has passed" — each RR prepends its own cluster ID, so a route that loops back to the same cluster is detected and dropped.
+
+### Design
+
+- Run **at least two RRs** for redundancy, in the same cluster with the same cluster ID — RFC 4456 raises exactly this concern: a single RR "represents a single point of failure," and its fix is configuring every RR in the cluster with the same cluster ID.
+- Clients peer with both RRs.
+- Put RRs in the topology so they are reachable by the IGP even during failures. They do not need to sit in the forwarding path.
+- The IGP (OSPF) carries loopbacks and next-hops; iBGP runs between **loopbacks**.
+
+### RouterOS sketch
+
+```
+# on the reflector
+/routing bgp template add name=main as=64512 router-id=10.255.0.1 cluster-id=10.255.0.1
+/routing bgp connection add name=client1 templates=main remote.address=10.255.0.11 \
+    local.address=10.255.0.1 local.role=ibgp-rr
+
+# on the client
+/routing bgp template add name=main as=64512 router-id=10.255.0.11
+/routing bgp connection add name=rr1 templates=main remote.address=10.255.0.1 \
+    local.address=10.255.0.11 local.role=ibgp
+```
+
+Check parameter names for your RouterOS version. The template form (with `cluster-id` on the template) was checked on RouterOS 7.16; on 7.20 and later use a BGP instance (`/routing bgp instance add ...` and `instance=main`) instead.
+
+## next-hop-self
+
+An iBGP peer receives an eBGP route with the external next-hop, which internal routers cannot reach. Either advertise the link network in the IGP, or make the edge router set **next-hop-self** for the iBGP session. Most ISPs use next-hop-self.
+
+## Confederations
+
+A **confederation** splits one AS into several **sub-ASes** that talk to each other as if they were eBGP, while appearing as a single AS to the world. It also reduces mesh size but is harder to operate and rarer today. Route reflectors handle almost all cases; understand confederations so you recognise them in older networks.
+
+## Failure modes
+
+- **Missing RR redundancy**: one RR down cuts clients off.
+- **Cluster ID mismatch**: with two RRs in the same cluster, different IDs cause duplicate routes; matching IDs prevent loops.
+- **Unreachable next-hop**: the route is in the table but unusable.
+
+## Check yourself
+
+- Why does an iBGP full mesh become unworkable as a network grows, in concrete numbers?
+- What does the CLUSTER_LIST attribute actually detect, and how does it grow as a route passes through more reflectors?
+- Why does RFC 4456 recommend giving every RR in a cluster the same cluster ID, rather than a unique one each?

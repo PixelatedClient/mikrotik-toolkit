@@ -1,0 +1,67 @@
+---
+title: "Your First Router"
+track: "foundations"
+module: "1.3"
+order: 3
+duration: "40 min"
+summary: "What a router does, static vs dynamic routing, ping and traceroute in GNS3."
+status: "sourced"
+verifiedAgainst: "RFC 1812 and RFC 792"
+sources:
+  - title: "RFC 1812: Requirements for IP Version 4 Routers"
+    url: "https://www.rfc-editor.org/rfc/rfc1812"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 792: Internet Control Message Protocol"
+    url: "https://www.rfc-editor.org/rfc/rfc792"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+## What does a router do?
+
+A router forwards packets between networks. RFC 1812, which sets the requirements for IPv4 routers, requires that when more than one route could match a destination, the router "must use the most specific matching route (the longest matching network prefix)" — this is why a routing table lookup is usually described as a longest-prefix match.
+
+## Static vs dynamic routing
+
+- **Static**: you type the routes. Simple, predictable, no overhead. Good for small or stub networks.
+- **Dynamic** (RIP, OSPF, BGP): routers exchange routes with each other and adapt automatically when a link fails, instead of an administrator retyping routes by hand. Needed once the network has redundancy or grows past what static routes can keep up with. Advanced Routing covers OSPF and BGP in depth.
+
+## Lab: three routers in GNS3
+
+Topology: R1 — R2 — R3 in a line, each with a LAN.
+
+| Link | Subnet |
+|---|---|
+| R1–R2 | 10.0.12.0/30 |
+| R2–R3 | 10.0.23.0/30 |
+| R1 LAN | 192.168.1.0/24 |
+| R3 LAN | 192.168.3.0/24 |
+
+Static routes on MikroTik RouterOS:
+
+```
+# R1
+/ip route add dst-address=192.168.3.0/24 gateway=10.0.12.2
+# R3
+/ip route add dst-address=192.168.1.0/24 gateway=10.0.23.1
+```
+
+R2 needs routes to both LANs too. Then test.
+
+## Ping and traceroute
+
+```
+ping 192.168.3.1
+/tool traceroute 192.168.3.1
+```
+
+Ping works by sending an ICMP **Echo Request** and waiting for an **Echo Reply** — RFC 792 defines the pair and notes the responder simply reverses the source and destination and sends the data back unchanged, which is why a successful ping proves round-trip reachability, not just that the destination exists. Traceroute shows each hop, so you see where a path breaks.
+
+**Download:** pre-built topology will be added at `/labs/three-router.gns3project` (placeholder for now).
+
+## Check yourself
+
+- What does "longest matching network prefix" mean, and why does RFC 1812 require it when more than one route matches?
+- Why does a successful ping prove more than just "the destination exists"?
+- Name one situation where static routing stops being enough and dynamic routing becomes worth the added complexity.

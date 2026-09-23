@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import { LevelRunner } from '../../components/game/Gates';
+import { ALL_LEVELS, REGIONS } from '../../data/game/world';
+import { SUBNET_LEVELS } from '../../data/game/subnetLevels';
+import { ROUTE_LEVELS } from '../../data/game/routeLevels';
+import { FW_LEVELS, BREACH_LEVELS } from '../../data/game/firewallLevels';
+
+export function getStaticPaths() {
+  return ALL_LEVELS.map((l) => ({ params: { id: l.id }, props: { level: l } }));
+}
+const { level } = Astro.props;
+const region = REGIONS.find((r) => r.id === level.region)!;
+const blurb = [...SUBNET_LEVELS, ...ROUTE_LEVELS, ...FW_LEVELS, ...BREACH_LEVELS].find((l) => l.id === level.id)!.story;
+---
+<Base title={`${level.title} | ${region.name}`} description={blurb}>
+  <div class="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+    <p class="text-sm"><a class="text-accent underline" href="/play">World map</a> / {region.name}</p>
+    <h1 class="mt-3 text-xl font-bold">{level.title}</h1>
+    <div class="mt-6">
+      <LevelRunner client:load kind={level.kind} levelId={level.id} region={level.region} />
+    </div>
+  </div>
+</Base>

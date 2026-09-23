@@ -1,0 +1,109 @@
+---
+title: "Link Aggregation: LACP and Bonding"
+track: "layer2"
+module: "2.4"
+order: 4
+duration: "35 min"
+summary: "Combine several links into one logical link for more capacity and resilience, and understand what it will and will not do."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation and the IANA EtherType registry"
+sources:
+  - title: "Bonding"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/8323193/Bonding"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Layer2 misconfiguration"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/19136718/Layer2+misconfiguration"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "IEEE 802 Numbers (EtherTypes)"
+    url: "https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml"
+    publisher: "IANA"
+    accessed: "2026-09-20"
+  - title: "Spanning Tree Protocol"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/21725254/Spanning+Tree+Protocol"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+---
+
+import Challenge from '../../../components/Challenge';
+
+Two switches joined by **one** cable have a single point of failure and a single link's worth of bandwidth. Add a second cable and, without help, spanning tree would block it, because it looks like a loop. **Link aggregation** solves that: several physical links are bundled into one **logical** link, so the extra cables carry traffic instead of sitting idle.
+
+MikroTik calls the bundle a **bonding** interface, and the members are its **slaves**.
+
+## Modes
+
+RouterOS supports seven bonding modes:
+
+| Mode | What it does |
+|---|---|
+| **802.3ad** | The IEEE standard, also called **LACP**. Members are negotiated automatically, and traffic is spread by hashing packet headers |
+| **active-backup** | Only one member transmits. When it fails, another takes over. Recommended for high availability across **two different switches** |
+| **balance-xor** | A static bundle (no negotiation) that spreads traffic by hashing headers. Similar to LACP, but not standardised |
+| **balance-rr** | Round robin: packets go out over the members in turn. The only mode that can split one connection across links, and it may deliver packets **out of order** |
+| **broadcast** | Sends every packet on every member. Fault tolerance without load balancing |
+| **balance-tlb** | Balances outgoing traffic by peer. Members may differ in speed and duplex |
+| **balance-alb** | Like `balance-tlb`, and also balances incoming IPv4 traffic using ARP negotiation |
+
+For connecting two switches, or a server to a switch, **802.3ad (LACP)** is the usual choice, because both ends check and agree the bundle. It requires all members to run at the **same speed and duplex**. LACP frames use the Slow Protocols EtherType, `8809` in the IANA registry.
+
+## How traffic is shared
+
+LACP does **not** send each packet down a different link. It balances outgoing traffic across the active members based on **hashed protocol header information**, and it accepts incoming traffic on any active member. The hash can include the Ethernet source and destination addresses, the VLAN tag if present, and the IPv4 or IPv6 addresses. RouterOS lets you choose what goes into the hash with `transmit-hash-policy`:
+
+| Value | Hashes |
+|---|---|
+| `layer-2` (the default) | MAC addresses |
+| `layer-2-and-3` | MAC and IP addresses |
+| `layer-3-and-4` | IP addresses and port numbers |
+| `encap-2-and-3`, `encap-3-and-4` | The same, applied to the encapsulated headers |
+
+Our explanation of what this means in practice: every packet with the same header values takes the same link, so one connection stays on one link, and packets do not arrive out of order. That is also why a bond of four 1 Gbps links does **not** give a single download 4 Gbps. It gives four separate conversations a gigabit each. With `layer-2` hashing, all traffic between the same pair of MAC addresses lands on one member, so a link between two routers can use only one of the members. Our advice is to choose `layer-2-and-3` or `layer-3-and-4` where the device allows it.
+
+**Hardware offload changes this.** Only 802.3ad, balance-xor and active-backup are offloaded to a switch chip, and the chip decides the hash. Marvell Prestera devices always use layer 2, 3 and 4 together, while some other chips are limited to layer 2. Changing the policy while hardware offload is in use has no effect.
+
+## Configuring a bond
+
+```
+/interface bonding add name=bond1 mode=802.3ad slaves=ether1,ether2 transmit-hash-policy=layer-2-and-3
+/ip address add address=172.16.0.1/24 interface=bond1
+```
+
+Options worth knowing:
+
+- `lacp-rate`: how often LACP frames are exchanged, `30secs` (default) or `1sec`. One second detects a failed link sooner.
+- `min-links`: the minimum number of active members for the bond to stay up (default `0`).
+- `mtu`: default `1500`. It must not exceed the smallest **L2MTU** of any member.
+
+## Detecting failure
+
+`link-monitoring` decides how a bond notices a dead member.
+
+- **`mii`** (the default, checked every 100 ms) watches the local interface state. It cannot tell whether packets really pass.
+- **`arp`** sends ARP queries to targets you choose, so it proves traffic flows. MikroTik does not recommend it with LACP, because the ARP replies may arrive on only one member, depending on the hash policy at the other end.
+
+```
+/interface bonding monitor [find]
+/interface bonding monitor-slaves bond1
+```
+
+## Cautions
+
+- **Do not bond across wireless links.** MikroTik warns that the bond hashes traffic regardless of which member can reach the destination, so some destinations become unreachable.
+- Our advice: put the **bond**, not its individual members, into a bridge, so spanning tree sees one link.
+- Our advice: configure both ends the same way. A bond that exists on only one side is a classic cause of odd behaviour.
+
+<Challenge client:visible
+  question="You bond four 1 Gbps links with LACP. One large file transfer between two hosts uses how much of the bond?"
+  options={["4 Gbps, split across all links", "About 1 Gbps, because one connection hashes onto one link", "2 Gbps, the two fastest links", "It depends on the file size"]}
+  answer={1}
+  explain="LACP hashes packet headers, so all packets of one connection take the same link. A bond adds capacity for many conversations, not for a single one. balance-rr can split one connection, but it may reorder packets."
+/>
+
+## Check yourself
+
+- Why does spanning tree block a second cable, and how does a bond avoid that?
+- Which mode would you use between two switches, and which between a server and two separate switches?
+- Why is `layer-2` hashing a poor choice between two routers?
+- Why is ARP link monitoring not recommended with LACP?

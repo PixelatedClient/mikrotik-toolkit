@@ -1,0 +1,571 @@
+---
+// Netland: an animated pixel world drawn from rectangles. Everything that moves is CSS, and stops for reduced-motion users.
+// Pkt is the yellow router mascot that sends packets toward the castle. When users log in, Pkt can provide hints during labs/challenges.
+import { PROPS, toRects } from '../data/pktProps';
+const P = 8;
+const W = 96, H = 40;
+const rect = (x: number, y: number, w: number, h: number, fill: string) => ({ x: x * P, y: y * P, w: w * P, h: h * P, fill });
+
+const sky = ['#141850', '#1c2266', '#262e80', '#333e9c', '#4451b4'].map((c, i) => rect(0, i * 5, W, 5, c));
+const moon = [rect(84, 4, 4, 4, '#fff6c8'), rect(83, 5, 1, 2, '#fff6c8'), rect(88, 5, 1, 2, '#fff6c8'), rect(86, 5, 2, 2, '#e5dca0')];
+const sun = [rect(84, 3, 4, 1, '#ffe066'), rect(83, 4, 6, 4, '#ffd23f'), rect(84, 8, 4, 1, '#ffe066'), rect(85, 4, 2, 1, '#fff6c8')];
+const sunRays = [rect(85, 1, 2, 1, '#ffd23f'), rect(85, 10, 2, 1, '#ffd23f'), rect(81, 5, 1, 2, '#ffd23f'), rect(90, 5, 1, 2, '#ffd23f'), rect(82, 2, 1, 1, '#ffd23f'), rect(89, 2, 1, 1, '#ffd23f'), rect(82, 9, 1, 1, '#ffd23f'), rect(89, 9, 1, 1, '#ffd23f')];
+const starPts = [[6, 3], [18, 8], [30, 2], [44, 10], [58, 4], [72, 9], [90, 12], [12, 15], [38, 6], [64, 14], [78, 3], [24, 12]];
+const cloudShape = [rect(1, 0, 6, 1, '#cfd6ff'), rect(0, 1, 9, 1, '#e6eaff'), rect(2, 2, 6, 1, '#cfd6ff')];
+const clouds = [{ y: 5, d: 0, dur: 60 }, { y: 11, d: -25, dur: 80 }, { y: 3, d: -45, dur: 70 }];
+
+const mountain = (cx: number, base: number, h: number, c1: string, c2: string) => {
+  const out = [];
+  for (let i = 0; i < h; i++) {
+    const half = Math.floor((i + 1) * 1.6);
+    out.push(rect(cx - half, base - h + i, half * 2, 1, i < 3 ? '#f4f6ff' : i % 2 ? c1 : c2));
+  }
+  return out;
+};
+const mountains = [...mountain(20, 30, 14, '#3a3f8f', '#464cab'), ...mountain(46, 30, 18, '#33387f', '#3d4399'), ...mountain(74, 30, 12, '#3a3f8f', '#464cab')];
+const meadow = [rect(0, 30, W, 10, '#2f8f4e'), rect(0, 30, W, 1, '#58c56f'), rect(0, 34, W, 1, '#267a41'), rect(0, 38, W, 2, '#1f6636')];
+const road = [rect(0, 33, W, 2, '#d9b36a'), rect(0, 33, W, 1, '#f0cf8a')];
+const pine = (x: number, y: number) => [rect(x + 1, y, 1, 1, '#1d6b3a'), rect(x, y + 1, 3, 1, '#238a48'), rect(x - 1, y + 2, 5, 1, '#1d6b3a'), rect(x, y + 3, 3, 1, '#238a48'), rect(x - 1, y + 4, 5, 1, '#1d6b3a'), rect(x + 1, y + 5, 1, 2, '#6b4423')];
+const pines = [4, 12, 26, 62, 84, 92].map((x, i) => ({ x, shapes: pine(x, 27 + (i % 2)), delay: -i * 0.7 }));
+
+const houses = [rect(15, 30, 4, 3, '#c9a56a'), rect(14, 29, 6, 1, '#b3402e'), rect(15, 28, 4, 1, '#b3402e'), rect(16, 31, 1, 2, '#3a2a18'), rect(18, 30, 1, 1, '#ffd23f')];
+
+// The dragon: drawn in its own units, top-left of its body area is (0, 0). It faces right and sits on the left mountain peak.
+const green = '#3aa655', deep = '#267a41', belly = '#d9e58a', membrane = '#6fd08a', horn = '#f0cf8a', ink = '#0a0e2a';
+const dr = (x: number, y: number, w: number, h: number, fill: string) => ({ x: x * P, y: y * P, w: w * P, h: h * P, fill });
+const drTail = [dr(0, 8, 3, 2, green), dr(0, 7, 1, 1, green), dr(0, 6, 1, 1, '#ff5a5a'), dr(1, 7, 2, 1, deep)];
+const drWing = [dr(5, 2, 1, 5, deep), dr(6, 1, 3, 1, deep), dr(6, 2, 3, 4, membrane), dr(9, 3, 1, 2, deep)];
+const drBody = [dr(3, 6, 9, 5, green), dr(4, 9, 7, 2, belly), dr(3, 6, 9, 1, '#5cc975'), dr(4, 11, 2, 2, deep), dr(9, 11, 2, 2, deep)];
+const drHead = [dr(11, 4, 3, 3, green), dr(12, 2, 5, 3, green), dr(16, 3, 2, 2, green), dr(12, 1, 1, 1, horn), dr(14, 1, 1, 1, horn), dr(13, 5, 4, 1, belly)];
+const drEyeOpen = [dr(14, 3, 1, 1, '#fff'), dr(14, 3, 1, 1, ink)];
+const drEyeClosed = [dr(13, 3, 2, 1, ink)];
+const drMouth = [dr(16, 4, 2, 1, ink)];
+const drMouthOpen = [dr(16, 4, 2, 2, ink), dr(16, 5, 2, 1, '#ff5a5a')];
+const drFire = [dr(18, 3, 3, 2, '#ff9a3a'), dr(21, 2, 4, 4, '#ffd23f'), dr(25, 3, 3, 2, '#ff5a5a'), dr(22, 3, 2, 2, '#fff6c8')];
+const drZzz = [dr(15, -1, 2, 1, '#fff'), dr(16, 0, 1, 1, '#fff'), dr(15, 1, 2, 1, '#fff'), dr(18, -3, 1, 1, '#cfd6ff'), dr(19, -2, 1, 1, '#cfd6ff')];
+const pktAnt = [rect(31, 22, 1, 3, '#ffd23f'), rect(30, 21, 3, 1, '#ffd23f'), rect(41, 22, 1, 3, '#ffd23f'), rect(40, 21, 3, 1, '#ffd23f')];
+const pktBody = [
+  rect(29, 25, 16, 8, '#ffd23f'), rect(29, 25, 16, 1, '#fff0a8'), rect(29, 32, 16, 1, '#c99a12'),
+  rect(31, 33, 3, 1, '#c99a12'), rect(40, 33, 3, 1, '#c99a12'),
+];
+const dark = '#0a0e2a';
+const mouths: Record<string, ReturnType<typeof rect>[]> = {
+  flat: [rect(34, 31, 6, 1, dark)],
+  smile: [rect(33, 30, 1, 1, dark), rect(34, 31, 6, 1, dark), rect(40, 30, 1, 1, dark)],
+  open: [rect(35, 30, 4, 3, dark), rect(36, 32, 2, 1, '#ff5a5a')],
+  o: [rect(36, 30, 2, 3, dark)],
+  sad: [rect(34, 30, 6, 1, dark), rect(33, 31, 1, 1, dark), rect(40, 31, 1, 1, dark)],
+};
+const OX = 29, OY = 25; // top-left of Pkt's body: props are placed relative to it
+const propList = Object.entries(PROPS).map(([name, pr]) => ({ name, rects: toRects(pr) }));
+const pktEyes = [rect(32, 27, 3, 3, '#0a0e2a'), rect(39, 27, 3, 3, '#0a0e2a'), rect(33, 28, 1, 1, '#fff'), rect(40, 28, 1, 1, '#fff')];
+const pktLeds = [[30, 32], [32, 32], [42, 32]];
+
+const castle = [
+  rect(70, 20, 3, 13, '#5a2a3a'), rect(78, 20, 3, 13, '#5a2a3a'), rect(72, 24, 6, 9, '#6e3346'),
+  rect(69, 19, 1, 1, '#5a2a3a'), rect(71, 19, 1, 1, '#5a2a3a'), rect(73, 19, 1, 1, '#5a2a3a'), rect(78, 19, 1, 1, '#5a2a3a'), rect(80, 19, 1, 1, '#5a2a3a'),
+  rect(74, 28, 2, 5, '#1a0d14'), rect(75, 14, 1, 6, '#ddd'),
+];
+const flag = [rect(76, 14, 4, 2, '#ff5a5a')];
+const windows = [rect(71, 22, 1, 2, '#ff9a3a'), rect(79, 22, 1, 2, '#ff9a3a')];
+
+// packets travel the road towards the castle, staggered
+const packets = Array.from({ length: 7 }, (_, i) => ({ d: -i * 1.7, y: 33.5 + (i % 2) * 0.5 }));
+const smoke = [0, 1, 2].map((i) => ({ d: -i * 1.4 }));
+---
+<svg viewBox={`0 0 ${W * P} ${H * P}`} class="world block w-full border-y-4 border-line" style="aspect-ratio: 2 / 1; height: auto;" role="group" aria-label="Animated pixel world: a yellow router mascot on a road sends glowing packets toward an enemy castle. Clouds drift across a starry sky above mountains and swaying pine trees." preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  {sky.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}
+  <rect class="daylight" width={W * P} height={30 * P} fill="#8fd0ff" />
+  <g class="stars">{starPts.map(([x, y], i) => <rect class="star" style={`animation-delay:${-i * 0.45}s`} x={x * P} y={y * P} width={P} height={P} fill="#fff6c8" />)}</g>
+  <g class="moon">{moon.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+  <g class="sun">{sun.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}<g class="sun-rays">{sunRays.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g></g>
+  {clouds.map((c) => (
+    <g class="cloud" transform={`translate(0 ${c.y * P})`}>
+      <g style={`animation-duration:${c.dur}s;animation-delay:${c.d}s`}>{cloudShape.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+    </g>
+  ))}
+  <rect class="dusk" width={W * P} height={30 * P} fill="#ff7a59" />
+  <rect class="shoot" x={70 * P} y={2 * P} width={3 * P} height={P / 2} fill="#fff" />
+  {[0, 1, 2].map((i) => <g class="bird" style={`animation-delay:${-i * 4}s;animation-duration:${22 + i * 5}s;--by:${(6 + i * 3) * P}px`}><g class="flap"><rect x="0" y="0" width={P} height={P / 2} fill="#e6eaff" /><rect x={P} y={P / 2} width={P} height={P / 2} fill="#e6eaff" /><rect x={2 * P} y="0" width={P} height={P / 2} fill="#e6eaff" /></g></g>)}
+  <g class="par p1">{mountains.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}
+    <g transform="translate(137 84) scale(0.42)">
+      <g id="dragon" data-pose="sleep" role="img" aria-label="A green pixel dragon on the mountain top, sometimes asleep, sometimes flying or breathing fire">
+        <g class="dr-flip">
+        <g class="dr-tail">{drTail.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+        <g class="dr-wing">{drWing.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+        <g class="dr-body">{drBody.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+        <g class="dr-head">
+          {drHead.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}
+          <g class="dr-eye-open">{drEyeOpen.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+          <g class="dr-eye-closed">{drEyeClosed.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+          <g class="dr-mouth">{drMouth.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+          <g class="dr-mouth-open">{drMouthOpen.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+          <g class="dr-fire">{drFire.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+        </g>
+        <g class="dr-zzz">{drZzz.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="par p2">
+  {meadow.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}
+  {houses.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}
+  {road.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}
+  {pines.map((p) => <g class="pine" style={`animation-delay:${p.delay}s`}>{p.shapes.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>)}
+
+  </g>
+  {[[8, 31], [22, 32], [58, 31], [66, 32], [88, 31], [50, 30]].map(([x, y], i) => <rect class="fly" style={`animation-delay:${-i * 1.1}s`} x={x * P} y={y * P} width={P / 2} height={P / 2} fill="#e8ff7a" />)}
+  <g class="castle">
+    {castle.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}
+    <g class="flag">{flag.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+    {windows.map((r) => <rect class="torch" x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}
+    <rect class="hit-flash" x={69 * P} y={19 * P} width={12 * P} height={14 * P} fill="#ff5a5a" />
+    {smoke.map((s) => <rect class="smoke" style={`animation-delay:${s.d}s`} x={73 * P} y={19 * P} width={P} height={P} fill="#b9b3c9" />)}
+  </g>
+
+  {packets.map((p) => <rect class="packet" style={`animation-delay:${p.d}s`} x={-P} y={p.y * P} width={P} height={P} fill="#fff0a8" />)}
+
+    <rect class="daytint" width={W * P} height={H * P} fill="#ffe9a8" />
+  <g id="pkt-move" data-pose="idle" data-eyes="c" data-mouth="flat" data-led="g">
+    <g transform="translate(296 264) scale(0.62) translate(-296 -264)">
+    {propList.map((pr) => <g class="prop" data-prop={pr.name} style="display:none">{pr.rects.map((r) => <rect x={(OX + r.x) * P} y={(OY + r.y) * P} width={r.w * P} height={P} fill={r.fill} />)}</g>)}
+    <g class="pkt" id="pkt-mascot" title="Pkt - the router mascot. Click to get help!" role="button" tabindex="0">
+      <g class="pkt-ant">{pktAnt.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>
+      {pktBody.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}
+      {Object.entries(mouths).map(([name, list]) => <g class="mouth" data-m={name}>{list.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g>)}
+      <g class="pkt-eyes"><g class="gaze">{pktEyes.map((r) => <rect x={r.x} y={r.y} width={r.w} height={r.h} fill={r.fill} />)}</g></g>
+      {pktLeds.map(([x, y], i) => <rect class="pkt-led" style={`animation-delay:${-i * 0.3}s;fill:var(--led)`} x={x * P} y={y * P} width={P} height={P / 2} />)}
+    </g>
+    </g>
+  </g>
+  <g id="pkt-bubble" style="display:none">
+    <rect id="pkt-bubble-bg" x="0" y="0" width="120" height="22" fill="#fff6c8" stroke="#0a0e2a" stroke-width="3" />
+    <rect id="pkt-bubble-tail" x="0" y="22" width="9" height="7" fill="#fff6c8" stroke="#0a0e2a" stroke-width="2" />
+    <text id="pkt-bubble-text" class="pixel" x="9" y="15" font-size="7" fill="#0a0e2a"></text>
+  </g>
+  <g id="dragon-bubble" style="display:none">
+    <rect id="dragon-bubble-bg" x="0" y="0" width="120" height="22" fill="#e6ffe6" stroke="#0a0e2a" stroke-width="3" />
+    <rect id="dragon-bubble-tail" x="0" y="22" width="9" height="7" fill="#e6ffe6" stroke="#0a0e2a" stroke-width="2" />
+    <text id="dragon-bubble-text" class="pixel" x="9" y="15" font-size="7" fill="#0a0e2a"></text>
+  </g>
+</svg>
+<p id="pkt-caption" class="sr-only" aria-live="polite"></p>
+<script>
+  import { SCENES } from '../data/pktScenes';
+  import { CLICK_LINES, DRAGON_SCENES, DUETS } from '../data/pktDragon';
+  import type { DragonScene, Duet } from '../data/pktDragon';
+  import type { Scene } from '../data/pktScenes';
+
+  const w = document.querySelector<SVGElement>('svg.world');
+  const move = document.getElementById('pkt-move') as SVGGElement | null;
+  const dragon = document.getElementById('dragon') as SVGGElement | null;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (w && !reduce) {
+    window.addEventListener('pointermove', (e) => { w.style.setProperty('--px', String((e.clientX / innerWidth - 0.5) * 2)); }, { passive: true });
+  }
+
+  const PKT_CENTER = 37 * 8; // world pixels: middle of Pkt's body at x = 0
+  const DRAGON_HEAD = 192; // world pixels: where the small, far away dragon's head is on its perch
+  const DRAGON_SCALE = 0.42; // the dragon is drawn at this size, so its flights are scaled back up
+  const VIEW = 96 * 8;
+  const SPEED: Record<string, number> = { walk: 0.06, run: 0.14 };
+  const HOLD = 2600; // a speech bubble stays this long after the last move, so it can be read
+  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+  const CHAR = 7.4; // width of one character of the small pixel font, in world pixels
+
+  type Who = 'pkt' | 'dragon';
+  function bubbleFor(who: Who) {
+    return {
+      g: document.getElementById(`${who}-bubble`) as SVGGElement | null,
+      bg: document.getElementById(`${who}-bubble-bg`),
+      tail: document.getElementById(`${who}-bubble-tail`),
+      text: document.getElementById(`${who}-bubble-text`) as unknown as SVGTextElement | null,
+    };
+  }
+  const bubbles = { pkt: bubbleFor('pkt'), dragon: bubbleFor('dragon') };
+  const width: Record<Who, number> = { pkt: 0, dragon: 0 };
+
+  /** Show (or hide, when text is null) a speech bubble. */
+  function say(who: Who, text: string | null) {
+    const b = bubbles[who];
+    if (who === 'pkt') {
+      const label = document.getElementById('pkt-caption');
+      if (label) label.textContent = text ?? '';
+    }
+    if (!b.g || !b.text || !b.bg) return;
+    if (!text) { b.g.style.display = 'none'; return; }
+    b.text.textContent = text;
+    width[who] = Math.min(VIEW - 16, Math.ceil(text.length * CHAR) + 18);
+    b.bg.setAttribute('width', String(width[who]));
+    b.g.style.display = '';
+  }
+
+  const lastAt: Record<Who, { x: number; y: number }> = { pkt: { x: 0, y: 0 }, dragon: { x: 0, y: 0 } };
+
+  /** Put the bubble just above the speaker. With `ms` it glides along with the speaker (from where it was) instead of jumping. */
+  function place(who: Who, x: number, y = 0, ms = 0) {
+    const b = bubbles[who];
+    if (!b.g || !b.tail) return;
+    const spot = (px: number, py: number) => {
+      const centre = who === 'pkt' ? PKT_CENTER + px : DRAGON_HEAD + px;
+      const left = Math.max(8, Math.min(VIEW - width[who] - 8, centre - width[who] / 2));
+      // Pkt's head is at about y 180, the dragon's at about y 78 (world pixels)
+      const top = who === 'pkt' ? 158 : 40 + py;
+      return { left, top, tail: Math.max(6, Math.min(width[who] - 16, centre - left - 5)) };
+    };
+    if (ms > 0) {
+      const from = spot(lastAt[who].x, lastAt[who].y);
+      b.g.style.transition = 'none';
+      b.g.style.transform = `translate(${from.left}px, ${from.top}px)`;
+      void b.g.getBoundingClientRect();
+    }
+    const to = spot(x, y);
+    b.g.style.transition = ms > 0 ? `transform ${ms}ms ${who === 'pkt' ? 'linear' : 'ease-in-out'}` : 'none';
+    b.g.style.transform = `translate(${to.left}px, ${to.top}px)`;
+    b.tail.setAttribute('x', String(to.tail));
+    lastAt[who] = { x, y };
+  }
+
+  // ----- click on Pkt: one calm jump and a word, never on hover -----
+  if (move) {
+    const mascot = document.getElementById('pkt-mascot');
+    let busy = false;
+    mascot?.addEventListener('click', async () => {
+      if (busy || reduce) { if (reduce) { say('pkt', CLICK_LINES[Math.floor(Math.random() * CLICK_LINES.length)]); place('pkt', 0); } return; }
+      busy = true;
+      clicking = true;
+      const before = move.dataset.pose;
+      const shown = bubbles.pkt.g?.style.display !== 'none';
+      move.dataset.pose = 'clickjump';
+      if (!shown) { say('pkt', CLICK_LINES[Math.floor(Math.random() * CLICK_LINES.length)]); place('pkt', currentX); }
+      await sleep(950);
+      clicking = false;
+      move.dataset.pose = before ?? 'idle';
+      if (!shown) { await sleep(1400); say('pkt', null); }
+      busy = false;
+    });
+    mascot?.addEventListener('mousedown', (e) => e.preventDefault());
+  }
+
+  let currentX = 0;
+  let clicking = false; // while Pkt jumps for a click, the scenes leave its pose alone
+  let dragonBusy = false;
+  let dragonRunning = false;
+  let dragonDx = 0;
+  let dragonDir = 'r';
+  /** The dragon faces the way it flies; on its perch it faces right. */
+  function faceDragon(pose: string, dx: number) {
+    if (dx !== dragonDx) dragonDir = dx > dragonDx ? 'r' : 'l';
+    dragonDx = dx;
+    if (dragon) dragon.dataset.dir = pose === 'fly' ? dragonDir : 'r';
+  }
+
+  if (move && reduce) {
+    say('pkt', 'Pkt is on patrol');
+    place('pkt', 0);
+  }
+
+  if (move && !reduce) {
+    let onScreen = true;
+    new IntersectionObserver((e) => { onScreen = e[0].isIntersecting; }, { threshold: 0.1 }).observe(move);
+    const waitVisible = async () => { while (document.hidden || !onScreen) await sleep(500); };
+    const props = Array.from(move.querySelectorAll<SVGGElement>('.prop'));
+    const setProp = (name: string | null) => props.forEach((p) => { p.style.display = p.dataset.prop === name ? '' : 'none'; });
+    let last = -1;
+
+    // one step of Pkt: face, pose, prop and a walk
+    async function pktStep(st: { x?: number; pose?: string; eyes?: string; mouth?: string; led?: string; prop?: string | null; ms: number }, minMs = 0) {
+      if (st.pose && !clicking) move!.dataset.pose = st.pose;
+      if (st.eyes) move!.dataset.eyes = st.eyes;
+      if (st.mouth) move!.dataset.mouth = st.mouth;
+      if (st.led) move!.dataset.led = st.led;
+      if (st.prop !== undefined) setProp(st.prop);
+      let ms = Math.max(st.ms, minMs);
+      let moved = false;
+      if (st.x !== undefined && st.x !== currentX) {
+        moved = true;
+        const dist = Math.abs(st.x - currentX);
+        ms = Math.max(ms, dist / (SPEED[st.pose ?? 'walk'] ?? 0.06));
+        move!.style.transition = `transform ${ms}ms linear`;
+        move!.style.transform = `translate(${st.x}px, 0)`;
+        currentX = st.x;
+      }
+      place('pkt', currentX, 0, moved ? ms : 0);
+      await sleep(ms);
+    }
+    const pktRest = () => {
+      setProp(null);
+      move!.dataset.pose = 'idle';
+      move!.dataset.eyes = 'c';
+      move!.dataset.mouth = 'flat';
+      move!.dataset.led = 'g';
+    };
+
+    async function pktScene(sc: Scene) {
+      say('pkt', sc.text);
+      place('pkt', currentX);
+      for (const st of sc.steps) { await waitVisible(); await pktStep(st); }
+      await sleep(HOLD); // let the words be read before they go
+      say('pkt', null);
+      pktRest();
+    }
+
+    // ----- the dragon -----
+    async function dragonStep(st: { pose: string; dx?: number; dy?: number; say?: string; ms: number }) {
+      dragonRunning = true;
+      dragon!.dataset.pose = st.pose;
+      const dx = st.dx ?? 0, dy = st.dy ?? 0;
+      faceDragon(st.pose, dx);
+      dragon!.style.transition = `transform ${st.ms}ms ease-in-out`;
+      dragon!.style.transform = `translate(${dx / DRAGON_SCALE}px, ${dy / DRAGON_SCALE}px)`;
+      if (st.say) { say('dragon', st.say); place('dragon', lastAt.dragon.x, lastAt.dragon.y); }
+      if (bubbles.dragon.g && bubbles.dragon.g.style.display !== 'none') place('dragon', dx, dy, st.ms);
+      await sleep(st.ms);
+    }
+    async function dragonScene(sc: DragonScene) {
+      for (const st of sc.steps) { await waitVisible(); if (dragonBusy) break; await dragonStep(st); }
+      await sleep(st_hold());
+      say('dragon', null);
+      dragon!.dataset.pose = 'idle';
+      dragonRunning = false;
+    }
+    const st_hold = () => 1500;
+
+    async function duet(du: Duet) {
+      dragonBusy = true;
+      while (dragonRunning) await sleep(300);
+      for (const b of du.beats) {
+        await waitVisible();
+        if (b.pkt?.say) { say('pkt', b.pkt.say); place('pkt', currentX); }
+        if (b.dragon?.say) { say('dragon', b.dragon.say); place('dragon', lastAt.dragon.x, lastAt.dragon.y); place('dragon', b.dragon.dx ?? 0, b.dragon.dy ?? 0, b.ms); }
+        const tasks: Promise<void>[] = [];
+        if (b.pkt) tasks.push(pktStep({ ...b.pkt, ms: b.ms }));
+        else tasks.push(sleep(b.ms));
+        if (b.dragon) {
+          dragon!.dataset.pose = b.dragon.pose;
+          faceDragon(b.dragon.pose, b.dragon.dx ?? 0);
+          dragon!.style.transition = `transform ${b.ms}ms ease-in-out`;
+          dragon!.style.transform = `translate(${(b.dragon.dx ?? 0) / DRAGON_SCALE}px, ${(b.dragon.dy ?? 0) / DRAGON_SCALE}px)`;
+        }
+        await Promise.all(tasks);
+        await sleep(HOLD / 2);
+        if (!b.pkt?.say) say('pkt', null);
+        if (!b.dragon?.say) say('dragon', null);
+        say('pkt', null);
+        say('dragon', null);
+      }
+      pktRest();
+      dragon!.dataset.pose = 'idle';
+      dragon!.style.transform = 'translate(0px, 0px)';
+      dragonBusy = false;
+    }
+
+    async function pktLoop() {
+      await sleep(1500);
+      for (;;) {
+        await waitVisible();
+        if (Math.random() < 0.22 && DUETS.length) {
+          await duet(DUETS[Math.floor(Math.random() * DUETS.length)]);
+        } else {
+          let i = Math.floor(Math.random() * SCENES.length);
+          if (i === last) i = (i + 1) % SCENES.length;
+          last = i;
+          await pktScene(SCENES[i]);
+        }
+        await sleep(1200 + Math.random() * 1600);
+      }
+    }
+
+    async function dragonLoop() {
+      if (!dragon) return;
+      dragon.dataset.pose = 'sleep';
+      await sleep(3000);
+      let prev = -1;
+      for (;;) {
+        await waitVisible();
+        if (dragonBusy) { await sleep(800); continue; }
+        let i = Math.floor(Math.random() * DRAGON_SCENES.length);
+        if (i === prev) i = (i + 1) % DRAGON_SCENES.length;
+        prev = i;
+        await dragonScene(DRAGON_SCENES[i]);
+        await sleep(2500 + Math.random() * 3500);
+      }
+    }
+
+    void pktLoop();
+    void dragonLoop();
+  }
+</script>
+
+<style is:global>
+  .world { image-rendering: pixelated; }
+  .world .pkt { cursor: pointer; transform-box: fill-box; transform-origin: 50% 100%; }
+  @media (prefers-reduced-motion: no-preference) {
+    .world .star { animation: w-twinkle 3.2s steps(2) infinite; }
+    .world .cloud > g { animation-name: w-drift; animation-timing-function: linear; animation-iteration-count: infinite; }
+    .world .pine { transform-box: fill-box; transform-origin: 50% 100%; animation: w-sway 4s steps(4) infinite; }
+    .world .pkt { animation: w-bob 1.6s steps(4) infinite; }
+    .world .pkt-eyes { transform-box: fill-box; transform-origin: 50% 50%; animation: w-blink 4s steps(1) infinite; }
+    .world .pkt-led { animation: w-twinkle 0.9s steps(2) infinite; }
+    .world .packet { animation: w-packet 12s linear infinite; }
+    .world .flag { transform-box: fill-box; transform-origin: 0 50%; animation: w-wave 0.8s steps(2) infinite; }
+    .world .torch { animation: w-flicker 0.6s steps(2) infinite; }
+    .world .smoke { animation: w-smoke 4.2s steps(6) infinite; opacity: 0; }
+    .world .hit-flash { opacity: 0; animation: w-hit 12s steps(1) infinite; animation-delay: -1.5s; }
+    .world .castle { transform-box: fill-box; }
+    .world .par { transition: transform 0.4s ease-out; }
+    .world .p1 { transform: translateX(calc(var(--px, 0) * -6px)); }
+    .world .p2 { transform: translateX(calc(var(--px, 0) * -14px)); }
+    .world .shoot { opacity: 0; animation: w-shoot 11s linear infinite; animation-delay: -3s; }
+    .world .bird { animation: w-bird linear infinite; }
+    .world .flap { transform-box: fill-box; transform-origin: 50% 100%; animation: w-flap 0.5s steps(2) infinite; }
+    .world .fly { animation: w-fly 5s ease-in-out infinite; }
+  }
+  @media (prefers-reduced-motion: reduce) { .world .hit-flash, .world .smoke { display: none; } .world .packet { display: none; } }
+  @keyframes w-dusk { 0%, 100% { opacity: 0; } 50% { opacity: 0.28; } }
+  @keyframes w-moon { 0% { transform: translate(-560px, 40px); opacity: 1; } 23% { transform: translate(-280px, -8px); opacity: 1; } 42% { transform: translate(-40px, 34px); opacity: 1; } 49% { transform: translate(0, 44px); opacity: 0; } 50%, 100% { transform: translate(0, 44px); opacity: 0; } }
+  @keyframes w-sun { 0%, 52% { transform: translate(-560px, 44px); opacity: 0; } 58% { transform: translate(-520px, 36px); opacity: 1; } 75% { transform: translate(-280px, -8px); opacity: 1; } 91% { transform: translate(-30px, 34px); opacity: 1; } 97% { transform: translate(0, 44px); opacity: 0; } 100% { transform: translate(0, 44px); opacity: 0; } }
+  @keyframes w-daylight { 0%, 40% { opacity: 0; } 56%, 90% { opacity: 0.96; } 100% { opacity: 0; } }
+  @keyframes w-daytint { 0%, 40% { opacity: 0; } 56%, 90% { opacity: 0.24; } 100% { opacity: 0; } }
+  @keyframes w-stars { 0%, 34% { opacity: 1; } 48%, 96% { opacity: 0; } 100% { opacity: 1; } }
+  @keyframes w-dusk2 { 0% { opacity: 0.3; } 6% { opacity: 0; } 38% { opacity: 0; } 47% { opacity: 0.44; } 56% { opacity: 0.12; } 63% { opacity: 0; } 88% { opacity: 0; } 95% { opacity: 0.44; } 100% { opacity: 0.3; } }
+
+
+  @keyframes w-shoot { 0% { transform: translate(0, 0); opacity: 0; } 2% { opacity: 1; } 8% { transform: translate(-220px, 110px); opacity: 0; } 100% { opacity: 0; } }
+  @keyframes w-bird { from { transform: translate(-60px, var(--by, 0)); } to { transform: translate(840px, var(--by, 0)); } }
+  @keyframes w-flap { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(-1); } }
+  @keyframes w-fly { 0%, 100% { transform: translate(0, 0); opacity: 0.2; } 25% { transform: translate(14px, -18px); opacity: 1; } 50% { transform: translate(-6px, -30px); opacity: 0.3; } 75% { transform: translate(10px, -12px); opacity: 1; } }
+  @keyframes w-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+  @keyframes w-drift { from { transform: translateX(-140px); } to { transform: translateX(860px); } }
+  @keyframes w-sway { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
+  @keyframes w-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  @keyframes w-jump { 0% { transform: translateY(0); } 40% { transform: translateY(-40px) scaleY(1.1); } 100% { transform: translateY(0); } }
+  @keyframes w-blink { 0%, 92%, 100% { transform: scaleY(1); } 94%, 98% { transform: scaleY(0.1); } }
+  @keyframes w-packet { 0% { transform: translateX(0); opacity: 0; } 5% { opacity: 1; } 80% { opacity: 1; } 100% { transform: translateX(560px); opacity: 0; } }
+  @keyframes w-wave { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.6); } }
+  @keyframes w-flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  @keyframes w-smoke { 0% { transform: translate(0, 0); opacity: 0.8; } 100% { transform: translate(14px, -70px); opacity: 0; } }
+  @keyframes w-hit { 0%, 100% { opacity: 0; } 62%, 66% { opacity: 0.45; } 64% { opacity: 0; } }
+
+  /* ----- Pkt scenes: pose, face, colour of the lights ----- */
+  #pkt-move { --led: #5cff8a; }
+  #pkt-move[data-led="r"] { --led: #ff5a5a; }
+  #pkt-move[data-led="y"] { --led: #ffd23f; }
+  #pkt-move[data-led="off"] { --led: #3a3f5a; }
+  .world .mouth { display: none; }
+  #pkt-move[data-mouth="flat"] .mouth[data-m="flat"], #pkt-move[data-mouth="smile"] .mouth[data-m="smile"], #pkt-move[data-mouth="open"] .mouth[data-m="open"],
+  #pkt-move[data-mouth="o"] .mouth[data-m="o"], #pkt-move[data-mouth="sad"] .mouth[data-m="sad"] { display: inline; }
+  .world .gaze { transition: transform 0.2s steps(2); }
+  #pkt-move[data-eyes="l"] .gaze { transform: translateX(-8px); }
+  #pkt-move[data-eyes="r"] .gaze { transform: translateX(8px); }
+  #pkt-move[data-eyes="u"] .gaze { transform: translateY(-8px); }
+  #pkt-move[data-eyes="d"] .gaze { transform: translateY(6px); }
+  #pkt-move[data-eyes="x"] .pkt-eyes { animation: none !important; transform: scaleY(0.12); }
+  .world .pkt-ant { transform-box: fill-box; transform-origin: 50% 100%; }
+  @media (prefers-reduced-motion: no-preference) {
+    #pkt-move[data-pose="walk"] .pkt { animation: p-walk 0.5s steps(2) infinite; }
+    #pkt-move[data-pose="run"] .pkt { animation: p-run 0.3s steps(2) infinite; }
+    #pkt-move[data-pose="hop"] .pkt { animation: p-hop 0.6s steps(6) infinite; }
+    #pkt-move[data-pose="jump"] .pkt { animation: p-jump 0.7s steps(7) infinite; }
+    #pkt-move[data-pose="spin"] .pkt { animation: p-spin 0.8s steps(4) infinite; }
+    #pkt-move[data-pose="tilt"] .pkt { animation: p-tilt 1.6s steps(4) infinite; }
+    #pkt-move[data-pose="shake"] .pkt { animation: p-shake 0.3s steps(2) infinite; }
+    #pkt-move[data-pose="squash"] .pkt { animation: p-squash 0.5s steps(3) infinite; }
+    #pkt-move[data-pose="lean"] .pkt { animation: p-lean 1s steps(4) infinite; }
+    #pkt-move[data-pose="dance"] .pkt { animation: p-dance 0.5s steps(4) infinite; }
+    #pkt-move[data-pose="sleep"] .pkt { animation: p-sleep 2.4s steps(4) infinite; }
+    #pkt-move[data-pose="type"] .pkt { animation: p-type 0.25s steps(2) infinite; }
+    #pkt-move[data-pose="stretch"] .pkt { animation: p-stretch 1.2s steps(4) infinite; }
+    #pkt-move[data-pose="wave"] .pkt { animation: p-idle 1.6s steps(4) infinite; }
+    #pkt-move[data-pose="wave"] .pkt-ant { animation: p-wave 0.4s steps(2) infinite; }
+    #pkt-move .prop { animation: p-prop 1.2s steps(2) infinite; }
+  }
+  @keyframes p-idle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  @keyframes p-walk { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
+  @keyframes p-run { 0%, 100% { transform: translateY(0) rotate(5deg); } 50% { transform: translateY(-10px) rotate(-1deg); } }
+  @keyframes p-hop { 0%, 100% { transform: translateY(0) scaleY(0.9); } 50% { transform: translateY(-26px) scaleY(1.08); } }
+  @keyframes p-jump { 0%, 100% { transform: translateY(0) scaleY(0.88); } 45% { transform: translateY(-44px) scaleY(1.1); } }
+  @keyframes p-spin { 0% { transform: scaleX(1); } 25% { transform: scaleX(0.05); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(0.05); } 100% { transform: scaleX(1); } }
+  @keyframes p-tilt { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-9deg); } 75% { transform: rotate(9deg); } }
+  @keyframes p-shake { 0%, 100% { transform: translateX(-5px); } 50% { transform: translateX(5px); } }
+  @keyframes p-squash { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.12, 0.8); } }
+  @keyframes p-lean { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(7deg) translateX(6px); } }
+  @keyframes p-dance { 0% { transform: translateY(0) rotate(-8deg); } 50% { transform: translateY(-14px) rotate(8deg); } 100% { transform: translateY(0) rotate(-8deg); } }
+  @keyframes p-sleep { 0%, 100% { transform: rotate(9deg) translateY(4px); } 50% { transform: rotate(9deg) translateY(8px) scaleY(0.96); } }
+  @keyframes p-type { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+  @keyframes p-stretch { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.14); } }
+  @keyframes p-wave { 0%, 100% { transform: rotate(-16deg); } 50% { transform: rotate(16deg); } }
+  @keyframes p-prop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+  /* ----- Pkt: no focus square, a single jump on click ----- */
+  .world .pkt:focus, .world .pkt:focus-visible { outline: none; }
+  .world .pkt:focus-visible { filter: drop-shadow(0 0 6px #fff6c8); }
+  @media (prefers-reduced-motion: no-preference) {
+    #pkt-move[data-pose="clickjump"] .pkt { animation: p-click 0.9s steps(9) 1; }
+  }
+  @keyframes p-click { 0%, 100% { transform: translateY(0) scaleY(0.9); } 30% { transform: translateY(-34px) scaleY(1.08); } 60% { transform: translateY(-34px) scaleY(1.08); } 85% { transform: translateY(0) scaleY(0.88); } }
+
+  /* ----- day and night: a moon crosses, then the sun, then the moon again (180 s round) ----- */
+  .world .sun, .world .daylight, .world .daytint { opacity: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .world .moon { animation: w-moon 180s linear infinite; }
+    .world .sun { animation: w-sun 180s linear infinite; }
+    .world .daylight { animation: w-daylight 180s ease-in-out infinite; }
+    .world .daytint { animation: w-daytint 180s ease-in-out infinite; }
+    .world .stars { animation: w-stars 180s ease-in-out infinite; }
+    .world .dusk { opacity: 0; animation: w-dusk2 180s ease-in-out infinite; }
+    .world .sun-rays { animation: w-flicker 1.4s steps(2) infinite; }
+  }
+
+  /* ----- the dragon ----- */
+  #dragon { transform-box: view-box; }
+  #dragon .dr-flip { transform-box: view-box; transform-origin: 72px 60px; }
+  #dragon[data-dir="l"] .dr-flip { transform: scaleX(-1); }
+  #dragon .dr-zzz, #dragon .dr-fire, #dragon .dr-mouth-open, #dragon .dr-eye-closed { display: none; }
+  #dragon[data-pose="sleep"] .dr-eye-closed, #dragon[data-pose="sleep"] .dr-zzz { display: inline; }
+  #dragon[data-pose="sleep"] .dr-eye-open, #dragon[data-pose="sleep"] .dr-mouth { display: none; }
+  #dragon[data-pose="yawn"] .dr-mouth-open, #dragon[data-pose="roar"] .dr-mouth-open, #dragon[data-pose="fire"] .dr-mouth-open { display: inline; }
+  #dragon[data-pose="yawn"] .dr-mouth, #dragon[data-pose="roar"] .dr-mouth, #dragon[data-pose="fire"] .dr-mouth { display: none; }
+  #dragon[data-pose="fire"] .dr-fire { display: inline; }
+  #dragon[data-pose="yawn"] .dr-eye-open { display: none; }
+  #dragon[data-pose="yawn"] .dr-eye-closed { display: inline; }
+  #dragon .dr-head, #dragon .dr-wing, #dragon .dr-tail, #dragon .dr-body { transform-box: fill-box; }
+  #dragon .dr-head { transform-origin: 20% 90%; }
+  #dragon .dr-wing { transform-origin: 100% 100%; }
+  #dragon .dr-tail { transform-origin: 100% 40%; }
+  #dragon .dr-body { transform-origin: 50% 100%; }
+  @media (prefers-reduced-motion: no-preference) {
+    #dragon .dr-body { animation: dr-breathe 3s steps(3) infinite; }
+    #dragon[data-pose="sleep"] .dr-body { animation: dr-breathe 4.4s steps(4) infinite; }
+    #dragon[data-pose="sleep"] .dr-head { transform: translateY(6px) rotate(10deg); }
+    #dragon[data-pose="sleep"] .dr-zzz { animation: dr-zzz 2.4s steps(4) infinite; }
+    #dragon[data-pose="look"] .dr-head { animation: dr-look 3.2s steps(4) infinite; }
+    #dragon[data-pose="yawn"] .dr-head { transform: rotate(-12deg); }
+    #dragon[data-pose="roar"] .dr-head { transform: rotate(-10deg); animation: dr-shake 0.25s steps(2) infinite; }
+    #dragon[data-pose="roar"] .dr-body { animation: dr-shake 0.25s steps(2) infinite; }
+    #dragon[data-pose="fire"] .dr-head { transform: rotate(-6deg); }
+    #dragon[data-pose="fire"] .dr-fire { animation: dr-fire 0.3s steps(2) infinite; }
+    #dragon[data-pose="fly"] .dr-wing { animation: dr-flap 0.35s steps(2) infinite; }
+    #dragon[data-pose="fly"] .dr-body { animation: dr-bob 0.7s steps(2) infinite; }
+    #dragon[data-pose="fly"] .dr-tail { animation: dr-tail 0.7s steps(2) infinite; }
+    #dragon[data-pose="tail"] .dr-tail { animation: dr-tail 0.5s steps(2) infinite; }
+    #dragon[data-pose="wave"] .dr-wing { animation: dr-wave 0.5s steps(2) infinite; }
+    #dragon[data-pose="stretch"] .dr-wing { transform: scaleY(1.35) rotate(-8deg); }
+    #dragon[data-pose="stretch"] .dr-body { animation: dr-stretch 1.4s steps(4) infinite; }
+    #dragon[data-pose="proud"] .dr-body { transform: scale(1.06); }
+    #dragon[data-pose="proud"] .dr-head { transform: rotate(-8deg) translateY(-2px); }
+    #dragon .dr-wing { animation: dr-wing-idle 3.4s steps(2) infinite; }
+    #dragon[data-pose="sleep"] .dr-wing { animation: none; transform: rotate(8deg); }
+  }
+  @keyframes dr-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.03, 1.06); } }
+  @keyframes dr-look { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px) rotate(4deg); } }
+  @keyframes dr-shake { 0%, 100% { transform: translateX(-3px); } 50% { transform: translateX(3px); } }
+  @keyframes dr-fire { 0%, 100% { opacity: 1; transform: scaleX(1); } 50% { opacity: 0.7; transform: scaleX(1.25); } }
+  @keyframes dr-flap { 0%, 100% { transform: scaleY(1) rotate(0); } 50% { transform: scaleY(-0.7) rotate(0); } }
+  @keyframes dr-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  @keyframes dr-tail { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(14deg); } }
+  @keyframes dr-wave { 0%, 100% { transform: rotate(-4deg) scaleY(1.1); } 50% { transform: rotate(-24deg) scaleY(1.2); } }
+  @keyframes dr-stretch { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.04, 1.16); } }
+  @keyframes dr-zzz { 0% { transform: translate(0, 0); opacity: 1; } 100% { transform: translate(8px, -22px); opacity: 0; } }
+  @keyframes dr-wing-idle { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-5deg); } }
+</style>

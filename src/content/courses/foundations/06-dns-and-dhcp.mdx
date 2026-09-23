@@ -1,0 +1,92 @@
+---
+title: "DNS & DHCP"
+track: "foundations"
+module: "1.6"
+order: 6
+duration: "35 min"
+summary: "How devices get an address automatically and how names turn into IPs."
+status: "sourced"
+verifiedAgainst: "RFC 2131 and RFC 1035"
+sources:
+  - title: "RFC 2131: Dynamic Host Configuration Protocol"
+    url: "https://www.rfc-editor.org/rfc/rfc2131"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 1035: Domain Names - Implementation and Specification"
+    url: "https://www.rfc-editor.org/rfc/rfc1035"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+## DHCP: getting an address automatically
+
+**DHCP** hands out IP configuration so nobody types addresses by hand. A lease normally carries an address, mask, default gateway and DNS servers.
+
+The exchange is four messages, remembered as **DORA** — RFC 2131 defines them as DHCPDISCOVER, DHCPOFFER, DHCPREQUEST and DHCPACK:
+
+1. **Discover**: the client broadcasts "any DHCP servers?"
+2. **Offer**: a server proposes an address.
+3. **Request**: the client asks to use it.
+4. **Acknowledge**: the server confirms and starts the lease timer.
+
+The client has no address yet, so RFC 2131 has it send DHCPDISCOVER from `0.0.0.0` to the broadcast address `255.255.255.255`. That is why DHCP servers must sit in the same broadcast domain, or a **DHCP relay agent** — RFC 2131 defines this as a host or router that "passes DHCP messages between DHCP clients and DHCP servers" — must forward requests across subnet boundaries.
+
+### Leases
+
+Leases expire. At half the lease time the client tries to renew. Short leases (e.g. 1 hour) suit guest Wi-Fi; longer ones suit stable offices.
+
+### Static assignments
+
+Servers and printers need fixed addresses. Prefer a **static lease** (DHCP reservation by MAC) over configuring the device by hand: the address list stays in one place.
+
+## DNS: names to numbers
+
+**DNS** maps names like `example.com` to IP addresses. It is a hierarchy:
+
+```
+.            (root)
+└── com      (top-level domain)
+    └── example.com   (your zone)
+```
+
+When your laptop asks for `www.example.com`:
+
+1. It asks the **recursive resolver** (usually your ISP's or your router).
+2. The resolver asks a root server, then the `.com` servers, then the authoritative servers for `example.com`.
+3. It caches the answer for the record's **TTL** — RFC 1035 defines this as the interval a record "may be cached before the source of the information should again be consulted" — and returns it.
+
+### Record types you will meet
+
+| Type | Meaning |
+|---|---|
+| A / AAAA | Name to IPv4 / IPv6 address |
+| CNAME | Alias to another name |
+| MX | Mail servers for a domain |
+| NS | Authoritative servers for a zone |
+| TXT | Free text (SPF, verification) |
+| PTR | Reverse lookup: IP to name |
+
+## Test it
+
+```
+nslookup example.com
+nslookup -type=MX example.com
+```
+
+If names fail but pinging `1.1.1.1` works, the problem is DNS, not routing. That single test solves a large share of "the internet is down" calls.
+
+## On a MikroTik
+
+```
+/ip dhcp-server print
+/ip dhcp-server lease print
+/ip dns set allow-remote-requests=yes servers=1.1.1.1,9.9.9.9
+```
+
+Never enable `allow-remote-requests` without a firewall rule that blocks port 53 from the internet, or your router becomes an open resolver used in DDoS attacks.
+
+## Check yourself
+
+- Why must a DHCPDISCOVER be sent from 0.0.0.0 to the broadcast address, instead of using the client's usual address?
+- What is a DHCP relay agent for, and when do you need one?
+- What does a DNS record's TTL actually control?

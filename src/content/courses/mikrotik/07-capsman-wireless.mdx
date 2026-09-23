@@ -1,0 +1,80 @@
+---
+title: "CAPsMAN for Wireless Networks"
+track: "mikrotik"
+module: "3.7"
+order: 7
+duration: "35 min"
+summary: "Manage many access points from one controller with consistent SSIDs and channels."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation"
+sources:
+  - title: "WiFi"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/224559120/WiFi"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "AP Controller (CAPsMAN)"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/1409149/AP+Controller+CAPsMAN"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+---
+
+## The idea
+
+Configuring ten access points one by one does not scale. **CAPsMAN** — MikroTik's own documentation spells it out as "Controlled Access Point system Manager" — keeps the wireless configuration on one router, the **manager**. The access points (**CAPs**) discover it and receive their settings; once a CAP is under CAPsMAN's control, "configuration of the managed wireless interfaces on the AP is ignored" locally, so there is exactly one place the real settings live.
+
+Benefits:
+
+- One place for SSIDs, security and channel plans.
+- Consistent roaming behaviour.
+- Replace an AP by plugging in a new one; it pulls its config.
+
+## Two generations
+
+RouterOS ships two wireless stacks, and they are not interchangeable:
+
+- **wifi** package (`/interface wifi`): introduced in RouterOS 7.13 (it "used to be called 'wifiwave2'" before that), for managing "Wi-Fi 5 wave2 and newer" interfaces — most current hardware, including the hAP ax series.
+- **wireless** package (`/interface wireless`, with `/caps-man`): the legacy stack for older devices.
+
+Check which your hardware runs with `/system package print`, and follow the matching documentation. Do not mix the two in one CAPsMAN deployment.
+
+## Design before typing
+
+Decide these first:
+
+1. **SSIDs**: staff, guest. Map each to a **VLAN** so wireless clients land in the right network.
+2. **Security**: WPA2/WPA3-PSK, or WPA2-Enterprise with RADIUS for staff.
+3. **Channels**: 2.4 GHz non-overlapping (1, 6, 11); 5 GHz gives more room. Fewer, wider channels are not better in dense areas.
+4. **Power**: lower transmit power in dense deployments to reduce co-channel interference.
+
+## Manager sketch (wifi stack)
+
+A **configuration** (`/interface wifi configuration`) is a reusable settings template — SSID, security, channel; **provisioning** is what automatically matches an incoming CAP to the right configuration the moment it joins, without you configuring that specific radio by hand.
+
+```
+/interface wifi configuration add name=cfg-staff ssid="Corp" \
+    security.authentication-types=wpa2-psk,wpa3-psk security.passphrase="change-me-long"
+/interface wifi provisioning add action=create-dynamic-enabled master-configuration=cfg-staff
+/interface wifi capsman set enabled=yes
+```
+
+Exact parameters differ between RouterOS releases, so confirm in `/interface wifi configuration` with `?` before running, and check the release notes when upgrading.
+
+## Check yourself
+
+- What actually happens to a CAP's local wireless configuration once CAPsMAN takes control of it?
+- What's the difference between a configuration and a provisioning rule?
+- Which wifi stack should a Wi-Fi 5 wave2 or newer device use, and since which RouterOS version has it existed under that name?
+
+## Managing VLANs on wireless
+
+Bridge the dynamic AP interfaces with a tagged/untagged mapping so each SSID maps to one VLAN. This reuses the [bridge and VLAN filtering](/learn/mikrotik/02-bridge-and-vlans) design: the AP uplink is a **trunk**.
+
+## Operations
+
+- Upgrade CAPs from the manager to keep versions aligned.
+- Keep the CAPs on a management VLAN, reachable only from the manager and your admin subnet.
+- Watch the registration table for clients with a weak signal or a low data rate: they slow the whole cell.
+
+```
+/interface wifi registration-table print
+```

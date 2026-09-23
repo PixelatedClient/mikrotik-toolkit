@@ -1,0 +1,197 @@
+[
+  {
+    "dev": "R2",
+    "cmd": "/ip address add address=10.0.12.1/30 interface=ether1 comment=uplink",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address add address=192.168.1.1/24 interface=ether5 disabled=yes",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route add dst-address=10.9.0.0/16 gateway=10.0.12.2 distance=5 comment=far",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route add dst-address=172.16.0.0/16 blackhole",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route add dst-address=10.5.0.0/16 gateway=10.7.7.7",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=input action=accept connection-state=established,related comment=est",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=input action=drop in-interface=ether1 disabled=yes",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat add chain=dstnat action=dst-nat protocol=tcp dst-port=8080 to-addresses=192.168.1.10 to-ports=80",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge add name=bridge1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge port add bridge=bridge1 interface=ether6 pvid=10",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge vlan add bridge=bridge1 vlan-ids=10 tagged=bridge1 untagged=ether6",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface vlan add name=vlan10 interface=bridge1 vlan-id=10",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip pool add name=pool1 ranges=192.168.1.100-192.168.1.200",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip dhcp-server add name=dhcp1 interface=ether5 address-pool=pool1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip dhcp-server network add address=192.168.1.0/24 gateway=192.168.1.1 dns-server=8.8.8.8",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address print detail where interface!=ether8",
+    "out": "Flags: X - disabled, I - invalid, D - dynamic; S - slave \n 0    ;;; uplink\n      address=10.0.12.1/30 network=10.0.12.0 interface=ether1 \n      actual-interface=ether1 \n\n 1 X  address=192.168.1.1/24 network=192.168.1.0 interface=ether5 \n      actual-interface=ether5 \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route print detail where dst-address~\"^(10.9|172.16|10.5)\"",
+    "out": "Flags: D - dynamic; X - disabled, I - inactive, A - active; \nc - connect, s - static, r - rip, b - bgp, o - ospf, i - is-is, d - dhcp, v - vpn, m - modem, y - bgp-mpls-vpn; \nH - hw-offloaded; + - ecmp \n 0  IsH  dst-address=10.5.0.0/16 routing-table=main gateway=10.7.7.7 \n         immediate-gw=\"\" distance=1 scope=30 target-scope=10 \n\n 1  As   ;;; far\n         dst-address=10.9.0.0/16 routing-table=main gateway=10.0.12.2 \n         immediate-gw=10.0.12.2%ether1 distance=5 scope=30 target-scope=10 \n\n 2  As   dst-address=172.16.0.0/16 routing-table=main blackhole immediate-gw=\"\" \n         distance=1 scope=30 \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route print terse where dst-address=10.0.12.0/30",
+    "out": "DAc dst-address=10.0.12.0/30 routing-table=main gateway=ether1 immediate-gw=ether1 distance=0 scope=10 target-scope=5 local-address=10.0.12.1%ether1\n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter print detail",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n 0    ;;; est\n      chain=input action=accept connection-state=established,related \n\n 1 X  chain=input action=drop in-interface=ether1 \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter print terse",
+    "out": "0   comment=est chain=input action=accept connection-state=established,related\n1 X chain=input action=drop in-interface=ether1\n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat print detail",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n 0    chain=srcnat action=masquerade out-interface=ether1 \n\n 1    chain=dstnat action=dst-nat to-addresses=192.168.1.10 to-ports=80 \n      protocol=tcp dst-port=8080 \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface print detail where name=bridge1",
+    "out": "Flags: D - dynamic; X - disabled; I - inactive, R - running; S - slave; \nP - passthrough \n 0   R   name=\"bridge1\" type=\"bridge\" mtu=auto actual-mtu=1500 l2mtu=65535 \n         mac-address=0C:49:6A:BD:00:05 last-link-up-time=2026-09-21 16:31:46 \n         link-downs=0 \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface print detail where name=vlan10",
+    "out": "Flags: D - dynamic; X - disabled; I - inactive, R - running; S - slave; \nP - passthrough \n 1   R   name=\"vlan10\" type=\"vlan\" mtu=1500 actual-mtu=1500 l2mtu=65531 \n         mac-address=0C:49:6A:BD:00:05 last-link-up-time=2026-09-21 16:31:47 \n         link-downs=0 \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface print terse where name=ether2",
+    "out": "2 R name=ether2 default-name=ether2 type=ether mtu=1500 actual-mtu=1500 mac-address=0C:49:6A:BD:00:01 last-link-up-time=2026-09-21 15:36:28 link-downs=0\n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge print detail",
+    "out": "Flags: X - disabled, R - running \n 0 R name=\"bridge1\" mtu=auto actual-mtu=1500 l2mtu=65535 arp=enabled \n     arp-timeout=auto mac-address=0C:49:6A:BD:00:05 protocol-mode=rstp \n     fast-forward=yes igmp-snooping=no auto-mac=yes ageing-time=5m \n     priority=0x8000 max-message-age=20s forward-delay=15s \n     transmit-hold-count=6 vlan-filtering=no dhcp-snooping=no \n     port-cost-mode=long mvrp=no max-learned-entries=auto \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge port print detail",
+    "out": "Flags: X - disabled, I - inactive; D - dynamic; H - hw-offload \n 0 I   interface=ether6 bridge=bridge1 priority=0x80 edge=auto \n       point-to-point=auto learn=auto horizon=none hw=yes auto-isolate=no \n       restricted-role=no restricted-tcn=no pvid=10 frame-types=admit-all \n       ingress-filtering=yes unknown-unicast-flood=yes \n       unknown-multicast-flood=yes broadcast-flood=yes tag-stacking=no \n       bpdu-guard=no trusted=no mvrp-registrar-state=normal \n       mvrp-applicant-state=normal-participant \n       multicast-router=temporary-query fast-leave=no \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge vlan print detail",
+    "out": "Flags: X - disabled, D - dynamic \n 0   bridge=bridge1 vlan-ids=10 tagged=bridge1 untagged=ether6 \n     mvrp-forbidden=\"\" current-tagged=\"\" current-untagged=\"\" \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface vlan print detail",
+    "out": "Flags: X - disabled, R - running \n 0 R name=\"vlan10\" mtu=1500 l2mtu=65531 mac-address=0C:49:6A:BD:00:05 \n     arp=enabled arp-timeout=auto loop-protect=default \n     loop-protect-status=off loop-protect-send-interval=5s \n     loop-protect-disable-time=5m vlan-id=10 interface=bridge1 \n     use-service-tag=no mvrp=no \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip pool print detail",
+    "out": " 0 name=\"pool1\" ranges=192.168.1.100-192.168.1.200 \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip dhcp-server print detail",
+    "out": "Flags: D - dynamic; X - disabled, I - invalid \n 0  I name=\"dhcp1\" interface=ether5 lease-time=30m address-pool=pool1 \n      use-radius=no lease-script=\"\" \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip dhcp-server network print detail",
+    "out": "Flags: D - dynamic \n 0   address=192.168.1.0/24 gateway=192.168.1.1 dns-server=8.8.8.8 \n     wins-server=\"\" ntp-server=\"\" caps-manager=\"\" dhcp-option=\"\" \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip service print detail where name=ssh",
+    "out": "Flags: X - disabled, I - invalid \n 0   name=\"ssh\" port=22 address=\"\" vrf=main max-sessions=20 \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address print brief where interface!=ether8",
+    "out": "Flags: X - DISABLED\nColumns: ADDRESS, NETWORK, INTERFACE\n#   ADDRESS         NETWORK      INTERFACE\n;;; uplink\n0   10.0.12.1/30    10.0.12.0    ether1   \n1 X 192.168.1.1/24  192.168.1.0  ether5   \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address print count-only",
+    "out": "3\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address print as-value where interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address get 1 address",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address get [find interface=ether1] address",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address print value-list where interface=ether1",
+    "out": "                ;;; uplink\n           address: 10.0.12.1/30\n           network: 10.0.12.0\n         interface: ether1\n  actual-interface: ether1\n             flags: \n\n"
+  }
+]

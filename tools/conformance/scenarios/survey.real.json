@@ -1,0 +1,217 @@
+[
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.0.0.1/30 interface=ether1 comment=wan",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip address add address=10.0.0.2/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route add dst-address=0.0.0.0/0 gateway=10.0.0.2",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 10.0.0.2 count=3",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0                                                              no route ...\n    1 10.0.0.2                                   56  64 4ms847us  \n    2 10.0.0.2                                   56  64 1ms17us   \n    sent=3 received=2 packet-loss=33% min-rtt=1ms17us avg-rtt=2ms932us \n   max-rtt=4ms847us \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address print detail where interface!=ether8",
+    "out": "Flags: X - disabled, I - invalid, D - dynamic; S - slave \n 0    ;;; wan\n      address=10.0.0.1/30 network=10.0.0.0 interface=ether1 \n      actual-interface=ether1 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address print terse where interface!=ether8",
+    "out": "0 comment=wan address=10.0.0.1/30 network=10.0.0.0 interface=ether1 actual-interface=ether1\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address print without-paging where interface!=ether8",
+    "out": "Columns: ADDRESS, NETWORK, INTERFACE\n# ADDRESS      NETWORK   INTERFACE\n;;; wan\n0 10.0.0.1/30  10.0.0.0  ether1   \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address print brief where interface!=ether8",
+    "out": "Columns: ADDRESS, NETWORK, INTERFACE\n# ADDRESS      NETWORK   INTERFACE\n;;; wan\n0 10.0.0.1/30  10.0.0.0  ether1   \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address print as-value where interface!=ether8",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print detail where dst-address=0.0.0.0/0",
+    "out": "Flags: D - dynamic; X - disabled, I - inactive, A - active; \nc - connect, s - static, r - rip, b - bgp, o - ospf, i - is-is, d - dhcp, v - vpn, m - modem, y - bgp-mpls-vpn; \nH - hw-offloaded; + - ecmp \n 3  As   dst-address=0.0.0.0/0 routing-table=main gateway=10.0.0.2 \n         immediate-gw=10.0.0.2%ether1 distance=1 scope=30 target-scope=10 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print terse where dst-address=0.0.0.0/0",
+    "out": "3 As dst-address=0.0.0.0/0 routing-table=main gateway=10.0.0.2 immediate-gw=10.0.0.2%ether1 distance=1 scope=30 target-scope=10\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface print detail where name=ether1",
+    "out": "Flags: D - dynamic; X - disabled; I - inactive, R - running; S - slave; \nP - passthrough \n 0   R   name=\"ether1\" default-name=\"ether1\" type=\"ether\" mtu=1500 \n         actual-mtu=1500 mac-address=0C:84:53:9F:00:00 \n         last-link-down-time=2026-09-22 00:43:37 \n         last-link-up-time=2026-09-22 00:43:45 link-downs=3 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface ethernet print where name=ether1",
+    "out": "Flags: R - RUNNING\nColumns: NAME, MTU, MAC-ADDRESS, ARP\n#   NAME     MTU  MAC-ADDRESS        ARP    \n0 R ether1  1500  0C:84:53:9F:00:00  enabled\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface print stats where name=ether1",
+    "out": "Flags: R - RUNNING\nColumns: NAME, RX-BYTE, TX-BYTE, RX-PACKET, TX-PACKET, RX-DROP, TX-DROP, TX-QUEUE-DROP, RX-ERROR, TX-ERROR\n#   NAME    RX-BYTE  TX-BYTE  RX-PACKET  TX-PACKET  RX-DROP  TX-DROP  T  R  T\n0 R ether1   99 935  100 949        782        805        0        0  0  0  0\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip arp print where address=10.0.0.2",
+    "out": "Flags: D - DYNAMIC; C - COMPLETE\nColumns: ADDRESS, MAC-ADDRESS, INTERFACE, STATUS\n#    ADDRESS   MAC-ADDRESS        INTERFACE  STATUS   \n0 DC 10.0.0.2  0C:6E:AD:27:00:00  ether1     reachable\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/system resource print",
+    "out": "                   uptime: 41m58s\n                  version: 7.16 (stable)\n               build-time: 2024-09-20 13:00:27\n         factory-software: 7.1\n              free-memory: 156.0MiB\n             total-memory: 384.0MiB\n                      cpu: QEMU\n                cpu-count: 1\n            cpu-frequency: 2611MHz\n                 cpu-load: 0%\n           free-hdd-space: 70.9MiB\n          total-hdd-space: 89.2MiB\n  write-sect-since-reboot: 11016\n         write-sect-total: 11016\n        architecture-name: x86_64\n               board-name: CHR QEMU Standard PC (i440FX + PIIX, 1996)\n                 platform: MikroTik\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/system clock print",
+    "out": "                  time: 00:52:48\n                  date: 2026-09-22\n  time-zone-autodetect: yes\n        time-zone-name: manual\n            gmt-offset: +00:00\n            dst-active: no\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/system identity print",
+    "out": "  name: MikroTik\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/system package print",
+    "out": "Columns: NAME, VERSION, BUILD-TIME, SIZE\n# NAME      VERSION  BUILD-TIME           SIZE   \n0 routeros  7.16     2024-09-20 13:00:27  17.8MiB\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/user print",
+    "out": "Columns: NAME, GROUP, LAST-LOGGED-IN, INACTIVITY-POLICY\n# NAME   GROUP  LAST-LOGGED-IN       INACTIVITY-POLICY\n;;; system default user\n0 admin  full   2026-09-22 00:52:16  none             \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip dns print",
+    "out": "                      servers: \n              dynamic-servers: 192.168.233.2\n               use-doh-server: \n              verify-doh-cert: no\n   doh-max-server-connections: 5\n   doh-max-concurrent-queries: 50\n                  doh-timeout: 5s\n        allow-remote-requests: no\n          max-udp-packet-size: 4096\n         query-server-timeout: 2s\n          query-total-timeout: 10s\n       max-concurrent-queries: 100\n  max-concurrent-tcp-sessions: 20\n                   cache-size: 2048KiB\n                cache-max-ttl: 1w\n      address-list-extra-time: 0s\n                          vrf: main\n           mdns-repeat-ifaces: \n                   cache-used: 35KiB\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip dns set servers=8.8.8.8 allow-remote-requests=yes",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip dns print",
+    "out": "                      servers: 8.8.8.8\n              dynamic-servers: 192.168.233.2\n               use-doh-server: \n              verify-doh-cert: no\n   doh-max-server-connections: 5\n   doh-max-concurrent-queries: 50\n                  doh-timeout: 5s\n        allow-remote-requests: yes\n          max-udp-packet-size: 4096\n         query-server-timeout: 2s\n          query-total-timeout: 10s\n       max-concurrent-queries: 100\n  max-concurrent-tcp-sessions: 20\n                   cache-size: 2048KiB\n                cache-max-ttl: 1w\n      address-list-extra-time: 0s\n                          vrf: main\n           mdns-repeat-ifaces: \n                   cache-used: 36KiB\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip firewall address-list add list=blocked address=1.2.3.4",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip firewall address-list print",
+    "out": "Columns: LIST, ADDRESS, CREATION-TIME\n# LIST     ADDRESS  CREATION-TIME      \n0 blocked  1.2.3.4  2026-09-22 00:52:48\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface list print",
+    "out": "Flags: * - BUILTIN\nColumns: NAME\n#   NAME   \n;;; contains all interfaces\n0 * all    \n;;; contains no interfaces\n1 * none   \n;;; contains dynamic interfaces\n2 * dynamic\n;;; contains static interfaces\n3 * static \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface list member print",
+    "out": "\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip firewall filter add chain=forward action=drop src-address-list=blocked",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip firewall filter print",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n 0    chain=forward action=drop src-address-list=blocked \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/tool ping 10.0.0.2 count=2",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 10.0.0.2                                   56  64 650us     \n    1 10.0.0.2                                   56  64 547us     \n    sent=2 received=2 packet-loss=0% min-rtt=547us avg-rtt=598us \n   max-rtt=650us \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/tool traceroute 10.0.0.2 count=1",
+    "out": "Columns: ADDRESS, LOSS, SENT, LAST, AVG, BEST, WORST, STD-DEV\n#  ADDRESS   LOSS  SENT  LAST   AVG  BEST  WORST  STD-DEV\n1  10.0.0.2  0%       1  0.4ms  0.4  0.4   0.4          0\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip service print",
+    "out": "Flags: X - DISABLED, I - INVALID\nColumns: NAME, PORT, CERTIFICATE, VRF, MAX-SESSIONS\n#   NAME     PORT  CERTIFICATE  VRF   MAX-SESSIONS\n0   telnet     23               main            20\n1   ftp        21                               20\n2   www        80               main            20\n3   ssh        22               main            20\n4 X www-ssl   443  none         main            20\n5   api      8728               main            20\n6   winbox   8291               main            20\n7   api-ssl  8729  none         main            20\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip service print where name=ssh",
+    "out": "Columns: NAME, PORT, VRF, MAX-SESSIONS\n# NAME  PORT  VRF   MAX-SESSIONS\n3 ssh     22  main            20\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing table print",
+    "out": "Flags: D - dynamic; X - disabled, I - invalid; U - used \n 0 D   name=\"main\" fib \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route check 10.0.0.2",
+    "out": "bad command name check (line 1 column 11)\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface bridge print",
+    "out": "Flags: X - disabled, R - running \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/queue simple print",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/system script print",
+    "out": "Flags: I - invalid \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface wireguard print",
+    "out": "Flags: X - disabled; R - running \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf instance print",
+    "out": "Flags: X - disabled, I - inactive \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing bgp connection print",
+    "out": "Flags: D - dynamic, X - disabled, I - inactive \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip",
+    "out": ""
+  }
+]

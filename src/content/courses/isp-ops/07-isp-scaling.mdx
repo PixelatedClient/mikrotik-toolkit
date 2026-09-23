@@ -1,0 +1,96 @@
+---
+title: "ISP Scaling: 1k to 100k Subscribers"
+track: "isp-ops"
+module: "6.7"
+order: 7
+duration: "45 min"
+summary: "What breaks at each size, and the design choices that let an access network grow."
+status: "sourced"
+verifiedAgainst: "RFC 2516 and RFC 2865; the growth-stage table and checklist are this project's own design guidance"
+sources:
+  - title: "RFC 2516: A Method for Transmitting PPP Over Ethernet (PPPoE)"
+    url: "https://www.rfc-editor.org/rfc/rfc2516"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 2865: Remote Authentication Dial In User Service (RADIUS)"
+    url: "https://www.rfc-editor.org/rfc/rfc2865"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+The growth-stage table, the layered-topology sketch and the scaling checklist below are this project's own design guidance built from the same subscriber-management protocols (PPPoE, RADIUS) already sourced elsewhere in this course, not a rule quoted from a single document.
+
+## Growth stages
+
+Design for the next stage, not the final one. Rough rules of thumb:
+
+| Subscribers | Typical shape | What limits you |
+|---|---|---|
+| 1-1,000 | One POP, one or two routers | Skills and documentation |
+| 1,000-10,000 | Several POPs, an IGP, BGP to upstreams | Single router capacity, manual provisioning |
+| 10,000-50,000 | Aggregation layers, dedicated BNG/edge, CGNAT | Table sizes, session count, ops load |
+| 50,000-100,000+ | Regional cores, RR, automation, multiple upstreams and IX | Team process, change risk, automation |
+
+## Layered topology
+
+Use clear layers so each has one job:
+
+```
+Customers → Access (OLT / AP) → Aggregation → Core → Edge → Upstreams / IX
+```
+
+- **Access**: OLTs, radios, and cable. Many ports, little intelligence.
+- **Aggregation**: switches or routers collecting many access uplinks.
+- **Core**: fast transit between POPs, running an IGP and iBGP with route reflectors.
+- **Edge**: BGP to the outside, with filtering.
+
+Keep each layer redundant (two uplinks, diverse paths), and a fault domain small enough that one failure affects hundreds, not tens of thousands.
+
+## Subscriber management
+
+How customers authenticate and get an address:
+
+- **PPPoE**: a session per customer, the framing RFC 2516 defines for carrying PPP over Ethernet; authentication with RADIUS, per-user speed and accounting. Simple to start, but the BNG needs to hold every session and PPPoE overhead lowers the MTU.
+- **IPoE with DHCP**: no session state; customers identified by port/VLAN and DHCP option 82; scales well and lets hardware forward faster.
+
+Put **RADIUS** (or another AAA) in place early — RFC 2865 defines the same authentication/authorization/accounting split covered in this course's Network Security track — it centralises users, plans and accounting, and prevents per-router configuration drift.
+
+## Addresses
+
+- Plan an addressing scheme per POP and service. Keep **aggregates** so BGP announces a few big prefixes.
+- IPv4 is scarce: use **CGNAT** for growth and keep public IPv4 for those who need it. Log translations in line with legal requirements.
+- Deploy **IPv6** in parallel. See [IPv6 deployment](/learn/isp-ops/09-ipv6-deployment).
+
+## Limits to watch
+
+- **BNG session and PPS capacity**, not just Gbps.
+- **Routing table and FIB** size on edge and core routers.
+- **DHCP and RADIUS** response times under a mass re-connect (after a power failure everyone reconnects at once).
+- **Conntrack and NAT** table sizes.
+- **Uplink oversubscription**: know the contention ratio at each layer.
+
+## Operations at scale
+
+- **Monitoring**: SNMP and flows from day one, with alerts that map to action.
+- **Automation**: generate configs from templates and a source of truth (an inventory or database). Manual per-router edits do not survive 50 devices.
+- **Change control**: maintenance windows, peer review, backups, rollback plans.
+- **Documentation**: diagrams, IP plan, VLAN plan, fibre records.
+- **Spares and support**: keep spares of critical parts, and 24x7 contact paths.
+
+## Financial view
+
+Cost per subscriber falls with scale only if you standardise: a few device models, a few profiles, one way to do each thing. Every special case you allow costs support time forever.
+
+## A checklist for the next jump
+
+1. What breaks first at 2x subscribers?
+2. Is there a single device whose failure affects more than 5% of customers?
+3. Can a new POP be built from a template in a day?
+4. Do we know our top talkers and top destinations?
+5. Could a new engineer run the network from the docs?
+
+## Check yourself
+
+- What does PPPoE cost a BNG that IPoE with DHCP does not, and why does that matter at scale?
+- Why does putting RADIUS in place early prevent "per-router configuration drift"?
+- Why is a fault domain that affects "hundreds, not tens of thousands" of customers a design goal worth planning for directly?

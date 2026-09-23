@@ -1,0 +1,33 @@
+---
+import Base from '../layouts/Base.astro';
+import { ROADMAP } from '../data/roadmap';
+const tone = { done: 'bg-accent-soft text-accent', next: 'bg-amber-500/15 text-amber-900 dark:text-amber-300', planned: 'bg-surface-2 text-muted' } as const;
+const label = { done: 'Done', next: 'Next', planned: 'Planned' } as const;
+---
+<Base title="Roadmap" description="What Network Academy is building next, in order, and which primary sources each step is checked against.">
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">Roadmap</h1>
+    <p class="mt-3 text-muted">
+      We compared this site with the topic list of MikroTik's MTCNA course (a 2016 outline, used only to see which
+      subjects matter) and with what working network engineers are expected to know, and listed the gaps. Cisco's
+      Networking Basics course page was not readable when we checked, so it is not a source. We fill the gaps one step
+      at a time, and every new lesson cites its sources.
+      See <a class="text-accent underline" href="/sources">how we verify</a>.
+    </p>
+    <ol class="mt-8 space-y-4">
+      {ROADMAP.map((s) => (
+        <li class="rounded-xl border border-line bg-surface p-5">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="font-semibold"><span class="mr-2 font-mono text-sm text-muted">Step {s.step}</span>{s.title}</h2>
+            <span class:list={['shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium', tone[s.status]]}>{label[s.status]}</span>
+          </div>
+          <p class="mt-2 text-sm text-muted">{s.why}</p>
+          <ul class="mt-3 flex flex-wrap gap-2">
+            {s.topics.map((t) => <li class="rounded-full border border-line px-2.5 py-0.5 text-xs">{t}</li>)}
+          </ul>
+          <p class="mt-3 text-xs text-muted"><span class="font-medium text-fg">Checked against:</span> {s.sources.join('; ')}</p>
+        </li>
+      ))}
+    </ol>
+  </div>
+</Base>

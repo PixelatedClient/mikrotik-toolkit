@@ -1,0 +1,75 @@
+---
+title: "The RouterOS REST API"
+track: "automation"
+module: "10.3"
+order: 3
+duration: "35 min"
+summary: "Read and change a RouterOS configuration over HTTP instead of the command line, the same way a script or a monitoring system would."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS REST API documentation"
+sources:
+  - title: "REST API — RouterOS Documentation"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/47579162/REST+API"
+    publisher: "MikroTik"
+    accessed: "2026-09-23"
+---
+
+## What REST means here
+
+RouterOS v7 exposes most of its configuration tree over HTTP as a REST API: each menu you would type in the terminal (`/ip/address`, `/interface`, `/system/identity`) has a matching URL, and the usual HTTP verbs map onto the usual actions.
+
+| Terminal | HTTP |
+|---|---|
+| `print` | `GET` |
+| `add` | `PUT` or `POST` (RouterOS uses `PUT`) |
+| `set` | `PATCH` |
+| `remove` | `DELETE` |
+
+The path mirrors the menu: `/ip address print` becomes `GET /rest/ip/address`, `/system identity print` becomes `GET /rest/system/identity`.
+
+## A first request
+
+Using `curl` to list addresses:
+
+```
+curl -k -u admin:password https://10.0.0.1/rest/ip/address
+```
+
+`-k` skips certificate verification, fine for a lab, not for production. `-u` sends basic authentication. The response is a JSON array, one object per address, with the same fields the terminal's `print` would show.
+
+## Adding something
+
+```
+curl -k -u admin:password -X PUT https://10.0.0.1/rest/ip/address \
+  -d '{"address": "10.0.99.1/24", "interface": "ether5"}'
+```
+
+This is the same as typing `/ip address add address=10.0.99.1/24 interface=ether5` in the terminal — the REST API changes the same configuration, through a different door.
+
+## Why this matters for automation
+
+A script that calls the REST API can:
+
+- read the state of many routers in a loop, rather than logging into each one,
+- make the same change across a fleet consistently, instead of retyping it by hand each time,
+- feed router data into other systems (a monitoring dashboard, an inventory database) that speak HTTP and JSON natively.
+
+## Filtering a request
+
+Add query parameters to filter what comes back, similar to `where` in the terminal:
+
+```
+curl -k -u admin:password "https://10.0.0.1/rest/ip/address?interface=ether1"
+```
+
+## Safety notes
+
+- Use a dedicated API account with only the access it needs, not the main admin account, so a leaked script credential has limited reach.
+- HTTPS only. The API can run over plain HTTP, but that sends the password in clear text on every request.
+- Rate and scope what a script can change. A loop with a mistake in it can apply that mistake to every router in the list before anyone notices.
+
+## Check yourself
+
+- Which HTTP verb corresponds to `set` in the terminal?
+- Why prefer a dedicated API account over the main admin login for a script?
+- What does adding `?interface=ether1` to the URL do?

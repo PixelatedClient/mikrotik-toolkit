@@ -1,0 +1,121 @@
+---
+title: "Backups, Exports, Resets and Netinstall"
+track: "mikrotik-ops"
+module: "4.2"
+order: 2
+duration: "40 min"
+summary: "The difference between a backup and an export, how to restore, and how to recover a router that is broken."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation"
+sources:
+  - title: "Backup"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/40992852/Backup"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Configuration Management (export and import)"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328155/Configuration+Management"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "RouterOS configuration reset"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/24805498/RouterOS+configuration+reset"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Netinstall"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/24805390/Netinstall"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "RouterOS license keys"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328149/RouterOS+license+keys"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+---
+
+Every change you make on a router can be undone if you kept a copy of the working configuration. RouterOS gives you two kinds, and they are not interchangeable.
+
+## Backup versus export
+
+| Property | **Backup** (`.backup`) | **Export** (`.rsc`) |
+|---|---|---|
+| Format | Binary | Plain text script |
+| Purpose | Clone the whole router | Read, edit, and copy parts of a configuration |
+| Contains device MAC addresses | Yes | No |
+| Contains user passwords, certificates, SSH keys | Yes | **No** |
+| Restore on | The same router, on the same RouterOS version | Any router, by importing the script |
+
+Use both. A backup restores a broken router exactly. An export is what you keep in version control, compare between changes, and reuse on other devices.
+
+## Backups
+
+```
+/system backup save name=before-upgrade password="a-long-passphrase"
+```
+
+- Without a `password`, **since RouterOS v6.43 the backup file is not encrypted.** Backups contain sensitive data about the device, so always set a password, and store the file off the router.
+- Restore with `/system backup load name=before-upgrade password=...`. RouterOS asks you to confirm, then restores and reboots.
+- MikroTik recommends restoring on the **same RouterOS version**.
+- Because a backup contains the MAC addresses, restoring it on a *different* router copies those addresses across. Do not load one router's backup onto another unless you intend that.
+- Backups do not include data from The Dude or User Manager, which have their own export tools.
+- Since v6.44, a backup can also be stored on MikroTik's Cloud service.
+
+## Exports
+
+```
+/export file=router-config
+/ip firewall export file=firewall-only
+```
+
+- `export` writes a text script of the configuration to a file. Leave out `file=` and it prints to the screen. Run it at the top level for everything, or inside a menu for just that part.
+- **Compact** is the default, so `export` and `export compact` give the same result: only what differs from the defaults.
+- Sensitive values are hidden by default. `show-sensitive` reveals them, so treat that file like a password.
+- `verbose` writes every parameter, including defaults. `terse` writes each command in full on one line, with its menu path.
+- **Not exported:** system user passwords, installed certificates, SSH keys, and Dude or User Manager databases. Move those by hand.
+
+## Importing and editing an export
+
+```
+/import file-name=router-config.rsc
+/import file-name=router-config.rsc verbose=yes
+```
+
+- `verbose` executes the file line by line, which makes syntax errors much easier to find.
+- With `verbose`, a `dry-run` checks the script without changing anything.
+- An export is plain text, so you can edit it. Remove lines that do not apply to the target router: interface names, MAC addresses and ports differ between models. Import it on a lab device first.
+
+## Resetting a router
+
+```
+/system reset-configuration
+```
+
+The router loses its configuration **and its password**, reboots, and loads the factory defaults. Take a backup and an export first.
+
+If you cannot log in at all, use the reset button: unplug the device, hold the button while you power it on, and release it when the **user LED starts flashing**. MikroTik's documentation gives a warning that matters: if you keep holding until the LED *stops* flashing, the router starts **Netinstall** instead of resetting.
+
+## Reinstalling with Netinstall
+
+Netinstall reinstalls RouterOS on a router that will not boot properly, or that you want to start from a clean state. It formats the system drive, so **all configuration and files are lost**. It does **not** remove the licence key or reset RouterBOOT settings.
+
+There are three ways to put a device into the mode Netinstall needs:
+
+- Hold the reset button as described above, until the device appears in Netinstall.
+- From a router you can still reach: `/system routerboard settings set boot-device=try-ethernet-once-then-nand`, then reboot.
+- Through the serial console: press `Ctrl+E` during boot until it reports it is trying the bootp protocol.
+
+Netinstall runs as a Windows program, and as a command-line tool on Linux (`netinstall-cli`). Two of its options matter: `-r` reinstalls and applies the default configuration, and `-e` reinstalls with an **empty** configuration.
+
+## Licence levels in one paragraph
+
+A new RouterOS install runs as a trial for **24 hours**, so it must be licensed. The level sets what the router may do: for example, level 1 is a free demo with one PPPoE, PPTP or L2TP tunnel, while higher levels raise the number of tunnels and hotspot users. Level 3 is for wireless client (CPE) devices. Virtual routers (**CHR**) have their own licence types, including a free one limited to 1 Mbps. Check the router's level with `/system license print`. Prices and limits change, so read the [current licence page](https://help.mikrotik.com/docs/spaces/ROS/pages/328149/RouterOS+license+keys) rather than trusting any table copied elsewhere.
+
+## A backup routine that works
+
+1. Before every change: `/export file=before-change`.
+2. Before every upgrade: an encrypted `/system backup save` **and** an export.
+3. Copy both off the router.
+4. After a successful change: export again, and keep the difference in version control.
+
+## Check yourself
+
+- Which file would you use to copy a firewall to a different model of router, and why?
+- Why is an unencrypted backup dangerous?
+- What decides whether holding the reset button resets the router or starts Netinstall?

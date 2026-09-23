@@ -1,0 +1,166 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { trackById } from '../../data/tracks';
+import { kitFor } from '../../data/lessonKit';
+import { findLab } from '../../data/allLabs';
+import { LABS } from '../../data/labs';
+import { INCIDENTS } from '../../data/game/nocIncidents';
+import SimLab from '../../components/sim/SimLab';
+import LessonQuiz from '../../components/LessonQuiz';
+import { NocRunner } from '../../components/game/Gates';
+
+export async function getStaticPaths() {
+  const all = await getCollection('courses');
+  return all.map((entry) => {
+    const inTrack = all.filter((m) => m.data.track === entry.data.track).sort((a, b) => a.data.order - b.data.order);
+    const i = inTrack.findIndex((m) => m.id === entry.id);
+    return { params: { slug: entry.id }, props: { entry, prev: inTrack[i - 1], next: inTrack[i + 1] } };
+  });
+}
+const { entry, prev, next } = Astro.props;
+const { Content, headings } = await render(entry);
+const toc = headings.filter((h) => h.depth === 2);
+const track = trackById(entry.data.track);
+const kit = kitFor(entry.id);
+const labs = (kit?.labs ?? []).map((id) => findLab(id)).filter((l) => !!l);
+const gns3 = (kit?.gns3Labs ?? []).map((id) => findLab(id)).filter((l) => !!l);
+const incidents = (kit?.incidents ?? []).map((id) => INCIDENTS.find((i) => i.id === id)).filter((i) => !!i);
+const extraToc = [
+  ...(labs.length || gns3.length ? [{ slug: 'lab', text: 'Lab' }] : []),
+  ...(kit?.quiz?.length ? [{ slug: 'quiz', text: 'Quiz' }] : []),
+  ...(incidents.length ? [{ slug: 'troubleshooting', text: 'Troubleshooting' }] : []),
+];
+---
+<Base title={entry.data.title} description={entry.data.summary}>
+  <div class="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 xl:grid-cols-[minmax(0,1fr)_14rem]">
+    <div class="min-w-0">
+      <nav aria-label="Breadcrumb" class="text-sm text-muted">
+        <a href="/learn" class="hover:text-fg">Learn</a> / <a href={`/learn#${entry.data.track}`} class="hover:text-fg">{track?.name}</a>
+      </nav>
+      <p class="mt-4 text-sm font-medium text-accent">Module {entry.data.module} · {entry.data.duration}{kit && <span class="ml-2 rounded border border-line px-1.5 py-0.5 text-xs text-muted">{kit.level}</span>}</p>
+      <h1 class="mt-1 max-w-3xl text-4xl font-bold tracking-tight">{entry.data.title}</h1>
+      {entry.data.status === 'sourced' ? (
+        <p class="mt-3 inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
+          <span aria-hidden="true">✓</span> Sources cited{entry.data.verifiedAgainst ? ` · checked against ${entry.data.verifiedAgainst}` : ''}
+        </p>
+      ) : (
+        <p class="mt-3 max-w-3xl rounded-lg border border-line bg-surface px-3 py-2 text-sm text-muted">
+          <span class="font-medium text-fg">Draft.</span> This lesson has not yet been checked against primary sources. Verify commands and figures in the vendor documentation before relying on them. See the <a class="text-accent underline" href="/roadmap">roadmap</a>.
+        </p>
+      )}
+
+      <article class="prose prose-neutral mt-8 max-w-3xl dark:prose-invert prose-headings:tracking-tight">
+        <Content />
+      </article>
+
+      {(labs.length > 0 || gns3.length > 0) && (
+        <section id="lab" aria-labelledby="lab-h" class="mt-12 max-w-4xl">
+          <h2 id="lab-h" class="text-2xl font-bold tracking-tight">Lab</h2>
+          <p class="mt-1 text-sm text-muted">Practise what this lesson taught on virtual routers, right here in the browser. {labs.length > 1 ? 'The labs get bigger one after the other.' : ''}</p>
+          {labs.map((lab, i) => (
+            <div class="mt-6">
+              {labs.length > 1 && <h3 class="mb-2 text-lg font-semibold">Lab {i + 1}: {lab!.title}</h3>}
+              <SimLab client:visible labId={lab!.id} />
+              {LABS.some((l) => l.id === lab!.id) && <p class="mt-3 text-sm text-muted">Prefer real routers? <a class="text-accent underline" href={`/labs/${lab!.id}`}>Run this lab in GNS3</a> with free MikroTik CHR images.</p>}
+            </div>
+          ))}
+          {gns3.map((lab) => (
+            <p class="mt-6 rounded-lg border border-line bg-surface p-3 text-sm">This topic needs real routers for now: <a class="text-accent underline" href={`/labs/${lab!.id}`}>{lab!.title}</a> (GNS3 with MikroTik CHR).</p>
+          ))}
+        </section>
+      )}
+
+      {kit?.quiz && kit.quiz.length > 0 && (
+        <section id="quiz" aria-labelledby="quiz-h" class="mt-12 max-w-3xl">
+          <h2 id="quiz-h" class="text-2xl font-bold tracking-tight">Quiz</h2>
+          <p class="mt-1 mb-4 text-sm text-muted">Check what you learned. You need 70% to pass.</p>
+          <LessonQuiz client:visible lessonId={entry.id} questions={kit.quiz} />
+        </section>
+      )}
+
+      {incidents.length > 0 && (
+        <section id="troubleshooting" aria-labelledby="ts-h" class="mt-12 max-w-4xl">
+          <h2 id="ts-h" class="text-2xl font-bold tracking-tight">Troubleshooting</h2>
+          <p class="mt-1 text-sm text-muted">Something is broken. Read the ticket, run the checks, find the cause and fix it.</p>
+          {incidents.map((inc) => (
+            <div class="mt-6">
+              <h3 class="mb-2 text-lg font-semibold">{inc!.title}</h3>
+              <NocRunner client:visible incidentId={inc!.id} level={inc!.level} />
+            </div>
+          ))}
+        </section>
+      )}
+
+      {entry.data.sources.length > 0 && (
+        <section aria-labelledby="sources" class="mt-10 max-w-3xl rounded-xl border border-line p-4">
+          <h2 id="sources" class="text-lg font-semibold">Sources and further reading</h2>
+          <p class="mt-1 text-sm text-muted">The facts above were checked against these pages. The explanations are written in our own words; follow the links for the full detail.</p>
+          <ul class="mt-3 space-y-2 text-sm">
+            {entry.data.sources.map((src) => (
+              <li>
+                <a class="text-accent underline" href={src.url} target="_blank" rel="noopener noreferrer">{src.title}</a>
+                <span class="text-muted"> · {src.publisher} · checked {src.accessed}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="mt-3 text-xs text-muted">Found a mistake or an outdated command? See <a class="underline" href="/sources">how we verify</a>.</p>
+        </section>
+      )}
+
+      <div class="mt-10 max-w-3xl rounded-xl border border-line bg-surface p-4">
+        <button id="complete" data-id={entry.id} type="button" aria-pressed="false"
+          class="rounded-md border border-line px-4 py-2 text-sm font-medium hover:border-accent aria-pressed:border-accent aria-pressed:bg-accent-soft">
+          Mark module complete
+        </button>
+      </div>
+
+      <nav aria-label="Module navigation" class="mt-8 grid max-w-3xl gap-3 sm:grid-cols-2">
+        {prev ? (
+          <a href={`/learn/${prev.id}`} class="rounded-xl border border-line p-4 hover:border-accent">
+            <span class="text-xs text-muted">← Previous</span>
+            <span class="block font-medium">{prev.data.title}</span>
+          </a>
+        ) : <span />}
+        {next && (
+          <a href={`/learn/${next.id}`} class="rounded-xl border border-line p-4 text-right hover:border-accent sm:col-start-2">
+            <span class="text-xs text-muted">Next →</span>
+            <span class="block font-medium">{next.data.title}</span>
+          </a>
+        )}
+      </nav>
+    </div>
+
+    {(toc.length > 0 || extraToc.length > 0) && (
+      <aside class="hidden xl:block">
+        <nav aria-label="On this page" class="sticky top-20 text-sm">
+          <p class="font-semibold">On this page</p>
+          <ul class="mt-2 space-y-1.5 border-l border-line">
+            {[...toc, ...extraToc].map((h) => (
+              <li><a href={`#${h.slug}`} class="-ml-px block border-l border-transparent pl-3 text-muted hover:border-accent hover:text-fg">{h.text}</a></li>
+            ))}
+          </ul>
+        </nav>
+      </aside>
+    )}
+  </div>
+
+  <script>
+    import { getDone, setDone, setLast } from '../../scripts/progress';
+    const btn = document.getElementById('complete') as HTMLButtonElement | null;
+    if (btn) {
+      const id = btn.dataset.id ?? '';
+      setLast(id);
+      const render = (on: boolean) => {
+        btn.setAttribute('aria-pressed', String(on));
+        btn.textContent = on ? '✓ Completed' : 'Mark module complete';
+      };
+      render(getDone().includes(id));
+      btn.addEventListener('click', () => {
+        const on = btn.getAttribute('aria-pressed') !== 'true';
+        setDone(id, on);
+        render(on);
+      });
+    }
+  </script>
+</Base>

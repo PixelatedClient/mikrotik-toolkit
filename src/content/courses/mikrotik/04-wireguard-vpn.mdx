@@ -1,0 +1,97 @@
+---
+title: "WireGuard VPN on MikroTik"
+track: "mikrotik"
+module: "3.4"
+order: 4
+duration: "35 min"
+summary: "Site-to-site and road-warrior VPNs with WireGuard on RouterOS v7."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation and this project's own GNS3 verification on real RouterOS 7.16"
+sources:
+  - title: "WireGuard"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/69664792/WireGuard"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "WireGuard: Protocol & Cryptography"
+    url: "https://www.wireguard.com/protocol/"
+    publisher: "WireGuard"
+    accessed: "2026-09-22"
+---
+
+## Why WireGuard
+
+WireGuard is a small, fast VPN that uses modern cryptography and a simple model: each side has a static public/private key pair (used in what WireGuard's own documentation calls the `Noise_IK` handshake), and each **peer** lists the other side's public key and the IP ranges it may send from (`allowed-address`). "All packets are sent over UDP," and RouterOS v7 supports it natively.
+
+## Server side (the router with a public IP)
+
+```
+/interface wireguard add name=wg0 listen-port=13231
+/interface wireguard print
+```
+
+`print` shows the router's **public key**. Give it to the other side and keep the private key private.
+
+Give the tunnel an address and add the peer:
+
+```
+/ip address add address=10.10.10.1/24 interface=wg0
+/interface wireguard peers add interface=wg0 name=laptop \
+    public-key="<peer public key>" allowed-address=10.10.10.2/32
+```
+
+Allow the UDP port in the input chain, and allow the tunnel network through the firewall:
+
+```
+/ip firewall filter add chain=input action=accept protocol=udp dst-port=13231 \
+    comment="WireGuard" place-before=0
+```
+
+Rule order matters: put this above your final drop rule.
+
+## Client side
+
+On a second MikroTik:
+
+```
+/interface wireguard add name=wg0
+/ip address add address=10.10.10.2/24 interface=wg0
+/interface wireguard peers add interface=wg0 public-key="<server public key>" \
+    endpoint-address=203.0.113.1 endpoint-port=13231 \
+    allowed-address=10.10.10.0/24,192.168.1.0/24 persistent-keepalive=25s
+```
+
+`persistent-keepalive` keeps NAT mappings open when the client sits behind a NAT — MikroTik's own documentation describes it as sending "an authenticated empty packet to the peer for the purpose of keeping a stateful firewall or NAT mapping valid persistently," which matters most for a client that rarely sends outbound traffic on its own but still needs to receive it.
+
+## Site-to-site routing
+
+`allowed-address` is both a filter (it specifies which "addresses... incoming traffic for this peer is allowed" from) and a routing hint. To reach the remote LAN `192.168.1.0/24`, list it in the peer's `allowed-address` and add a route:
+
+```
+/ip route add dst-address=192.168.1.0/24 gateway=wg0
+```
+
+## Road warriors
+
+For a phone or laptop, create the peer entry on the router with a unique `/32`, then configure the client app with the router's public key and endpoint. Use a different key pair per device so you can revoke one without touching the rest.
+
+## Verify
+
+```
+/interface wireguard peers print
+```
+
+A working peer shows a recent **last-handshake**. No handshake means one of: wrong keys, wrong endpoint, UDP blocked, or a missing firewall rule. This project tested exactly that ambiguity on a real router: a wrong endpoint and a wrong key produce an identical, silent no-handshake in the peers table, so checking one at a time is the only way to isolate the cause. Also worth knowing if you're editing an existing tunnel: a running peer keeps using the endpoint it already learned even if you edit the `endpoint-address` field — the change is silently masked, so re-create the peer instead of just editing it.
+
+## MTU
+
+WireGuard adds overhead. MikroTik's documentation gives 1420 bytes as the default MTU for a WireGuard interface, safe for most links; lower it if large transfers stall over PPPoE.
+
+## Lab on real routers (GNS3)
+
+Build it end to end in the [WireGuard site-to-site lab](/labs/wireguard-site-to-site): exchange keys, bring up the tunnel, and break it on purpose.
+
+## Check yourself
+
+- Why can't you tell a wrong key apart from a wrong endpoint just by looking at the peers table?
+- If you need to change a working peer's endpoint address, why should you re-create the peer instead of just editing the field?
+- What does `persistent-keepalive` actually send, and why does it matter specifically for a client behind NAT?

@@ -1,0 +1,142 @@
+---
+title: "Layer 2 Protection: Loops, Rogue Servers and Storms"
+track: "layer2"
+module: "2.6"
+order: 6
+duration: "40 min"
+summary: "Protect the access edge of a switched network: edge ports and BPDU Guard, loop protection, DHCP snooping, storm limits and MAC controls."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation"
+sources:
+  - title: "Bridge (bridge and bridge port properties)"
+    url: "https://help.mikrotik.com/docs/pages/viewpage.action?pageId=8323229"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Bridge (DHCP snooping, static hosts and split horizon)"
+    url: "https://help.mikrotik.com/docs/pages/viewpage.action?pageId=82149449"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Loop Protect"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/23396469/Loop+Protect"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Marvell Prestera switch chip features"
+    url: "https://manual.mikrotik.com/docs/bridging-and-switching/marvell-prestera-switch-chip-features/"
+    publisher: "MikroTik RouterOS Manual"
+    accessed: "2026-09-20"
+  - title: "Spanning Tree Protocol"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/21725254/Spanning+Tree+Protocol"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+---
+
+import Challenge from '../../../components/Challenge';
+
+A switched network trusts whatever is plugged into it. A user with a cheap switch, a visitor with a laptop running a DHCP server, and a mistaken patch cable can each take a whole floor offline. Protection at Layer 2 is about the **access edge**: the ports where people and devices connect.
+
+Everything here is a set of features on the RouterOS bridge or its switch chip. Which of them run in hardware depends on the chip, so check the documentation for your model.
+
+## 1. Edge ports and BPDU Guard
+
+An **edge port** connects to a LAN with no other bridge attached. Because it cannot form a loop, it skips the listening and learning states and goes straight to forwarding, which speeds up STP start-up. The bridge port's `edge` property has these values: `auto` (the default), `no`, `no-discover`, `yes` and `yes-discover`. With discovery, as soon as the bridge sees a BPDU arrive on an edge port, the port becomes a non-edge port.
+
+**BPDU Guard** goes further. With `bpdu-guard=yes`, the port is **disabled** if it receives a BPDU, and stays disabled until someone re-enables it by hand. Someone connecting a switch to a wall socket produces exactly that BPDU. MikroTik says to use it to protect a bridge from BPDU-related attacks. Both settings only matter when spanning tree is running (`protocol-mode` is not `none`).
+
+```
+/interface bridge port set [find where interface=ether5] edge=yes bpdu-guard=yes
+```
+
+Put this on **every** port that faces a user, a phone or a server. The protection against a rogue switch is one line per port.
+
+A related control is `restricted-role`, which forbids a port from becoming a root port. It only works in MSTP mode. The companion `restricted-tcn` stops a port sending topology change notifications, so topology changes cannot propagate through it. Our reading of the use: set both on the ports that face a network you do not control, such as a customer's, so that their switches can neither become your root nor make your network relearn constantly.
+
+## 2. Loop protection
+
+STP and RSTP are the right answer to loops, but a loop can also be made by something that does not speak STP, for example an unmanaged switch with a cable plugged into itself. RouterOS has a separate **loop protect** feature for that.
+
+It sends its own packets out of the interface, and if it receives a packet that **it sent itself**, it knows there is a loop and **disables that interface**, logging the event. It runs on Ethernet, VLAN, EoIP and VxLAN interfaces, using EtherType `0x9003`.
+
+| Property | Meaning | Default |
+|---|---|---|
+| `loop-protect` | `on`, `off` or `default` (off) | `default` |
+| `loop-protect-send-interval` | How often it sends its packet | `5s` |
+| `loop-protect-disable-time` | How long the interface stays disabled (`0` is permanent) | `5m` |
+
+```
+/interface ethernet set ether5 loop-protect=on loop-protect-disable-time=5m
+```
+
+The `loop-protect-status` value shows `on`, `off`, or `disable` when it has shut the port down. MikroTik's own advice is to prefer (R/M)STP where you can, because it interoperates with most switches. Use loop protect for the edge ports that face devices you cannot control.
+
+## 3. DHCP snooping
+
+A user who plugs in a router with a DHCP server can hand out wrong addresses and gateways to everyone. **DHCP snooping** stops that. Mark the ports where your real DHCP server lives as **trusted**. Everything else is **untrusted**, and DHCP server replies arriving on an untrusted port are dropped.
+
+- `dhcp-snooping` (default `no`) turns the feature on for the bridge.
+- `trusted` (default `no`) on a bridge port allows DHCP packets towards a server through it.
+- `add-dhcp-option82` (default `no`) adds Option 82 information (agent circuit ID and remote ID) so the DHCP server knows which switch and port a request came from. It only works with `dhcp-snooping` enabled. Ports that receive Option-82-tagged packets from downstream switches must be marked trusted, or the messages are rejected.
+
+```
+/interface bridge port add bridge=bridge interface=ether1 trusted=yes
+/interface bridge set [find where name="bridge"] dhcp-snooping=yes add-dhcp-option82=yes
+```
+
+The bridge builds a **binding table** of the leases it sees on trusted ports, storing the client's MAC address, IP address, lease time, VLAN and port. That table is the foundation for further checks such as ARP inspection. Hardware DHCP snooping with Option 82 is supported on some MikroTik switch models, so check yours. Note that turning DHCP snooping on **disables** hardware offloading of the bridge on chips that cannot do it, which the documentation lists among the features that do this.
+
+## 4. Storm control
+
+A loop, a faulty network card or an attacker can flood a switch with broadcasts, unknown unicast or unknown multicast traffic. **Storm control** caps that traffic as a percentage of link speed. On the Marvell Prestera switch chips MikroTik documents:
+
+| Property | Default | Meaning |
+|---|---|---|
+| `limit-broadcasts` | `yes` | Limit broadcast traffic |
+| `limit-unknown-unicasts` | `no` | Limit unknown unicast traffic |
+| `limit-unknown-multicasts` | `no` | Limit unknown multicast traffic |
+| `storm-rate` | `100` | The limit as a percentage of link speed (0 to 100) |
+
+```
+/interface ethernet switch port set ether1 storm-rate=1 limit-broadcasts=yes limit-unknown-unicasts=yes
+```
+
+The documentation's own example does exactly this: it limits broadcast and unknown unicast on a 1 Gbps port to 1 percent, which is 10 Mbps. This is done in hardware on those chips. On other hardware the property names differ, so read the documentation for your model.
+
+Bridge ports also let you refuse to flood some traffic in software: `unknown-unicast-flood`, `unknown-multicast-flood` and `broadcast-flood` each default to `yes`, and setting one to `no` drops that traffic instead of flooding it.
+
+## 5. Controlling MAC addresses and isolating ports
+
+- **Static host entries.** A `/interface bridge host add` entry pins a MAC address to a port, so traffic for it leaves only there.
+- **Disable learning.** `learn=no` on a bridge port stops the bridge learning MAC addresses on it.
+- **Restrict a port to one MAC address.** On the Prestera chips, an ACL rule can permit one source MAC address on a port and drop everything else:
+
+  ```
+  /interface ethernet switch rule add ports=ether1 src-mac-address=64:D1:54:81:EF:8E/FF:FF:FF:FF:FF:FF switch=switch1
+  /interface ethernet switch rule add new-dst-ports="" ports=ether1 switch=switch1
+  ```
+
+- **Isolate ports from each other.** The **horizon** property puts ports in a group that cannot send to each other, while all can still reach ports outside the group. Horizon is a **software** feature, so it disables hardware offloading. On some chips there is also hardware port isolation.
+
+MAC-based controls stop accidents and casual misuse. They do **not** stop a determined attacker, because a MAC address can be copied. Treat them as one layer among several.
+
+## A sensible access-port template
+
+Our recommendation, built on the features above, for a port that faces a user:
+
+1. `edge=yes` and `bpdu-guard=yes`
+2. A single access VLAN: `pvid` set, `frame-types=admit-only-untagged-and-priority-tagged`, `ingress-filtering=yes`
+3. `loop-protect=on` where the hardware supports it
+4. Storm control on the switch port
+5. `dhcp-snooping` on the bridge, with the uplink to your DHCP server marked `trusted=yes`
+
+<Challenge client:visible
+  question="A visitor plugs a small home router into a wall socket on a port that has bpdu-guard=yes. What happens?"
+  options={["Nothing, BPDU Guard only works on trunks", "The port is disabled when it receives a BPDU, until someone re-enables it", "The router becomes the new root bridge", "The port switches to blocking and recovers on its own after 30 seconds"]}
+  answer={1}
+  explain="BPDU Guard disables a port that receives a BPDU and keeps it disabled until it is re-enabled manually. A switch or router that bridges its ports sends BPDUs, so it triggers the guard."
+/>
+
+## Check yourself
+
+- What is the difference between an edge port that is set to `auto` and one that has `bpdu-guard=yes`?
+- How does loop protect detect a loop, and why can it help where STP cannot?
+- What does DHCP snooping do to a DHCP server reply that arrives on an untrusted port?
+- Why are MAC-based controls not a substitute for authentication?

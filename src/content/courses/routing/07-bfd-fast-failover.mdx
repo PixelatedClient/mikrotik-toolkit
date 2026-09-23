@@ -1,0 +1,101 @@
+---
+title: "BFD & Fast Failover"
+track: "routing"
+module: "5.7"
+order: 7
+duration: "30 min"
+summary: "Detect failures in milliseconds and converge quickly with BFD and good design."
+status: "sourced"
+verifiedAgainst: "RFC 5880 and this project's own GNS3 verification on real RouterOS 7.16"
+sources:
+  - title: "RFC 5880: Bidirectional Forwarding Detection (BFD)"
+    url: "https://www.rfc-editor.org/rfc/rfc5880"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 4271: A Border Gateway Protocol 4 (BGP-4)"
+    url: "https://www.rfc-editor.org/rfc/rfc4271"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+import Challenge from '../../../components/Challenge';
+
+## Why default timers are slow
+
+Routing protocols learn a neighbour is gone only when keepalives stop:
+
+- **BGP**: RouterOS's own default is a 3-minute (180 s) hold time — RFC 4271 sets no specific number, only a 3-second minimum, so this is a RouterOS/industry default rather than a protocol requirement; other vendors commonly default to 90 s instead, so always check what you're actually running.
+- **OSPF**: RouterOS's default dead-interval is 40 s on broadcast networks — "four times" the default 10 s hello-interval.
+
+If a link fails without the interface going down (a media converter, a switch in between, a one-way fibre fault), you lose traffic for that whole time. For voice, video or a customer SLA that is too long.
+
+## BFD
+
+**Bidirectional Forwarding Detection** — RFC 5880 describes it as detecting "faults in the bidirectional path between two forwarding engines... with potentially very low latency," independent of the routing protocol, media type or data protocol running over that path. It sends small packets every few hundred milliseconds. If several are missed, BFD declares the path down and tells the routing protocol immediately.
+
+Timing, per RFC 5880:
+
+```
+detection time = negotiated transmit interval x Detect Mult
+```
+
+For example 300 ms x 3 = 900 ms.
+
+## Configuring on RouterOS
+
+```
+/routing bfd configuration add interfaces=ether1 min-rx=300ms min-tx=300ms multiplier=3
+```
+
+This project confirmed on a real RouterOS 7.16 router that `use-bfd=yes` alone is not enough — the session stays inactive ("BFD forbidden for interface") until a matching `/routing bfd configuration` entry exists, and that the `ms` units above are exactly what the router expects. Then enable it per protocol:
+
+```
+# BGP
+/routing bgp connection set upstream use-bfd=yes
+
+# OSPF
+/routing ospf interface-template set [find networks=10.0.12.0/30] use-bfd=yes
+```
+
+Both ends must enable BFD, or nothing is detected.
+
+<Challenge client:visible
+  question="BFD is configured with min-rx 300 ms and a multiplier of 3. How long until a dead link is detected?"
+  options={["300 ms", "About 900 ms", "3 seconds", "90 seconds"]}
+  answer={1}
+  explain="Detection time is the negotiated interval times the multiplier: 300 ms x 3 = 900 ms. Compare that with RouterOS's default BGP hold time of 3 minutes."
+/>
+
+## Choosing timers
+
+Aggressive timers detect failures faster and also cause **false positives** on a busy or CPU-limited router: a brief spike drops a session and a flap follows. Start at 300 ms x 3 for core links. Use more relaxed timers for slow or shared paths.
+
+## Design for fast convergence
+
+Detection is only the first step. Convergence = detection + propagation + recompute + FIB update. Improve it by:
+
+- **ECMP**: equal-cost paths keep forwarding while others reconverge.
+- **Redundant links** in rings or meshes with the IGP cost set deliberately.
+- **Loopback iBGP** so a link failure does not tear down sessions.
+- **Fewer routes** on edge devices: aggregate.
+- **Graceful restart** where the platform supports it, for planned maintenance.
+
+## Measure it
+
+Use a lab: run a continuous ping across the path, pull a cable, and count the lost packets.
+
+```
+/ping 192.168.3.1 interval=100ms
+```
+
+At 100 ms intervals, N lost packets is about N x 0.1 s of outage. Repeat with BFD on and off to see the difference.
+
+## Lab on real routers (GNS3)
+
+In the [OSPF triangle lab](/labs/ospf-triangle) enable BFD on the R1 to R2 link. Insert a switch between R1 and R2 and shut a switch port so the link stays "up" on R1. Compare failover time with and without BFD.
+
+## Check yourself
+
+- Why is RouterOS's real default BGP hold time (3 minutes) not something you can find written in RFC 4271 itself?
+- What's still required after setting `use-bfd=yes` on a session, before BFD actually activates on a real router?
+- Why does a media converter or intermediate switch make a link failure invisible to a routing protocol's own keepalive timers?

@@ -1,0 +1,329 @@
+{
+ "name": "fwprops",
+ "description": "Firewall rule properties: print order and validation.",
+ "devices": [
+  "R2"
+ ],
+ "steps": [
+  [
+   "R2",
+   "/ip firewall address-list add list=bad address=1.2.3.4"
+  ],
+  [
+   "R2",
+   "/interface list add name=WAN"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop src-address-list=bad"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop dst-address-list=bad"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop in-interface-list=WAN"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop out-interface-list=WAN"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop in-interface=ether1"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop out-interface=ether2"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop src-address=1.1.1.1"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop dst-address=2.2.2.2"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop src-port=1000"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop dst-port=2000"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop protocol=tcp"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop connection-state=new"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop connection-nat-state=dstnat"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop tcp-flags=syn"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop icmp-options=8:0"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop connection-limit=10,32"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop limit=5,5"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop packet-mark=x"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop connection-mark=y"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop routing-mark=main"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop src-mac-address=00:11:22:33:44:55"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop tcp-mss=1:100"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop dscp=4"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop ttl=equal:64"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop nth=2,1"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop random=10"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop address-type=local"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop hotspot=auth"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop in-bridge-port=ether1"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop out-bridge-port=ether1"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop port=80"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop content=abc"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop packet-size=100-200"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop ipsec-policy=in,ipsec"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop fragment=yes"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop time=1h-2h,mon"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop dst-limit=5,5,dst-address/1m"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop src-address-type=local"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop dst-address-type=local"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop layer7-protocol=x"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop ingress-priority=1"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop per-connection-classifier=both-addresses:2/0"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop ipv4-options=any"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop psd=21,3s,3,1"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop protocol=icmp"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=drop comment=all"
+  ],
+  [
+   "R2",
+   "/ip firewall filter print detail"
+  ],
+  [
+   "R2",
+   "/ip firewall filter export"
+  ],
+  [
+   "R2",
+   "/ip firewall filter remove [find]"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=jump jump-target=mychain"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=mychain action=return"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=log log-prefix=zz"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=passthrough"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=add-src-to-address-list address-list=seen address-list-timeout=1h"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=forward action=tarpit protocol=tcp"
+  ],
+  [
+   "R2",
+   "/ip firewall filter add chain=input action=reject reject-with=tcp-reset protocol=tcp in-interface=ether1"
+  ],
+  [
+   "R2",
+   "/ip firewall filter print detail"
+  ],
+  [
+   "R2",
+   "/ip firewall filter remove [find]"
+  ],
+  [
+   "R2",
+   "/ip firewall nat add chain=srcnat action=src-nat to-addresses=1.1.1.1 out-interface=ether1"
+  ],
+  [
+   "R2",
+   "/ip firewall nat add chain=dstnat action=redirect to-ports=8080 protocol=tcp dst-port=80"
+  ],
+  [
+   "R2",
+   "/ip firewall nat add chain=srcnat action=netmap to-addresses=10.0.0.0/24 src-address=192.168.0.0/24"
+  ],
+  [
+   "R2",
+   "/ip firewall nat add chain=srcnat action=masquerade out-interface-list=WAN src-address-list=bad"
+  ],
+  [
+   "R2",
+   "/ip firewall nat print detail"
+  ],
+  [
+   "R2",
+   "/ip firewall nat remove [find]"
+  ],
+  [
+   "R2",
+   "/ip firewall mangle print"
+  ],
+  [
+   "R2",
+   "/ip firewall raw print"
+  ],
+  [
+   "R2",
+   "/ip firewall address-list print"
+  ],
+  [
+   "R2",
+   "/ip firewall address-list add list=bad address=10.0.0.0/8 comment=net timeout=1h"
+  ],
+  [
+   "R2",
+   "/ip firewall address-list print detail"
+  ],
+  [
+   "R2",
+   "/ip firewall address-list export"
+  ],
+  [
+   "R2",
+   "/interface list member add list=WAN interface=ether1"
+  ],
+  [
+   "R2",
+   "/interface list member print"
+  ],
+  [
+   "R2",
+   "/interface list member print detail"
+  ],
+  [
+   "R2",
+   "/interface list print"
+  ],
+  [
+   "R2",
+   "/interface list export"
+  ],
+  [
+   "R2",
+   "/interface list member remove [find]"
+  ],
+  [
+   "R2",
+   "/interface list remove [find where name=WAN]"
+  ],
+  [
+   "R2",
+   "/ip firewall address-list remove [find]"
+  ]
+ ]
+}

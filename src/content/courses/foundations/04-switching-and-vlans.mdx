@@ -1,0 +1,72 @@
+---
+title: "Switching & VLANs"
+track: "foundations"
+module: "1.4"
+order: 4
+duration: "35 min"
+summary: "How switches forward frames, why loops are dangerous, and how VLANs split a network."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation and Cisco RSTP documentation"
+sources:
+  - title: "VLAN"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/88014957/VLAN"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "Understand Rapid Spanning Tree Protocol (802.1w)"
+    url: "https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/24062-146.html"
+    publisher: "Cisco"
+    accessed: "2026-09-22"
+---
+
+## What a switch does
+
+A switch forwards **Ethernet frames** inside one network using **MAC addresses**. A router connects different networks; a switch builds one.
+
+A switch learns as it goes:
+
+1. A frame arrives on port 3 from MAC `aa:aa`. The switch records *aa:aa is on port 3*.
+2. If the destination MAC is in the table, the frame goes out only that port.
+3. If it is unknown, or a broadcast, the frame is **flooded** out every other port.
+
+The MAC table entries expire after a few minutes of silence.
+
+## Broadcast domains
+
+Every port on a switch belongs to one **broadcast domain**: a broadcast from one device reaches all the others. In a big flat network, broadcasts (ARP, DHCP) become noise, and every device can see every other. That is bad for performance and security.
+
+## VLANs
+
+A **VLAN** (Virtual LAN) splits one physical switch into several separate broadcast domains. Devices in VLAN 10 cannot reach VLAN 20 at Layer 2. To talk across VLANs, traffic must go through a **router** (inter-VLAN routing), where you can apply a firewall.
+
+Typical split:
+
+| VLAN | Purpose | Subnet |
+|---|---|---|
+| 10 | Staff | 10.10.10.0/24 |
+| 20 | Guests | 10.10.20.0/24 |
+| 99 | Management | 10.10.99.0/24 |
+
+One VLAN, one subnet. Keep that rule and troubleshooting stays easy.
+
+## Access and trunk ports
+
+- **Access port**: belongs to one VLAN. Frames are untagged. Laptops, printers and phones connect here.
+- **Trunk port**: carries several VLANs between switches or to a router. Each frame carries an **802.1Q tag** with a 12-bit VLAN ID field — MikroTik's own VLAN documentation confirms the valid range as 1-4094 (4096 possible 12-bit values, with 0 and 4095 reserved).
+
+## Loops and spanning tree
+
+Ethernet frames have no hop limit. If two switches are connected by two cables, a broadcast circles forever and takes the network down within seconds: a **broadcast storm**.
+
+**Spanning Tree Protocol** (STP, RSTP) elects a root switch and blocks redundant links so the topology becomes a loop-free tree. If an active link fails, a blocked one takes over. Classic 802.1D STP relies on fixed timers — Cisco's own documentation puts a typical convergence delay at about 30 seconds (twice the default 15-second forward delay). **RSTP** (802.1w) instead converges "sometimes in the order of a few hundred milliseconds," without depending on those timers at all — use RSTP rather than legacy STP wherever the switches support it.
+
+## Try it
+
+Build the layout above with the MikroTik [bridge and VLAN filtering](/learn/mikrotik/02-bridge-and-vlans) lesson, or generate one with the [config generator](/tools/mikrotik-config-generator) using the VLAN switch role.
+
+Prefer to design it first? Use the [VLAN designer](/tools/vlan-designer): assign ports, choose who may talk to whom, send test pings and export both scripts. Then build the result in the [inter-VLAN routing lab](/labs/inter-vlan-routing).
+
+## Check yourself
+
+- Why is 4094 the highest usable VLAN ID, given the tag field is 12 bits wide?
+- Roughly how much faster does RSTP recover from a link failure compared to classic 802.1D STP, and why?
+- Why can't two devices in different VLANs reach each other without a router in between?

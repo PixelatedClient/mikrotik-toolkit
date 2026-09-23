@@ -1,0 +1,37 @@
+[
+  {
+    "dev": "R1",
+    "cmd": "/ip address add address=10.0.13.1/24 interface=ether3",
+    "out": ""
+  },
+  {
+    "dev": "R3",
+    "cmd": "/ip address add address=10.0.13.3/24 interface=ether3",
+    "out": ""
+  },
+  {
+    "dev": "R1",
+    "cmd": "/ip arp print",
+    "out": "Flags: D - DYNAMIC; C - COMPLETE\nColumns: ADDRESS, MAC-ADDRESS, INTERFACE, STATUS\n#    ADDRESS          MAC-ADDRESS        INTERFACE  STATUS\n0 DC 192.168.233.2    00:50:56:F8:C1:2A  ether8     stale \n1 DC 192.168.233.1    00:50:56:C0:00:08  ether8     delay \n2 DC 192.168.233.254  00:50:56:F5:F3:38  ether8     stale \n\n"
+  },
+  {
+    "dev": "R1",
+    "cmd": "/ping 10.0.13.3 count=2",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0                                                              no route ...\n    1 10.0.13.3                                  56  64 4ms300us  \n    sent=2 received=1 packet-loss=50% min-rtt=4ms300us avg-rtt=4ms300us \n   max-rtt=4ms300us \n\n"
+  },
+  {
+    "dev": "R1",
+    "cmd": "/ip arp print",
+    "out": "Flags: D - DYNAMIC; C - COMPLETE\nColumns: ADDRESS, MAC-ADDRESS, INTERFACE, STATUS\n#    ADDRESS          MAC-ADDRESS        INTERFACE  STATUS   \n0 DC 192.168.233.2    00:50:56:F8:C1:2A  ether8     stale    \n1 DC 192.168.233.1    00:50:56:C0:00:08  ether8     reachable\n2 DC 192.168.233.254  00:50:56:F5:F3:38  ether8     stale    \n3 DC 10.0.13.3        0C:4C:71:5B:00:02  ether3     reachable\n\n"
+  },
+  {
+    "dev": "R1",
+    "cmd": "/ip arp print detail",
+    "out": "Flags: X - disabled, I - invalid, H - dhcp, D - dynamic, P - published; \nC - complete \n 0 DC address=192.168.233.2 mac-address=00:50:56:F8:C1:2A interface=ether8 \n      published=no status=\"stale\" \n\n 1 DC address=192.168.233.1 mac-address=00:50:56:C0:00:08 interface=ether8 \n      published=no status=\"reachable\" \n\n 2 DC address=192.168.233.254 mac-address=00:50:56:F5:F3:38 interface=ether8 \n      published=no status=\"stale\" \n\n 3 DC address=10.0.13.3 mac-address=0C:4C:71:5B:00:02 interface=ether3 \n      published=no status=\"reachable\" \n\n"
+  },
+  {
+    "dev": "R1",
+    "cmd": "/ip arp print terse",
+    "out": "0 DC address=192.168.233.2 mac-address=00:50:56:F8:C1:2A interface=ether8 published=no status=stale\n1 DC address=192.168.233.1 mac-address=00:50:56:C0:00:08 interface=ether8 published=no status=reachable\n2 DC address=192.168.233.254 mac-address=00:50:56:F5:F3:38 interface=ether8 published=no status=stale\n3 DC address=10.0.13.3 mac-address=0C:4C:71:5B:00:02 interface=ether3 published=no status=reachable\n\n"
+  }
+]

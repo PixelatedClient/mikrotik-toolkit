@@ -1,0 +1,86 @@
+---
+title: "SLA & Traffic Engineering"
+track: "isp-ops"
+module: "6.5"
+order: 5
+duration: "35 min"
+summary: "Define what you promise, measure it, and steer traffic to meet it."
+status: "sourced"
+verifiedAgainst: "Independently recomputed availability arithmetic, and the 95th-percentile billing convention"
+sources:
+  - title: "Burstable billing"
+    url: "https://en.wikipedia.org/wiki/Burstable_billing"
+    publisher: "Wikipedia"
+    accessed: "2026-09-22"
+  - title: "RFC 4271: A Border Gateway Protocol 4 (BGP-4)"
+    url: "https://www.rfc-editor.org/rfc/rfc4271"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+## Service levels
+
+An **SLA** is a promise with numbers. Typical measures:
+
+- **Availability**: the fraction of time the service works.
+- **Latency**: round-trip time.
+- **Jitter**: variation in latency (matters for voice and video).
+- **Packet loss**.
+- **Time to repair (MTTR)** and **response time** for faults.
+
+### Availability in real terms
+
+| Availability | Downtime per year | Per month |
+|---|---|---|
+| 99% | 3.65 days | 7.3 hours |
+| 99.9% | 8.76 hours | 43.8 minutes |
+| 99.99% | 52.6 minutes | 4.4 minutes |
+| 99.999% | 5.3 minutes | 26 seconds |
+
+Each extra nine costs disproportionately more (this table was independently recomputed from the availability percentages, not just copied from a course elsewhere). Promise what your design and staffing can deliver, and define what counts as downtime and what is excluded (scheduled maintenance, customer equipment).
+
+## Measure it
+
+You cannot meet a target you do not measure.
+
+- **Active probes** between POPs and to the internet: ping, and one-way delay if available.
+- **Availability** from your monitoring system, not from complaints.
+- Keep reports per customer type, so you can answer a credit request with data.
+
+## Capacity planning
+
+Links fail their SLA long before they hit 100%. Bursts fill buffers and cause loss and jitter.
+
+- Plan upgrades when the **95th percentile** utilisation exceeds about **70%**.
+- Track growth monthly and forecast a lead time long enough to order optics and fibre.
+- Note that **95th percentile** is also the way many transit contracts bill: samples are sorted and "the top 5%... of data is thrown away," and "the next highest measurement becomes the billable use for the entire month" — a handful of brief peaks does not move your bill.
+
+## Traffic engineering
+
+TE steers traffic across the links you have. In a BGP-based ISP the toolset is:
+
+- **Outbound** (traffic leaving you): **local-pref**, chosen per upstream or per destination AS.
+- **Inbound** (traffic coming to you): **AS-path prepending**, **communities**, **MED** and **more-specific** announcements.
+- **Internal**: **OSPF costs** and **ECMP**.
+
+Example: one upstream is congested at peak.
+
+1. Use flow data to find the biggest destinations on that link.
+2. Raise local-pref for those destinations on the other upstream.
+3. Watch utilisation for a day, and keep the change if it holds.
+
+Make small changes and record them. Undocumented policy tweaks are how networks get mysterious.
+
+## QoS and SLAs
+
+If you sell tiers, implement them: voice and control traffic marked and prioritised; bulk traffic shaped. See [QoS and bandwidth management](/learn/mikrotik/06-qos-and-bandwidth).
+
+## Reporting to customers
+
+Give business customers a monthly report: availability, average and peak utilisation, incidents and root causes. It builds trust, and it makes your team practise the discipline.
+
+## Check yourself
+
+- Why does going from 99.9% to 99.99% availability cost disproportionately more than going from 99% to 99.9%?
+- Under 95th-percentile billing, what happens to a handful of brief traffic spikes, and why?
+- Why should you make one traffic-engineering change at a time and record it, rather than several at once?

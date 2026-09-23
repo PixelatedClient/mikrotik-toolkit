@@ -1,0 +1,124 @@
+---
+title: "Ethernet Frames, MAC Addresses and Learning"
+track: "layer2"
+module: "2.1"
+order: 1
+duration: "35 min"
+summary: "What is inside an Ethernet frame, how MAC addresses are structured, and how a switch learns where devices are."
+status: "sourced"
+verifiedAgainst: "RFC 894, the IANA EtherType registry, the IEEE EUI guidelines and MikroTik RouterOS v7 documentation"
+sources:
+  - title: "RFC 894: A Standard for the Transmission of IP Datagrams over Ethernet Networks"
+    url: "https://www.rfc-editor.org/rfc/rfc894"
+    publisher: "IETF"
+    accessed: "2026-09-20"
+  - title: "IEEE 802 Numbers (EtherTypes)"
+    url: "https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml"
+    publisher: "IANA"
+    accessed: "2026-09-20"
+  - title: "Guidelines for Use of a 48-bit Extended Unique Identifier (EUI-48)"
+    url: "https://standards.ieee.org/wp-content/uploads/import/documents/tutorials/eui.pdf"
+    publisher: "IEEE"
+    accessed: "2026-09-20"
+  - title: "Bridging and Switching"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328068/Bridging+and+Switching"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Layer2 misconfiguration"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/19136718/Layer2+misconfiguration"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+---
+
+IP addresses decide where a packet goes across the world. **Layer 2** decides how it gets across one network segment, from one device to the next. This track goes deep on that layer, because most real outages on a local network are Layer 2 problems: a loop, a wrong VLAN, a bad MTU.
+
+## The Ethernet frame
+
+Every packet on Ethernet travels inside a **frame**. RFC 894, which defines how IP rides on Ethernet, lists the fields:
+
+| Field | What it holds |
+|---|---|
+| Destination address | The 48-bit MAC address of the receiver |
+| Source address | The 48-bit MAC address of the sender |
+| Type | What is inside (`0800` hex for IP) |
+| Data | The payload, for example an IP packet |
+| CRC | A checksum, so a damaged frame can be detected and dropped |
+
+Two limits from the RFC matter every day:
+
+- The data field is **at least 46 octets**. A shorter packet is padded with zeros, and the padding is not part of the IP packet.
+- An IP datagram sent over Ethernet is **at most 1500 octets**. That is where the familiar **MTU of 1500** comes from.
+
+Notice what is *not* in the list: there is no hop counter. Nothing in a frame ever counts down, which is why a frame can circulate in a loop forever. You will see the consequences in the next lesson.
+
+### The Type field
+
+The type (EtherType) values are assigned by IEEE, and IANA publishes the registry. The ones you will meet:
+
+| Hex | Meaning |
+|---|---|
+| `0800` | IPv4 |
+| `0806` | ARP |
+| `86DD` | IPv6 |
+| `8100` | 802.1Q VLAN tag (customer tag) |
+| `88A8` | 802.1ad service VLAN tag |
+| `8809` | Slow Protocols, used by link aggregation (LACP) |
+| `8847` | MPLS |
+| `8863`, `8864` | PPPoE discovery and session |
+| `88CC` | LLDP |
+
+When you capture traffic, this field tells you at once what the frame carries.
+
+## MAC addresses
+
+A MAC address is **48 bits**, written as six pairs of hex digits (`00:0C:42:AA:BB:CC`). The IEEE guidelines split it in two:
+
+- The first **24 bits** are the **OUI**, the *Organizationally Unique Identifier* assigned to the manufacturer.
+- The last **24 bits** are chosen by that manufacturer.
+
+The two lowest bits of the **first octet** carry meaning:
+
+- **I/G bit**: `0` means an individual (unicast) address, `1` means a **group** (multicast) address.
+- **U/L bit**: `0` means universally administered (set by the manufacturer), `1` means **locally administered** (set by software or an administrator).
+
+So `01:xx:...` is a group address, and `02:xx:...` is locally administered. The **broadcast** address has every bit set to 1: `FF:FF:FF:FF:FF:FF`. RFC 894 also says the IP broadcast address maps to that Ethernet broadcast address.
+
+## How a switch learns
+
+A switch (a **bridge**, in MikroTik's words) has no configuration to tell it where devices are. It learns:
+
+1. A frame arrives on a port. The switch reads the **source** MAC address and records "this MAC is reachable through this port" in its **host table**.
+2. It looks up the **destination** MAC address.
+3. If it knows the port, it forwards the frame **only there**.
+4. If it does not (an **unknown unicast**), or the frame is a **broadcast**, it **floods** the frame to every other port.
+
+Entries do not live forever. On RouterOS the bridge **ageing time** defaults to **5 minutes**: a host that has been silent for that long is forgotten. RouterOS floods unknown unicast by default (`unknown-unicast-flood=yes`), and you can turn that off per port when you must limit it.
+
+On a MikroTik, look at what the bridge has learned:
+
+```
+/interface bridge host print
+```
+
+To hide the bridge's own addresses and see only learned hosts:
+
+```
+/interface bridge host print where !local
+```
+
+The same MAC address showing up on **two different ports** is a warning sign. MikroTik's documentation names it as evidence of a loop or a bridging mistake ("MAC flapping").
+
+## Broadcast domains
+
+Because a switch floods broadcasts out of every port, all ports of a switch (in the same VLAN) form **one broadcast domain**. MikroTik describes a bridge as connecting separate LANs transparently, so that hosts on them communicate as if they were on a single LAN. That is convenient, and it is the reason big flat networks become noisy and fragile. [VLANs](/learn/foundations/04-switching-and-vlans) exist to cut the domain into smaller ones.
+
+## MTU and L2MTU
+
+The MTU is the largest IP packet an interface will send. The **L2MTU** is the largest frame it can handle without the MAC header. MikroTik's documentation gives a warning worth remembering: an Ethernet interface **silently drops** anything that does not fit its L2MTU. The typical symptom is that ping works and small pages load, but large transfers stall. A RouterOS bridge takes the **lowest L2MTU of all its ports**, and you cannot change it by hand.
+
+## Check yourself
+
+- Which two limits of the data field does RFC 894 give, and where does the 1500-byte MTU come from?
+- What does a `1` in the least significant bit of the first octet of a MAC address mean?
+- A frame arrives for a MAC address the switch has never seen. What does the switch do?
+- What does it usually mean when one MAC address appears on two ports?

@@ -1,0 +1,87 @@
+---
+title: "NAT & Firewalls"
+track: "foundations"
+module: "1.5"
+order: 5
+duration: "35 min"
+summary: "Why home networks use private addresses, how NAT works, and what a stateful firewall does."
+status: "sourced"
+verifiedAgainst: "RFC 1918 and MikroTik RouterOS documentation"
+sources:
+  - title: "RFC 1918: Address Allocation for Private Internets"
+    url: "https://www.rfc-editor.org/rfc/rfc1918"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "Filter"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/48660574/Filter"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+---
+
+## Private addresses
+
+There are not enough public IPv4 addresses for every device. RFC 1918 reserves three ranges that are never routed on the internet:
+
+- `10.0.0.0/8`
+- `172.16.0.0/12`
+- `192.168.0.0/16`
+
+Every home and office reuses them. They only work inside your network.
+
+## NAT
+
+**Network Address Translation** lets many private hosts share one public address. The most common form is **source NAT with masquerade** (also called PAT):
+
+1. PC `192.168.1.10:51000` sends a packet to `93.184.216.34:443`.
+2. The router rewrites the source to its public address, say `203.0.113.5:40001`, and remembers the mapping.
+3. The reply arrives for `203.0.113.5:40001`. The router looks up the mapping, rewrites the destination back to `192.168.1.10:51000`, and forwards it.
+
+The mapping lives in the **connection tracking table**. That is why unsolicited traffic from the internet cannot reach a host: there is no mapping for it.
+
+### Port forwarding (destination NAT)
+
+To publish a server, add a static rule: *traffic to public port 8080 goes to 192.168.1.20:80*. This is **dst-nat**.
+
+## Stateful firewalls
+
+A **stateless** filter judges every packet alone. A **stateful** firewall tracks connections and knows if a packet belongs to one you started.
+
+MikroTik's own firewall filter documentation names the same connection states:
+
+- **new**: a fresh connection attempt.
+- **established / related**: already-known connections that should normally be accepted.
+- **invalid**: malformed or otherwise problematic, and normally dropped.
+
+The classic policy is short:
+
+1. Accept established and related traffic.
+2. Drop invalid traffic.
+3. Accept new connections from the inside.
+4. Drop new connections from the outside, except ones you published.
+
+Rules are evaluated **top to bottom**, first match wins, and a packet that matches no rule at all is accepted by default — this exact behaviour (first match wins, no match accepts) was confirmed directly on a real RouterOS 7.16 router for this project (see the GNS3 verification notes), which is also why the last rule in a real policy is always an explicit drop: without one, nothing is actually being filtered.
+
+## The two chains that matter
+
+- **input**: packets "entering the router... with the destination IP address which is one of the router's addresses" — traffic addressed to the router itself. Protect it: only allow management from trusted networks.
+- **forward**: packets "passing through the router" — traffic between other hosts. This is where the LAN policy lives.
+
+## Common mistakes
+
+- Opening management (SSH, Winbox, web) to the internet.
+- A permissive rule placed above a drop rule that was meant to override it.
+- Forgetting the input chain and only filtering forward.
+
+## Try it
+
+Generate an **Office gateway** with the [config generator](/tools/mikrotik-config-generator) and find each of the four policy steps in its firewall section.
+
+## Lab on real routers (GNS3)
+
+Publish a server and watch the counters in the [NAT and port forwarding lab](/labs/nat-port-forward).
+
+## Check yourself
+
+- Which of the three RFC 1918 ranges would you use for a network that needs more than 65,536 addresses, and why?
+- Why does unsolicited traffic from the internet fail to reach a host behind masquerade NAT, even though the router has a public address?
+- What's the practical difference between the input chain and the forward chain, and why does forgetting to filter input matter even if forward is locked down?

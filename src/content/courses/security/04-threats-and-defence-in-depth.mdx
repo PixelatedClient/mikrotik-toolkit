@@ -1,0 +1,53 @@
+---
+title: "Threats and Defence in Depth"
+track: "security"
+module: "9.4"
+order: 4
+duration: "30 min"
+summary: "A working vocabulary for common network threats, and why no single control is ever enough on its own."
+status: "sourced"
+verifiedAgainst: "RFC 2827, NIST SP 800-53"
+sources:
+  - title: "RFC 2827: Network Ingress Filtering — Defeating Denial of Service Attacks which employ IP Source Address Spoofing"
+    url: "https://www.rfc-editor.org/rfc/rfc2827"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "NIST SP 800-53: Security and Privacy Controls for Information Systems and Organizations"
+    url: "https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final"
+    publisher: "NIST"
+    accessed: "2026-09-23"
+---
+
+## A short list of things that go wrong
+
+You do not need to be a security specialist to run a network safely, but you do need to recognise the shape of the common problems:
+
+- **Reconnaissance**: port scans, service fingerprinting. Usually the first step before a more specific attack, and often the first sign something is being probed.
+- **Spoofing**: forging a source address to impersonate another host, or to make a reflected attack look like it came from somewhere else. Anti-spoofing filters at the network edge (checked in the ISP Operations track) are the standard defence.
+- **Man-in-the-middle**: intercepting or altering traffic between two parties who believe they are talking directly. Encryption with authenticated endpoints (TLS, IPsec, WireGuard with the right public keys) defeats this; encryption alone, without checking who you are actually talking to, does not.
+- **Denial of service**: overwhelming a link, a device or a service so legitimate use fails. Covered in depth in the ISP Operations track's DDoS lesson.
+- **Credential attacks**: guessing or stealing passwords, then using them like a legitimate user. This is why account lockout, rate limiting and multi-factor authentication matter as much as firewall rules.
+- **Misconfiguration**: not an attack at all, but the single most common cause of real outages and exposure — a firewall rule left too open, a default password never changed, a management interface reachable from the internet.
+
+## Defence in depth
+
+No one control stops everything, which is why security is layered rather than a single wall:
+
+1. **Perimeter**: firewalls, anti-spoofing, filtering what reaches the network at all.
+2. **Network segmentation**: VLANs and routing that limit how far an attacker who gets in can move (see the Network Design track).
+3. **Authentication and access control**: AAA, 802.1X, least privilege for admin accounts.
+4. **Encryption**: protecting data in transit so interception alone is not enough.
+5. **Monitoring and logging**: so an intrusion is noticed, not just prevented.
+6. **Patching**: closing known vulnerabilities before they are used.
+
+If one layer fails silently, another still catches the problem. A firewall misconfigured to allow too much is a real risk; a firewall misconfigured to allow too much on a network that is also segmented, logged and monitored is a much smaller one.
+
+## The principle of least privilege
+
+Give every account, every firewall rule and every service the minimum access it needs to do its job, no more. An admin account that only ever configures VLANs does not need full router access; a firewall rule for one application does not need to allow the whole subnet. Least privilege does not prevent every incident, but it shrinks what any one compromised credential or misconfigured rule can reach.
+
+## Check yourself
+
+- Why is a spoofed source address hard to trace back to the real sender without anti-spoofing filters already in place?
+- Give an example of two different layers of defence that would both have to fail for a specific attack to succeed.
+- Why is misconfiguration worth taking as seriously as a deliberate attack?

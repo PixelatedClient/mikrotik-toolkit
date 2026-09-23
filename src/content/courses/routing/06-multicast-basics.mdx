@@ -1,0 +1,79 @@
+---
+title: "Multicast Basics"
+track: "routing"
+module: "5.6"
+order: 6
+duration: "30 min"
+summary: "How one stream reaches many receivers, and what ISPs need for IPTV."
+status: "sourced"
+verifiedAgainst: "RFC 7761"
+sources:
+  - title: "RFC 7761: Protocol Independent Multicast - Sparse Mode (PIM-SM)"
+    url: "https://www.rfc-editor.org/rfc/rfc7761"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 1112: Host Extensions for IP Multicasting"
+    url: "https://www.rfc-editor.org/rfc/rfc1112"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+## Unicast, broadcast, multicast
+
+- **Unicast**: one sender to one receiver.
+- **Broadcast**: one sender to every host on the segment.
+- **Multicast**: one sender to a **group** of receivers that asked for it.
+
+For live TV, sending one stream per viewer wastes bandwidth. With multicast, the network duplicates a single stream only where paths diverge.
+
+## Addresses
+
+IPv4 multicast uses `224.0.0.0/4` — RFC 1112 defines these as class D addresses, "224.0.0.0 to 239.255.255.255." Some ranges have fixed meanings (`224.0.0.5` for OSPF routers, `224.0.0.1` reserved for "the all-hosts group" per RFC 1112). Streams for IPTV typically live in `239.0.0.0/8` (administratively scoped, like private space).
+
+## Joining a group: IGMP
+
+Hosts tell their router they want a group using **IGMP** (IPv4), or **MLD** for IPv6. RFC 1112 lays out the original model: a receiver sends a **report** as soon as it joins a group, without waiting to be asked, and the router periodically sends **queries** — addressed to the all-hosts group — to see who is still interested. Without an active receiver, the stream is not forwarded.
+
+## Layer 2: IGMP snooping
+
+Switches by default flood multicast to every port, which defeats the purpose. **IGMP snooping** makes the switch listen to reports and forward the group only to ports with receivers.
+
+```
+/interface bridge set bridge1 igmp-snooping=yes
+```
+
+Someone has to send the queries, so enable a **querier** on the bridge or router, or the snooping table ages out and video freezes.
+
+## Layer 3: PIM
+
+Between routers, multicast routing is done by **PIM** (Protocol Independent Multicast). It builds a **distribution tree** from sources to receivers.
+
+- **PIM-SM (sparse mode)**: receivers join a shared tree rooted at a **rendezvous point (RP)** for any source; RFC 7761 describes an optional later phase where traffic switches to a shortest-path tree straight from the source.
+- **PIM-SSM**: the receiver names the source directly (`S,G`) — RFC 7761 puts source-specific multicast in the `232.0.0.0/8` range specifically — no RP needed. Simpler and recommended when receivers use IGMPv3.
+
+PIM relies on the unicast routing table to find the way back to the source (**RPF check**): RFC 7761 defines the RPF neighbour as "the neighbor that the MRIB indicates should be used to forward packets to that address," so a packet arriving on any other interface fails the check. RPF failures are the most common cause of "the stream does not arrive".
+
+## IPTV in an ISP
+
+A typical design:
+
+1. Head-end sends channels as multicast groups into the core.
+2. The OLT or aggregation switch does IGMP snooping/proxy.
+3. Set-top boxes join the group of the channel being watched, in a dedicated **multicast VLAN**.
+4. Channel changes are IGMP leave/join, so leave latency matters.
+
+Keep IPTV in its own VLAN, with QoS priority, and rate-limit IGMP to protect the router.
+
+## Troubleshooting checklist
+
+- Is the source actually sending? Capture on the source port.
+- Is a querier present, and is snooping on?
+- Does the RPF check pass on the router?
+- Is TTL large enough? Some encoders send TTL 1.
+- Is a firewall dropping `IGMP` or `PIM` (protocols 2 and 103)?
+
+## Check yourself
+
+- Why does a host send an IGMP report immediately on joining a group, rather than waiting for the next query?
+- What does the RPF check actually verify, and why does a packet arriving on the "wrong" interface fail it?
+- What's the practical difference for a receiver between PIM-SM and PIM-SSM?

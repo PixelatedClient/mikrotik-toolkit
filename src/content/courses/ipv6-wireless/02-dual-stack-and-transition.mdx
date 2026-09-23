@@ -1,0 +1,49 @@
+---
+title: "Dual Stack and Transition"
+track: "ipv6-wireless"
+module: "11.2"
+order: 2
+duration: "30 min"
+summary: "Running IPv4 and IPv6 side by side during the long transition, and the mechanisms that bridge the gap where one is missing."
+status: "sourced"
+verifiedAgainst: "RFC 6144, RFC 6147, RFC 8305"
+sources:
+  - title: "RFC 6144: Framework for IPv4/IPv6 Translation"
+    url: "https://www.rfc-editor.org/rfc/rfc6144"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 6147: DNS64 — DNS Extensions for Network Address Translation from IPv6 Clients to IPv4 Servers"
+    url: "https://www.rfc-editor.org/rfc/rfc6147"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 8305: Happy Eyeballs Version 2: Better Connectivity Using Concurrency"
+    url: "https://www.rfc-editor.org/rfc/rfc8305"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+---
+
+## Dual stack
+
+Nearly every production network today runs **dual stack**: every device has both an IPv4 and an IPv6 address, and independently chooses which to use per connection. This is the default, low-drama transition strategy — no IPv4 service has to break for IPv6 to be added, and nothing has to wait for IPv6 to be complete everywhere before it's useful anywhere. A dual-stack router simply runs both routing tables and both firewall rule sets side by side; RouterOS treats `/ip` and `/ipv6` as separate menus for exactly this reason.
+
+## Happy Eyeballs
+
+When a dual-stack client resolves a hostname that has both an IPv6 (`AAAA`) and IPv4 (`A`) DNS record, it doesn't wait for one to fail before trying the other — modern operating systems race both connections and use whichever succeeds first, with a slight preference for IPv6. This is why a broken IPv6 path is often invisible to users: the IPv4 fallback happens fast enough that nobody notices, which is convenient for users but means broken IPv6 can go undiagnosed for a long time on a dual-stack network.
+
+## What happens where dual stack isn't possible
+
+Not every path can run both. Common bridges:
+
+- **NAT64 / DNS64**: lets an IPv6-only client reach an IPv4-only server. DNS64 synthesizes an `AAAA` record for an IPv4-only name, pointing at a NAT64 gateway; NAT64 translates the resulting IPv6 packets to IPv4 on the way out. Used by IPv6-only mobile and access networks that still need to reach the IPv4 internet.
+- **6to4 and Teredo**: older mechanisms for tunnelling IPv6 over an IPv4-only network, largely superseded now that native IPv6 and dual stack are widely available.
+- **DS-Lite (Dual-Stack Lite)**: the reverse situation — an access network that's gone IPv6-only at the last mile tunnels its customers' IPv4 traffic over IPv6 to a shared carrier-grade NAT, because IPv4 addresses ran out for per-customer public assignment. Related to the CGNAT idea from the ISP Operations track, but tunnelled over an IPv6-only access network instead of just NATed.
+
+## The practical takeaway
+
+For most networks being built or upgraded today, the transition mechanism is simply: enable dual stack, get real IPv6 connectivity from an upstream or tunnel broker, and let NAT64/DS-Lite stay someone else's problem unless you're specifically operating an access network that has gone IPv6-only.
+
+## Check yourself
+
+- Why does a broken IPv6 path often go unnoticed on a dual-stack network with Happy Eyeballs enabled?
+- What problem does NAT64 solve that dual stack alone doesn't?
+- What's the difference in direction between NAT64 and DS-Lite — which protocol is the "outside" one in each?

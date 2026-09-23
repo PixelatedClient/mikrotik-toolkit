@@ -1,0 +1,101 @@
+---
+title: "Bridge and VLAN Filtering"
+track: "mikrotik"
+module: "3.2"
+order: 2
+duration: "45 min"
+summary: "Build a VLAN-aware bridge with trunk and access ports, without locking yourself out."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation"
+sources:
+  - title: "Bridging and Switching"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328068/Bridging+and+Switching"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "Bridge VLAN Table"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/28606465/Bridge+VLAN+Table"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "VLAN"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/88014957/VLAN"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+---
+
+## Why VLANs
+
+A VLAN splits one physical switch into several isolated Layer 2 networks. Staff, guests and management can share cabling but not broadcast domains. Each VLAN is identified by a number from 1 to 4094 carried in an 802.1Q tag.
+
+- **Access port**: carries one VLAN, untagged. End devices plug in here.
+- **Trunk port**: carries many VLANs, tagged. Links switches and routers.
+- **PVID**: the VLAN an untagged frame is assigned to when it enters a port.
+
+## The modern way: bridge VLAN filtering
+
+On RouterOS v7, use a single bridge with `vlan-filtering=yes`. This keeps hardware offloading on switch chips (CRS series) and scales cleanly.
+
+```
+/interface bridge add name=bridge1 vlan-filtering=no
+
+# trunk: only tagged frames
+/interface bridge port add bridge=bridge1 interface=sfp-sfpplus1 frame-types=admit-only-vlan-tagged
+
+# access ports: assign PVID, accept only untagged
+/interface bridge port add bridge=bridge1 interface=ether1 pvid=10 frame-types=admit-only-untagged-and-priority-tagged
+/interface bridge port add bridge=bridge1 interface=ether3 pvid=20 frame-types=admit-only-untagged-and-priority-tagged
+
+# VLAN table
+/interface bridge vlan add bridge=bridge1 vlan-ids=10 tagged=sfp-sfpplus1 untagged=ether1
+/interface bridge vlan add bridge=bridge1 vlan-ids=20 tagged=sfp-sfpplus1 untagged=ether3
+```
+
+Every VLAN needs an entry in `/interface bridge vlan`, which "specifies which VLANs are permitted on each port" and checks outgoing traffic so packets only leave through ports allowed to carry their VLAN. A `tagged=` port always keeps (or sets) the VLAN tag on the way out; an `untagged=` port always strips it — this is what actually makes a port "trunk" or "access" in practice, not just the pvid setting alone.
+
+## Management VLAN
+
+The switch itself needs an IP. Give the **bridge** a VLAN interface and tag the bridge into that VLAN:
+
+```
+/interface bridge vlan add bridge=bridge1 vlan-ids=99 tagged=bridge1,sfp-sfpplus1 untagged=ether24
+/interface vlan add name=vlan99-mgmt interface=bridge1 vlan-id=99
+/ip address add address=10.99.0.2/24 interface=vlan99-mgmt
+```
+
+## Do not lock yourself out
+
+**Enable filtering last.** MikroTik's own documentation gives the same advice for the same reason: "create a bridge with disabled vlan-filtering to avoid losing access to the device before VLANs are completely configured."
+
+```
+/interface bridge set bridge1 vlan-filtering=yes
+```
+
+Before that line, the bridge forwards everything and you can still fix mistakes. Enable it while connected through a port whose VLAN you have already configured (for example the management port), and use safe mode (`Ctrl+X`).
+
+## Verify
+
+```
+/interface bridge vlan print
+/interface bridge port print
+/interface bridge host print
+```
+
+`host print` shows which MAC addresses were learned on which port — and, once VLAN filtering is on, which VLAN ID too (independent VLAN learning) — which is the fastest way to prove a device landed in the right VLAN.
+
+## Check yourself
+
+- Why does enabling `vlan-filtering=yes` too early risk locking you out, and what should already be configured before you flip it on?
+- What's the practical difference between a `tagged=` and an `untagged=` port in the bridge VLAN table, beyond just their names?
+- What extra column does `/interface bridge host print` show once VLAN filtering is enabled, that it doesn't show before?
+
+## Common mistakes
+
+- Forgetting to add the trunk to `tagged=` for a VLAN. Traffic never leaves the switch.
+- Putting the same port as untagged in two VLANs.
+- Leaving `pvid=1` on an access port that should be in another VLAN.
+- Enabling `vlan-filtering` before the management VLAN exists.
+
+## Try it
+
+Use the [config generator](/tools/mikrotik-config-generator) with the **VLAN switch** role. Change the VLAN list and watch how the tagged and untagged lists change.
+
+Design your own in the [VLAN designer](/tools/vlan-designer), then follow the [inter-VLAN routing lab](/labs/inter-vlan-routing) to build a router on a stick with a firewall between the VLANs.

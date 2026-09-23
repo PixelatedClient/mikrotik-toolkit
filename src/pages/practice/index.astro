@@ -1,0 +1,24 @@
+---
+import Base from '../../layouts/Base.astro';
+import { TOPICS } from '../../lib/practice';
+import { LockChip } from '../../components/auth/LockPanel';
+const cards = [
+  { id: 'daily', name: 'Daily challenge', blurb: 'Five mixed questions, the same for everyone today.' },
+  { id: 'mixed', name: 'Mixed', blurb: 'Ten random questions from every topic.' },
+  ...TOPICS,
+];
+---
+<Base title="Practice" description="Endless networking practice questions with instant explanations: subnetting, masks, VLSM, IPv6 and routing. Earn XP and streaks.">
+  <div class="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+    <h1 class="text-2xl font-bold">Practice</h1>
+    <p class="mt-3 max-w-2xl text-muted">Quick rounds of ten questions. Right answers earn XP, and a run of correct answers earns a bonus. Every miss comes with an explanation.</p>
+    <div class="mt-8 grid gap-4 sm:grid-cols-2">
+      {cards.map((c) => (
+        <a href={`/practice/${c.id}`} class="rounded-xl border bg-surface p-5">
+          <h2 class="font-semibold">{c.name}{c.id === 'daily' && <LockChip client:load feature="daily-challenge" />}</h2>
+          <p class="mt-2 text-sm text-muted">{c.blurb}</p>
+        </a>
+      ))}
+    </div>
+  </div>
+</Base>

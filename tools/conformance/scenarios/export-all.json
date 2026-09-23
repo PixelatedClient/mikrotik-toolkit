@@ -1,0 +1,32 @@
+{
+  "name": "export-all",
+  "description": "/export after configuring everything the simulator supports.",
+  "devices": ["R2"],
+  "steps": [
+    ["R2", "/system identity set name=edge-r2"],
+    ["R2", "/ip address add address=10.0.12.1/30 interface=ether1 comment=uplink"],
+    ["R2", "/ip address add address=192.168.1.1/24 interface=ether5"],
+    ["R2", "/ip route add dst-address=0.0.0.0/0 gateway=10.0.12.2"],
+    ["R2", "/ip route add dst-address=10.9.0.0/16 gateway=10.0.12.2 distance=5 comment=far"],
+    ["R2", "/ip route add dst-address=172.16.0.0/16 blackhole"],
+    ["R2", "/ip firewall filter add chain=input action=accept connection-state=established,related comment=est"],
+    ["R2", "/ip firewall filter add chain=input action=drop in-interface=ether1"],
+    ["R2", "/ip firewall filter add chain=forward action=reject protocol=tcp dst-port=23 reject-with=icmp-host-unreachable"],
+    ["R2", "/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1"],
+    ["R2", "/ip firewall nat add chain=dstnat action=dst-nat protocol=tcp dst-port=8080 to-addresses=192.168.1.10 to-ports=80"],
+    ["R2", "/interface bridge add name=bridge1 vlan-filtering=no"],
+    ["R2", "/interface bridge port add bridge=bridge1 interface=ether6 pvid=10"],
+    ["R2", "/interface bridge vlan add bridge=bridge1 vlan-ids=10 tagged=bridge1 untagged=ether6"],
+    ["R2", "/interface vlan add name=vlan10 interface=bridge1 vlan-id=10"],
+    ["R2", "/ip pool add name=pool1 ranges=192.168.1.100-192.168.1.200"],
+    ["R2", "/ip dhcp-server add name=dhcp1 interface=ether5 address-pool=pool1"],
+    ["R2", "/ip dhcp-server network add address=192.168.1.0/24 gateway=192.168.1.1 dns-server=8.8.8.8"],
+    ["R2", "/interface disable ether7"],
+    ["R2", "/ip service disable telnet"],
+    ["R2", "/export"],
+    ["R2", "/export terse"],
+    ["R2", "/ip firewall filter export"],
+    ["R2", "/ip address export"],
+    ["R2", "/interface bridge export"]
+  ]
+}

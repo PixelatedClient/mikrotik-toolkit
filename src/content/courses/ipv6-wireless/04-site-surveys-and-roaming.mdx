@@ -1,0 +1,48 @@
+---
+title: "Site Surveys and Roaming"
+track: "ipv6-wireless"
+module: "11.4"
+order: 4
+duration: "30 min"
+summary: "Planning AP placement before you buy hardware, and making a multi-AP network behave like one network instead of several."
+status: "sourced"
+verifiedAgainst: "IEEE 802.11 standards and wireless deployment best practices"
+sources:
+  - title: "IEEE 802.11: Wireless LAN Medium Access Control (MAC) and Physical Layer (PHY) Specifications"
+    url: "https://standards.ieee.org/standard/802_11-2020.html"
+    publisher: "IEEE"
+    accessed: "2026-09-23"
+---
+
+## Why survey before deploying
+
+Wireless behaves differently in every building — wall material, furniture, interference sources and floor plan all change coverage in ways a floor plan alone doesn't predict. A site survey measures the real environment before AP placement is finalised, instead of guessing and finding the dead zones after installation.
+
+## Passive vs active survey
+
+- **Passive survey**: walk the site with a scanning tool, measuring existing signal (from neighbouring networks, if any) and noise, without transmitting from a test AP. Establishes a baseline of the RF environment before anything is installed.
+- **Active survey**: place a temporary AP, then walk the site measuring the actual signal, throughput and roaming behaviour it produces, adjusting placement before committing to permanent mounting.
+
+A predictive survey (software-modelled from a floor plan and wall materials, no physical walk-through) is faster and common for initial planning, but a physical walk-through survey catches what the model can't: real furniture, real interference sources, RF-unfriendly wall material a floor plan doesn't note.
+
+## Coverage overlap for roaming
+
+A client should always be in range of more than one AP near a cell edge, with enough signal overlap (commonly recommended around -67 dBm or better at the boundary) that it can roam to the next AP before the current one becomes unusable — not after. Too little overlap causes a client to hang onto a fading AP too long ("sticky client" behaviour); too much overlap wastes airtime to co-channel interference between APs that are unnecessarily both audible at full strength in the same spot.
+
+## What makes roaming fast
+
+Moving between APs on the same SSID should be seamless to the user — no re-typing a password, ideally no noticeable pause. This depends on:
+
+- **Same SSID, same security settings, across every AP** — the client sees one logical network, not several to choose between.
+- **Fast roaming standards** (802.11r for fast BSS transition, 802.11k for neighbour reports, 802.11v for AP-assisted client steering) let the client and infrastructure cooperate on when and where to roam, instead of the client blindly re-scanning.
+- **Controller-based or centrally managed APs** (rather than fully independent standalone APs) typically coordinate channel and power plans automatically and support these fast-roaming standards more consistently.
+
+## Putting it together
+
+A good deployment plan: survey first (predictive for initial placement, then a walk-through to verify), place APs for enough overlap at cell edges for roaming without excessive co-channel interference in the middle, and match channel/power settings across APs so a moving client always has a clearly better next AP to roam to rather than several equally weak ones to hesitate between.
+
+## Check yourself
+
+- What does an active survey measure that a passive survey does not?
+- Why does too much coverage overlap between APs hurt performance, not just too little?
+- What does same SSID and security settings across every AP actually buy you for roaming?

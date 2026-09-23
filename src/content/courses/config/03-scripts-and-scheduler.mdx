@@ -1,0 +1,93 @@
+---
+title: "Scripts and the Scheduler"
+track: "config"
+module: "8.3"
+order: 3
+duration: "45 min"
+summary: "Automate the boring parts: a first RouterOS script, variables and loops, and running it on a schedule."
+---
+
+## What a script is
+
+A RouterOS script is a list of commands stored on the router and run on demand or on a timer. It can also make decisions with `:if` and repeat with `:foreach`. Scripts are good for jobs you would otherwise repeat by hand: nightly exports, checks, and applying the same change to many interfaces.
+
+## Your first script
+
+```
+/system script add name=hello source={
+  :log info "hello from a script"
+  :put "done"
+}
+/system script run hello
+```
+
+`:log info` writes to the router log. `:put` prints to your terminal.
+
+## Variables
+
+`:local` lives inside the script. `:global` survives between scripts.
+
+```
+:local wanIf "ether1"
+:put ("WAN interface is " . $wanIf)
+```
+
+Use `$name` to read a variable and `.` to join text.
+
+## Decisions and loops
+
+Add a comment to every disabled interface:
+
+```
+:foreach i in=[/interface find where disabled=yes] do={
+  /interface set $i comment="disabled by script"
+}
+```
+
+`[/interface find where disabled=yes]` returns the matching items and `:foreach` walks through them. A condition looks like this:
+
+```
+:if ([/ip route find where dst-address="0.0.0.0/0" and active]) do={
+  :log info "default route is active"
+} else={
+  :log warning "no active default route"
+}
+```
+
+## A useful one: nightly export
+
+```
+/system script add name=nightly-export source={
+  :local name ("export-" . [/system identity get name])
+  /export file=$name
+  :log info ("exported to " . $name)
+}
+```
+
+The file lands on the router. Copy it off (SFTP or a fetch to your server) so a router failure does not take the backup with it.
+
+## The scheduler
+
+The scheduler runs a script at a time or an interval:
+
+```
+/system scheduler add name=nightly interval=1d start-time=03:00:00 on-event=nightly-export
+```
+
+`interval=1d` repeats every day, `start-time` sets the first run, `on-event` names the script (or a command).
+
+Check what is scheduled with `/system scheduler print`, and read the log after a run to be sure it worked.
+
+## Rules of thumb
+
+- **Test by hand first.** Run the script from the terminal, then schedule it.
+- **Log what happens.** Use `:log info` so you can see runs later.
+- **Keep scripts short.** A long script is a program: it needs the same care as one.
+- **Avoid hard-coded secrets.** Do not store passwords in scripts you export or share.
+- **Mind the version.** Script and command names change between RouterOS releases. Check on your version.
+
+## Check yourself
+
+- What is the difference between `:local` and `:global`?
+- Write the line that runs a script called `nightly-export` every day at 03:00.
+- Why copy exports off the router?

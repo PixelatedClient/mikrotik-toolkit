@@ -1,0 +1,65 @@
+---
+title: "AAA, RADIUS and 802.1X"
+track: "security"
+module: "9.2"
+order: 2
+duration: "35 min"
+summary: "Authentication, authorization and accounting as one discipline, RADIUS as the protocol that carries it, and 802.1X as port-based access control."
+status: "sourced"
+verifiedAgainst: "RFC 2865, RFC 3748, IEEE 802.1X"
+sources:
+  - title: "RFC 2865: Remote Authentication Dial In User Service (RADIUS)"
+    url: "https://www.rfc-editor.org/rfc/rfc2865"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 3748: Extensible Authentication Protocol (EAP)"
+    url: "https://www.rfc-editor.org/rfc/rfc3748"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "IEEE 802.1X: Port-Based Network Access Control"
+    url: "https://en.wikipedia.org/wiki/IEEE_802.1X"
+    publisher: "IEEE"
+    accessed: "2026-09-23"
+---
+
+## Three separate questions
+
+AAA is three questions asked about anyone trying to use the network:
+
+- **Authentication**: who are you? (a username and password, a certificate, a token)
+- **Authorization**: what are you allowed to do? (which VLAN, which commands, which access level)
+- **Accounting**: what did you actually do, and for how long? (for billing, for an audit trail)
+
+Handling these as one system, rather than a local password on every device, is what lets you revoke one person's access everywhere at once instead of hunting through every router.
+
+## RADIUS carries all three
+
+**RADIUS** (Remote Authentication Dial-In User Service) is the protocol that a device (the "NAS", network access server, meaning the router, switch or access point) speaks to a central RADIUS server to ask "should I let this in, and with what rights?"
+
+- The client sends an Access-Request with the username and a hashed password.
+- The server replies Access-Accept or Access-Reject, and can attach attributes: which VLAN to put the user in, a session timeout, a rate limit.
+- Separate Accounting-Request/Response messages record session start, stop and usage, used for logging and billing.
+
+RADIUS runs over UDP, ports 1812 (authentication) and 1813 (accounting) in the current standard; older deployments sometimes still use 1645/1646.
+
+## 802.1X: authentication at the port
+
+**802.1X** is a standard for controlling access at the physical or logical port, before a device gets any network access at all. Three parties are involved:
+
+- The **supplicant**: the software on the device trying to connect (built into every modern OS).
+- The **authenticator**: the switch port or access point, which blocks all traffic except the authentication conversation until the supplicant is approved.
+- The **authentication server**: usually a RADIUS server, which makes the actual accept/reject decision.
+
+The conversation between supplicant and authenticator uses **EAP** (Extensible Authentication Protocol), which is a framework, not one method — EAP-TLS (certificates), PEAP and EAP-TTLS (a password inside a TLS tunnel) are common variants. The authenticator relays EAP messages to the RADIUS server wrapped inside RADIUS packets (EAP-over-RADIUS).
+
+## Where this shows up
+
+- A Wi-Fi network using WPA2/WPA3-Enterprise is 802.1X: each device authenticates individually against RADIUS, instead of everyone sharing one pre-shared key.
+- A wired switch port can require 802.1X before it forwards any traffic, which stops someone from plugging a laptop into an empty office port and reaching the network unauthenticated.
+- Router and switch administrators logging in over SSH or the web interface can be authenticated against RADIUS too, so one central system controls admin access to every device.
+
+## Check yourself
+
+- Which of the three A's decides whether a login is accepted, and which one records what happened afterward?
+- Name the three parties in an 802.1X exchange.
+- Why does 802.1X block traffic before authentication, rather than after?

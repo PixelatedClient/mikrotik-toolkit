@@ -1,0 +1,75 @@
+---
+title: "What Is a Network?"
+track: "foundations"
+module: "1.1"
+order: 1
+duration: "20 min"
+summary: "Packets, routing, the OSI model, and how your phone reaches YouTube."
+status: "sourced"
+verifiedAgainst: "ITU-T X.200, RFC 1122 and RFC 9000"
+sources:
+  - title: "ITU-T Recommendation X.200: Information technology - Open Systems Interconnection - Basic Reference Model: The basic model"
+    url: "https://www.itu.int/rec/T-REC-X.200-199407-I/en"
+    publisher: "ITU-T"
+    accessed: "2026-09-22"
+  - title: "RFC 1122: Requirements for Internet Hosts -- Communication Layers"
+    url: "https://www.rfc-editor.org/rfc/rfc1122"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 9000: QUIC: A UDP-Based Multiplexed and Secure Transport"
+    url: "https://www.rfc-editor.org/rfc/rfc9000"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+import PacketJourney from '../../../components/PacketJourney';
+
+## What is a packet?
+
+Data never travels as one big blob. It is chopped into small chunks called **packets**. Each packet carries a header (who sent it, who should get it) and a payload (a slice of your data).
+
+## Why does data need to find its way?
+
+Your phone is not directly wired to YouTube's servers. Between you and them sit dozens of routers. Each router looks at a packet's destination address and decides the **next hop**. This is **routing**.
+
+## The 7 layers of OSI (simple version)
+
+The **OSI reference model** (ITU-T X.200, the same document published jointly as ISO/IEC 7498-1) defines seven layers, each built on the one below it:
+
+1. **Physical** – the transmission medium itself: cables, fibre, radio, electrical signals.
+2. **Data link** – reliable transfer across one physical link, including framing and physical (MAC) addressing.
+3. **Network** – routing and logical addressing between different networks (this is where IP sits).
+4. **Transport** – end-to-end delivery, flow control and error checking between two endpoints.
+5. **Session** – establishing, managing and ending a dialogue between two communicating applications.
+6. **Presentation** – data formatting, encryption and translation so different applications can understand each other.
+7. **Application** – the layer applications themselves use to access network services (HTTP, DNS, and so on).
+
+Real-world networking rarely names all seven separately. **RFC 1122**, which specifies the requirements for Internet hosts, describes the Internet protocol suite as four layers instead: Link, Internet, Transport and Application — and it explicitly notes that its Application layer "combines the functions of the top two layers — Presentation and Application — of the OSI reference model." This course mostly uses OSI's own three lower layers (Physical, Data Link, Network) by name, since they map directly onto real, separately-troubleshootable problems (a bad cable, a switching loop, a routing mistake), and groups everything above Transport into "the application," in the same spirit as RFC 1122's simplification.
+
+## How your phone talks to YouTube
+
+1. Phone asks DNS: "what is the IP of youtube.com?"
+2. Phone opens a connection to that IP over TCP, or over **QUIC** — a transport protocol, defined in RFC 9000, that carries its packets inside UDP datagrams rather than using TCP directly (this is why network tools sometimes show YouTube traffic as UDP, not TCP).
+3. Packets leave via your Wi-Fi, reach your ISP's router, cross several networks, and arrive at Google — each router along the way makes its own next-hop decision, so a packet's exact path is not fixed in advance.
+4. Video packets flow back toward the phone; since each router forwards independently, the return path is not guaranteed to be the exact reverse of the outbound one.
+
+## See it happen
+
+Every message is wrapped in one header per layer on its way out. Drag the slider to add the layers one at a time, then send it across a router to see what changes.
+
+<PacketJourney client:visible />
+
+## Lab: Wireshark capture
+
+1. Install Wireshark and start a capture on your active interface.
+2. Filter with `dns`, then open youtube.com in a browser.
+3. Find the DNS query and response. Note the returned IP.
+4. Filter with `ip.addr == <that IP>` and inspect the TCP/TLS handshake.
+
+**Question:** which layers can you see in a single packet? Expand each section in the packet details pane.
+
+## Check yourself
+
+- Which OSI layer is responsible for routing a packet between two different networks, and which layer is responsible for reliable delivery between the two endpoints?
+- According to RFC 1122, which two OSI layers does the Internet model's single Application layer combine?
+- Why does QUIC traffic show up as UDP in a packet capture instead of TCP?

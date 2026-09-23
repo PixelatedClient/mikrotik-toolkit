@@ -1,0 +1,71 @@
+---
+title: "IPsec Fundamentals"
+track: "security"
+module: "9.1"
+order: 1
+duration: "35 min"
+summary: "How IPsec protects traffic between two networks: the two phases, AH versus ESP, tunnel versus transport mode."
+status: "sourced"
+verifiedAgainst: "RFC 2409, RFC 4301, RFC 4302, RFC 4303"
+sources:
+  - title: "RFC 2409: The Internet Key Exchange (IKE)"
+    url: "https://www.rfc-editor.org/rfc/rfc2409"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 4301: Security Architecture for the Internet Protocol"
+    url: "https://www.rfc-editor.org/rfc/rfc4301"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 4302: IP Authentication Header (AH)"
+    url: "https://www.rfc-editor.org/rfc/rfc4302"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 4303: IP Encapsulating Security Payload (ESP)"
+    url: "https://www.rfc-editor.org/rfc/rfc4303"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+---
+
+## Why not just WireGuard?
+
+This site already has a WireGuard lesson and lab, and for a new site-to-site tunnel WireGuard is usually the simpler choice: one key pair, one line of config, done. IPsec earns its complexity where WireGuard cannot reach: standards-based interoperability with equipment from other vendors, and compliance requirements that name IPsec specifically. A lot of enterprise and carrier gear still expects it.
+
+## Two phases
+
+An IPsec tunnel is built in two negotiations, both run by **IKE** (Internet Key Exchange):
+
+1. **Phase 1** sets up a secure, authenticated channel between the two peers themselves (their identities, and a shared key derived from Diffie-Hellman). This is the IKE SA.
+2. **Phase 2** uses that channel to negotiate the actual traffic-protecting keys, the IPsec SA, and agrees which traffic (which source and destination networks) the tunnel covers.
+
+Two IPsec SAs exist for a bidirectional tunnel, one for each direction, because each direction gets its own key.
+
+## AH versus ESP
+
+Two protocols can carry the protected traffic:
+
+- **AH (Authentication Header)** authenticates the packet, including parts of the outer IP header, but does not encrypt it. It is rarely used today because it cannot pass through NAT (it authenticates the very header a NAT device rewrites) and gives no confidentiality.
+- **ESP (Encapsulating Security Payload)** encrypts and authenticates the payload. Almost every real deployment uses ESP.
+
+## Tunnel versus transport mode
+
+- **Tunnel mode** wraps the whole original IP packet inside a new one. This is what site-to-site VPNs use: the new outer header has the two gateways' addresses, and the original packet (with the real source and destination) travels encrypted inside.
+- **Transport mode** protects only the payload of the original packet and keeps the original IP header. It is used for host-to-host protection on the same network, not for connecting two networks together.
+
+## What a phase 2 selector is
+
+Phase 2 negotiates which traffic uses the tunnel by agreeing on **selectors**: a source network, a destination network, and optionally ports and protocol. If the two sides do not propose matching selectors, phase 2 fails even though phase 1 succeeded, which is a common cause of an IPsec tunnel that comes "half up."
+
+## A typical failure pattern
+
+An IPsec tunnel that never establishes usually has one of these causes:
+
+- Phase 1 proposal mismatch: the two sides tried different encryption, hashing or Diffie-Hellman group combinations and found none in common.
+- Pre-shared key mismatch (a typo on one side).
+- Phase 2 selector mismatch: one side proposes 10.0.1.0/24 to 10.0.2.0/24 and the other proposes something slightly different, such as a supernet or a single host.
+- NAT between the two peers without NAT traversal (NAT-T) enabled, which wraps ESP in UDP so it can pass through.
+
+## Check yourself
+
+- What does phase 1 protect that phase 2 does not?
+- Why is AH rarely used with NAT in the path?
+- A tunnel's phase 1 is up but phase 2 never completes. What would you check first?

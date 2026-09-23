@@ -1,0 +1,17 @@
+{
+ "name": "arp",
+ "description": "/ip arp print (and detail) after a real ping populates the ARP cache, to capture real RouterOS 7.16 table layout and flags.",
+ "devices": [
+  "R1",
+  "R3"
+ ],
+ "steps": [
+  ["R1", "/ip address add address=10.0.13.1/24 interface=ether3"],
+  ["R3", "/ip address add address=10.0.13.3/24 interface=ether3"],
+  ["R1", "/ip arp print"],
+  ["R1", "/ping 10.0.13.3 count=2", "warm"],
+  ["R1", "/ip arp print"],
+  ["R1", "/ip arp print detail"],
+  ["R1", "/ip arp print terse"]
+ ]
+}

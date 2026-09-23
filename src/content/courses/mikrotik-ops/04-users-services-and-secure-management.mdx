@@ -1,0 +1,146 @@
+---
+title: "Users, Services and Secure Management"
+track: "mikrotik-ops"
+module: "4.4"
+order: 4
+duration: "35 min"
+summary: "Give each person the least access they need, restrict which services listen, and where they may be reached from."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation"
+sources:
+  - title: "User"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/8978504/User"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Services (IP services and ports)"
+    url: "https://manual.mikrotik.com/docs/system-information-and-utilities/services/"
+    publisher: "MikroTik RouterOS Manual"
+    accessed: "2026-09-20"
+  - title: "Securing your router"
+    url: "https://manual.mikrotik.com/docs/getting-started/securing-your-router/"
+    publisher: "MikroTik RouterOS Manual"
+    accessed: "2026-09-20"
+  - title: "First Time Configuration"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328151/First+Time+Configuration"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+---
+
+Anyone who can log in to a router can break the network. Managing **who** may log in, **how**, and **from where** is the cheapest security you will ever buy.
+
+## Users and groups
+
+A router starts with one user, `admin`, with full rights from any address. MikroTik's rule: there must always be at least one user with full access, so do not delete the last one.
+
+Every user belongs to a **group**, and the group holds **policies**: a list of things its members may do.
+
+```
+/user add name=alice password="a-long-unique-password" group=read address=192.168.88.0/24
+```
+
+- `group` decides the user's rights.
+- `address` restricts where that user may log in from (a subnet, or a single address). Leave it out and they may connect from anywhere.
+- Names must start and end with a letter or digit, and may contain `_`, `.`, `#`, `-` and `@`.
+
+### The built-in groups
+
+There are three, and they cannot be deleted.
+
+| Group | What it is |
+|---|---|
+| **read** | Can log in and look, but not change the configuration |
+| **write** | Everything in `read`, plus `write`, but not `policy` or `ftp` |
+| **full** | Every policy |
+
+The policies themselves fall into two kinds. **Login** policies decide the ways a user may connect: `local`, `telnet`, `ssh`, `web`, `winbox`, `api`, `rest-api`, `ftp`, `romon` and `password`. **Configuration** policies decide what they can do once in: `reboot`, `read`, `write`, `policy`, `test`, `sensitive` and `sniff`.
+
+MikroTik warns that even the `read` group includes sensitive rights, such as `sensitive` and `reboot`, so it should not go to people you do not trust. For a truly limited account, create your own group with only the policies it needs.
+
+### Everyday commands
+
+```
+/user set alice password="a-new-password"
+/user expire-password alice
+/user active print
+```
+
+- `expire-password` forces a new password at the next login.
+- `/user active print` shows who is logged in now, and from where. `/user active request-logout` ends a session.
+- The `/ssh-keys` menu lets a user log in with an SSH key (RSA or Ed25519) instead of a password.
+
+## Central logins with RADIUS
+
+To use one directory of users across many routers, enable RADIUS for logins (`use-radius=yes` in the user AAA settings). Note the order: the **local** user database is checked first, and RADIUS is asked only after that. Keep one local emergency account, with a very long password, so you can still log in if the RADIUS server is down.
+
+## Services: what is listening
+
+Each way into the router is a **service** with its own port. The main ones:
+
+| Service | Default port (TCP) | Notes |
+|---|---|---|
+| telnet | 23 | Clear text |
+| ftp | 21 | Clear text |
+| www | 80 | WebFig without encryption |
+| www-ssl | 443 | WebFig over TLS |
+| ssh | 22 | |
+| winbox | 8291 | |
+| api | 8728 | |
+| api-ssl | 8729 | API over TLS |
+
+You cannot add services here, only change the existing ones. The TLS services take a `certificate`, and `tls-version` can restrict them to TLS 1.2 only.
+
+**Disable what you do not use.** Telnet and FTP send passwords in clear text:
+
+```
+/ip service disable telnet,ftp,www,api
+```
+
+**Restrict where the rest can be reached from.** Each service accepts an `address` list:
+
+```
+/ip service set winbox address=192.168.88.0/24
+/ip service set ssh address=192.168.88.0/24
+```
+
+Now Winbox and SSH answer only to your management network. But read MikroTik's wording carefully: when `address` is set, packets are **not dropped at the network level**. The service simply denies access to other sources. That means the router still receives the traffic, so add an **input-chain firewall rule** that drops management traffic from everywhere else. You want both layers.
+
+You can also move a service off its default port, for example `/ip service set ssh port=2200`. That reduces log noise from scanners, but it is not security on its own.
+
+## Layer 2 management
+
+Winbox can also find and reach a router by **MAC address**, without any IP. Confine that to your LAN, as in the first lesson:
+
+```
+/tool mac-server set allowed-interface-list=LAN
+/tool mac-server mac-winbox set allowed-interface-list=LAN
+```
+
+and limit neighbour discovery to trusted interfaces, so the router does not announce itself to the internet:
+
+```
+/ip neighbor discovery-settings set discover-interface-list=LAN
+```
+
+MikroTik's hardening guide goes further for routers that need no Layer 2 management: set `allowed-interface-list=none` on the MAC server and MAC-Winbox, and disable MAC-ping.
+
+## Other things that answer requests
+
+The same guide lists services worth switching off when you do not use them: the bandwidth-test server (`/tool bandwidth-server set enabled=no`), the proxy, SOCKS and UPnP, and remote DNS requests (`/ip dns set allow-remote-requests=no`). Enable `strong-crypto` for SSH with `/ip ssh set strong-crypto=yes`.
+
+## A hardening checklist
+
+Our recommendations, built on the facts above:
+
+1. Use strong passwords. MikroTik's hardening guide suggests at least 12 characters, mixing numbers, symbols, and upper and lower case. Replace the default `admin` account once a named replacement works: create a new `full` user, then disable `admin` with `/user disable admin`.
+2. Give staff the lowest group that lets them do their job.
+3. Disable unused services, and set `address` on the ones you keep.
+4. Allow management only from a dedicated management VLAN or subnet.
+5. Restrict MAC-Winbox and neighbour discovery to the LAN.
+6. Keep RouterOS updated (see [upgrading RouterOS](/learn/mikrotik-ops/03-upgrading-routeros)).
+7. Send logs off the router (see [monitoring and diagnostic tools](/learn/mikrotik-ops/07-monitoring-and-diagnostics)).
+
+## Check yourself
+
+- What is the difference between a login policy and a configuration policy?
+- Why keep a local account when you use RADIUS?
+- Which two settings together stop someone on the internet from reaching Winbox?

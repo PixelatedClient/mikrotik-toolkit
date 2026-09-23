@@ -1,0 +1,51 @@
+---
+title: "LDP: Distributing Labels"
+track: "mpls"
+module: "13.2"
+order: 2
+duration: "30 min"
+summary: "How neighbouring routers agree on which label means what, without an administrator assigning them by hand."
+status: "sourced"
+verifiedAgainst: "RFC 5036"
+sources:
+  - title: "RFC 5036: LDP Specification"
+    url: "https://www.rfc-editor.org/rfc/rfc5036"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+---
+
+## The problem LDP solves
+
+The previous lesson described push/swap/pop, but skipped a question: where do the labels themselves come from? Every LSR needs to know which label its downstream neighbour wants to see for a given destination — and with thousands of prefixes and many routers, assigning that by hand doesn't scale. **LDP (Label Distribution Protocol)** is the answer: routers discover each other and exchange label bindings automatically, the same spirit as OSPF or BGP automating what would otherwise be manual routing-table entries.
+
+## Discovery, then a session
+
+LDP works in two stages:
+
+1. **Discovery**: LDP routers send periodic UDP Hello packets to the multicast address `224.0.0.2` on port 646. A router hearing a Hello from a neighbour it doesn't yet have a session with initiates one.
+2. **Session**: once discovered, the two routers open a TCP session (port 646) and exchange label bindings over it — TCP because label bindings must arrive reliably and in order, unlike the best-effort Hello.
+
+## What gets exchanged
+
+For each prefix an LSR knows how to reach (learned from its IGP — typically OSPF, covered in the Advanced Routing track), it advertises a label binding to its LDP neighbours: "if you want to send me traffic for this prefix, use this label." Each router builds its label table this way, one hop's binding at a time, until every LSR along every path has a consistent, working label swap table — all without an administrator typing a single label number anywhere.
+
+## Downstream-unsolicited, independent control
+
+Two design choices shape how RouterOS (and most implementations) run LDP by default:
+
+- **Downstream-unsolicited**: a router advertises a label for a prefix to its neighbours without being asked first, rather than waiting for a request. This is simpler and is the common default.
+- **Independent label control**: a router assigns and advertises a label for a prefix as soon as it has a route for it in its own table, without waiting to hear what label its own next hop uses first. This means label bindings can propagate and converge in parallel across the network rather than one hop waiting on the next.
+
+## LDP and the IGP work together, not instead of each other
+
+LDP does not replace OSPF or another IGP — it rides on top of it. The IGP is still what computes the best path (the next-hop decision); LDP's only job is making sure every router along that IGP-chosen path has agreed on a label for it. If the IGP's route to a prefix changes, LDP's bindings for it change to match — the label path always follows the IGP's chosen path, not the other way around.
+
+## Where this fits
+
+LDP is what makes vanilla "IP over MPLS" work without a network engineer hand-assigning labels at every router. It's also the same label-distribution mechanism the next two lessons (VPLS and L3VPN) build on: those lessons add a second, inner label carried inside the LDP-assigned outer one, which is what actually separates one customer's traffic from another's.
+
+## Check yourself
+
+- What are the two stages LDP goes through before two routers exchange label bindings, and why does the second stage use TCP instead of UDP?
+- What does "downstream-unsolicited" mean, in your own words?
+- Why does LDP need to rely on the IGP rather than compute its own paths?

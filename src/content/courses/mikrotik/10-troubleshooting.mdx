@@ -1,0 +1,116 @@
+---
+title: "Troubleshooting Common Issues"
+track: "mikrotik"
+module: "3.10"
+order: 10
+duration: "40 min"
+summary: "A layered method and the RouterOS tools to find why traffic is not flowing."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation and this project's own GNS3 verification on real RouterOS 7.16"
+sources:
+  - title: "Profiler"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/8323153/Profiler"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "Filter"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/48660574/Filter"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+---
+
+The bottom-up layered method itself is this project's own design guidance, not a rule from MikroTik's documentation — it's the same troubleshooting order taught throughout this course. The specific tool behaviours below are sourced.
+
+## Method: bottom up
+
+Most faults are found faster by walking the layers than by guessing.
+
+1. **Physical**: link lights, cable, SFP, `/interface print`, error counters.
+2. **Data link**: right VLAN? MAC learned? (`/interface bridge host print`)
+3. **Network**: correct IP and mask? Route exists? (`/ip address print`, `/ip route print`)
+4. **Transport / firewall**: is the port blocked? (`/ip firewall filter print stats`)
+5. **Application**: DNS, service actually running.
+
+Change one thing at a time, and write down what you changed.
+
+## First commands
+
+```
+/system resource print
+/interface print stats
+/ip address print
+/ip route print where active
+/log print
+```
+
+`/system resource print` shows CPU, memory and uptime. A recent uptime means a reboot, and the log usually says why.
+
+## Reachability
+
+```
+/ping 8.8.8.8 count=5
+/ping 8.8.8.8 src-address=192.168.88.1
+/tool traceroute 8.8.8.8
+```
+
+- Ping the **gateway**, then something beyond it, then a **name**. The first step that fails tells you the layer.
+- `src-address` tests return paths: replies must know how to come back.
+
+## Watching traffic
+
+```
+/tool torch interface=ether1
+/tool sniffer quick interface=ether1 ip-address=192.168.88.10
+```
+
+Torch shows live flows per interface (who is using the bandwidth). The sniffer shows packets; save to a file and open it in Wireshark for the hard cases.
+
+## Firewall counters
+
+Every firewall filter rule has packet and byte counters, on the same first-match-wins chains documented on MikroTik's Filter page:
+
+```
+/ip firewall filter print stats where chain=forward
+```
+
+Reset them, repeat the test, and see which rule counts up: that rule is the one handling your traffic. Also check the connection table:
+
+```
+/ip firewall connection print where src-address~"192.168.88.10"
+```
+
+## Symptom guide
+
+| Symptom | Likely cause |
+|---|---|
+| Ping by IP works, names fail | DNS: server, or port 53 blocked |
+| Small pages load, big ones hang | MTU / MSS problem on a tunnel or PPPoE |
+| Works one way only | Missing return route, or NAT/asymmetric routing |
+| Everything slow at peak | Saturated link or queue; check torch and queue stats |
+| BGP stuck in `connect`/`active` | No reachability to peer, TCP 179 blocked, wrong AS |
+| BGP `established` but no routes | Filters rejecting; check `/routing filter` chains |
+| CPU at 100% | Loop, attack, or an unaccelerated feature; use `/tool profile` |
+| Lost access after a change | Should have used safe mode; use console/MAC-Winbox |
+
+## CPU
+
+```
+/tool profile
+```
+
+MikroTik's own documentation describes this as showing "CPU usage for each process running in RouterOS," grouped into classifiers such as firewall, networking, queueing and routing rather than individual processes — so a classifier high on the list points directly at where the load comes from, without you having to guess.
+
+## Recover from mistakes
+
+- **Safe mode** (`Ctrl+X`) before risky changes.
+- Keep a recent `/export` and a binary backup.
+- Reset to a known-good baseline and re-import a saved script rather than repairing a mess.
+
+## Practice
+
+In the [three-router lab](/labs/three-router), remove one static route, then use only the commands above to find the router and the direction that broke.
+
+## Check yourself
+
+- Why is walking the layers bottom-up usually faster than guessing at the top layer first?
+- What does `/tool profile` group processes into, and why is that more useful than a flat CPU-per-process list?
+- If resetting a firewall rule's counters and repeating a test shows a different rule counting up than expected, what does that tell you?

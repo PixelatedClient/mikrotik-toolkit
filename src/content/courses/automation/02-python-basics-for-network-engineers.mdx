@@ -1,0 +1,98 @@
+---
+title: "Python Basics for Network Engineers"
+track: "automation"
+module: "10.2"
+order: 2
+duration: "40 min"
+summary: "Just enough Python to read and write the scripts that talk to routers: variables, loops, and calling an API."
+status: "sourced"
+verifiedAgainst: "Python documentation"
+sources:
+  - title: "Python 3 Tutorial: An Informal Introduction to Python"
+    url: "https://docs.python.org/3/tutorial/introduction.html"
+    publisher: "Python Software Foundation"
+    accessed: "2026-09-23"
+---
+
+## Why Python specifically
+
+Python reads close to plain English, has a huge library of ready-made tools for talking to network devices, and is the language most networking automation documentation (including MikroTik's own REST API examples) is written in. You do not need to become a software engineer to get real value from it — a working knowledge of the basics below covers most day-to-day scripts.
+
+## Variables and basic types
+
+```python
+router_name = "edge-1"       # a string
+port_count = 24              # an integer
+is_online = True             # a boolean
+addresses = ["10.0.0.1", "10.0.0.2", "10.0.0.3"]  # a list
+```
+
+## Loops
+
+A `for` loop repeats a block of code once per item in a list — exactly what you need to walk through a list of routers or a list of interfaces:
+
+```python
+for addr in addresses:
+    print(f"checking {addr}")
+```
+
+## Functions
+
+A function packages a piece of logic so you can reuse it with different inputs instead of copying the code:
+
+```python
+def is_private(ip):
+    first_octet = int(ip.split(".")[0])
+    return first_octet == 10 or first_octet == 172 or first_octet == 192
+```
+
+## Reading and writing files
+
+Automation scripts often read a list of devices from a file and write results to another:
+
+```python
+with open("devices.txt") as f:
+    devices = [line.strip() for line in f]
+
+with open("results.txt", "w") as f:
+    for d in devices:
+        f.write(f"{d}: checked\n")
+```
+
+## Calling an HTTP API
+
+Most modern network device APIs, including RouterOS's REST API, speak HTTP and JSON. The `requests` library is the standard way to call them:
+
+```python
+import requests
+
+r = requests.get(
+    "https://10.0.0.1/rest/ip/address",
+    auth=("admin", "password"),
+    verify=False,  # only for a lab; verify real certificates in production
+)
+print(r.json())
+```
+
+`r.json()` turns the response into a Python list or dictionary you can loop over and inspect, the same shapes covered above.
+
+## A realistic first script
+
+Putting the pieces together: read a list of router addresses from a file, and print each router's identity by calling its REST API.
+
+```python
+import requests
+
+with open("devices.txt") as f:
+    devices = [line.strip() for line in f]
+
+for host in devices:
+    r = requests.get(f"https://{host}/rest/system/identity", auth=("admin", "password"), verify=False)
+    print(host, "->", r.json())
+```
+
+## Check yourself
+
+- What does a `for` loop let you avoid writing by hand?
+- Why package repeated logic into a function instead of copying it each time you need it?
+- What does `r.json()` do to an HTTP response, and why is that useful in a loop?

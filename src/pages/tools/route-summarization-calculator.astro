@@ -1,0 +1,22 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import { SummarizeCalculator } from '../../components/calc/SmallCalculators';
+import { SRC } from '../../data/toolSources';
+---
+<ToolPage
+  title="Route Summarization Calculator"
+  description="Summarize a list of IPv4 prefixes into one supernet, and see whether the summary is exact or covers extra addresses."
+  heading="Route summarization"
+  intro="Combine several routes into one advertisement. The tool tells you if the summary is exact, or how many extra addresses it would claim."
+  narrow={true}
+  sources={[
+    SRC.cidr,
+  ]}
+  related={[
+    { href: '/tools/ip-range-to-cidr', label: 'IP range to CIDR' },
+    { href: '/practice/routing', label: 'Practice routing' },
+    { href: '/learn/routing/03-bgp-in-isp-networks', label: 'Lesson: BGP in ISP networks' },
+  ]}
+>
+  <SummarizeCalculator client:load />
+</ToolPage>

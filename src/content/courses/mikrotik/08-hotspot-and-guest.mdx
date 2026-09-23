@@ -1,0 +1,99 @@
+---
+title: "Hotspot & Guest Networks"
+track: "mikrotik"
+module: "3.8"
+order: 8
+duration: "35 min"
+summary: "Isolate guests properly and add a captive portal with the RouterOS hotspot."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation"
+sources:
+  - title: "HotSpot - Captive portal"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/56459266/HotSpot+-+Captive+portal"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "Layer2 misconfiguration"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/19136718/Layer2+misconfiguration"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+---
+
+## Guests are not staff
+
+A guest network should give internet access and nothing else. No route to the office LAN, printers, or router management. Solve isolation **before** you think about a login page.
+
+## Guest VLAN with isolation
+
+Put guests in their own VLAN and subnet (see [switching & VLANs](/learn/foundations/04-switching-and-vlans)). Then in the router:
+
+```
+/interface vlan add name=vlan20-guest interface=bridge1 vlan-id=20
+/ip address add address=10.20.0.1/24 interface=vlan20-guest
+/ip pool add name=guest-pool ranges=10.20.0.10-10.20.0.254
+/ip dhcp-server add name=guest interface=vlan20-guest address-pool=guest-pool disabled=no
+/ip dhcp-server network add address=10.20.0.0/24 gateway=10.20.0.1 dns-server=1.1.1.1,9.9.9.9
+```
+
+Note the guest DHCP hands out **public DNS**, not the router: guests do not need to talk to the router at all.
+
+Firewall:
+
+```
+/ip firewall filter add chain=input action=accept in-interface=vlan20-guest protocol=udp dst-port=67 comment="guest DHCP"
+/ip firewall filter add chain=input action=drop in-interface=vlan20-guest comment="guests cannot reach router"
+/ip firewall filter add chain=forward action=drop in-interface=vlan20-guest out-interface-list=LAN comment="guests cannot reach LAN"
+```
+
+Order these before your general accept-from-LAN rules (place them with `place-before=`), otherwise a broad accept matches first.
+
+Add **client isolation** on the wireless SSID (or `horizon` on bridge ports — MikroTik's documentation confirms ports sharing the same horizon value cannot reach each other, while different horizon values still can) so guests cannot attack each other.
+
+## Hotspot: the captive portal
+
+The RouterOS **hotspot** intercepts unauthenticated web traffic and redirects it to a login page. Users can authenticate with a voucher/user account, a click-through page, or RADIUS.
+
+The interactive wizard builds everything for you, and MikroTik's own documentation recommends it over manual setup: "you can add HotSpot servers manually to the /ip/hotspot menu, but it is advised to run /ip/hotspot/setup."
+
+```
+/ip hotspot setup
+```
+
+It asks for the interface, address, pool, certificate and DNS name. Afterwards you can inspect the pieces:
+
+```
+/ip hotspot print
+/ip hotspot profile print
+/ip hotspot user print
+/ip hotspot active print
+```
+
+Create limited-time accounts:
+
+```
+/ip hotspot user add name=room101 password=abc123 limit-uptime=4h profile=default
+```
+
+## Walled garden
+
+MikroTik describes walled garden as "a system which allows unauthorized use of some resources, but requires authorization to access other resources" — some sites must work before login, for example a payment provider or your own website:
+
+```
+/ip hotspot walled-garden add dst-host=*.example.com
+```
+
+## Legal and privacy points
+
+- Public Wi-Fi may carry logging obligations in your country. Check local law before deploying.
+- Login pages should be served over HTTPS with a valid certificate, or browsers show warnings.
+- Do not log more than you need, and protect what you keep.
+
+## Common problems
+
+- **Login page never appears**: "most devices... do some kind of background checking to see if they are behind a captive portal" by requesting a known page and comparing its contents to what they expect — MikroTik's documentation notes RFC 7710 support (a DHCP option carrying a link to the login page) as a more reliable alternative to relying on that probe. Use the standard hotspot DNS name, allow DNS through, and test with a plain `http://` site.
+- **Devices lose the session**: check the profile's `idle-timeout` and `keepalive-timeout`, or enable MAC-cookie login so returning devices skip the portal.
+
+## Check yourself
+
+- Why should guest isolation be solved before the login page is even built?
+- What's the practical difference between horizon=1 on two ports and horizon=1 vs horizon=2?
+- How does RFC 7710 help a captive portal show up more reliably than relying on the client's own background probing alone?

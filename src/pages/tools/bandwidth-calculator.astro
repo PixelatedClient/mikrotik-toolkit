@@ -1,0 +1,21 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import { BandwidthCalculator } from '../../components/calc/SmallCalculators';
+import { SRC } from '../../data/toolSources';
+---
+<ToolPage
+  title="Bandwidth and Transfer Time Calculator"
+  description="Work out how long a file takes to transfer at a given link speed, and how much data a link carries in a period."
+  heading="Bandwidth calculator"
+  intro="How long will 4.7 GB take on a 100 Mbps link? How much can a 1 Gbps link move in a day? Includes the usable-share factor real networks need."
+  narrow={true}
+  sources={[
+    SRC.nist,
+  ]}
+  related={[
+    { href: '/tools/subnet-calculator', label: 'Subnet calculator' },
+    { href: '/learn/isp-ops/05-sla-and-traffic-engineering', label: 'Lesson: SLA and capacity' },
+  ]}
+>
+  <BandwidthCalculator client:load />
+</ToolPage>

@@ -1,0 +1,116 @@
+{
+  "_note": "Wiring of the local GNS3 project 'test' (7 CHR 7.16). host = management address on ether8, which the harness never touches. Edit when the GNS3 lab changes.",
+  "devices": {
+    "ISP1": {
+      "host": "192.168.233.170"
+    },
+    "ISP2": {
+      "host": "192.168.233.171"
+    },
+    "R4": {
+      "host": "192.168.233.172"
+    },
+    "R2": {
+      "host": "192.168.233.173"
+    },
+    "R5": {
+      "host": "192.168.233.174"
+    },
+    "R6": {
+      "host": "192.168.233.175"
+    },
+    "R7": {
+      "host": "192.168.233.176"
+    },
+    "R1": {
+      "host": "192.168.233.178"
+    },
+    "R3": {
+      "host": "192.168.233.179"
+    }
+  },
+  "links": [
+    [
+      "ISP1",
+      "ether1",
+      "ISP2",
+      "ether1"
+    ],
+    [
+      "ISP1",
+      "ether2",
+      "R4",
+      "ether2"
+    ],
+    [
+      "ISP2",
+      "ether2",
+      "R2",
+      "ether2"
+    ],
+    [
+      "R4",
+      "ether1",
+      "R2",
+      "ether1"
+    ],
+    [
+      "R4",
+      "ether3",
+      "R5",
+      "ether1"
+    ],
+    [
+      "R2",
+      "ether3",
+      "R7",
+      "ether1"
+    ],
+    [
+      "R2",
+      "ether4",
+      "R6",
+      "ether1"
+    ],
+    [
+      "R4",
+      "ether4",
+      "R6",
+      "ether2"
+    ],
+    [
+      "R1",
+      "ether1",
+      "ISP1",
+      "ether3"
+    ],
+    [
+      "R1",
+      "ether2",
+      "R4",
+      "ether5"
+    ],
+    [
+      "R3",
+      "ether1",
+      "ISP1",
+      "ether4"
+    ],
+    [
+      "R3",
+      "ether2",
+      "R4",
+      "ether6"
+    ],
+    [
+      "R1",
+      "ether3",
+      "R3",
+      "ether3"
+    ]
+  ],
+  "ssh": {
+    "user": "admin",
+    "password": "admin"
+  }
+}

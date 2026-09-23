@@ -1,0 +1,103 @@
+---
+title: "Upgrading RouterOS and Firmware"
+track: "mikrotik-ops"
+module: "4.3"
+order: 3
+duration: "25 min"
+summary: "Release channels, upgrading from the command line, updating the bootloader, and a checklist that avoids nasty surprises."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation"
+sources:
+  - title: "Upgrading and installation"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328142/Upgrading+and+installation"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Upgrading to v7"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/115736772/Upgrading+to+v7"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Upgrade (RouterOS Manual)"
+    url: "https://manual.mikrotik.com/docs/getting-started/installation-and-upgrade/upgrade/"
+    publisher: "MikroTik RouterOS Manual"
+    accessed: "2026-09-20"
+---
+
+Software updates fix security holes and bugs, and occasionally change behaviour. Upgrade on purpose, on a schedule, with a way back.
+
+## Release channels
+
+MikroTik publishes RouterOS in four **release chains**. You choose one, and the router looks for new versions in that chain only.
+
+| Channel | What MikroTik says about it |
+|---|---|
+| **Long-term** | Released rarely, with only the most critical fixes |
+| **Stable** | Released every few months, with tested new features and fixes |
+| **Testing** | Released every few weeks, with only basic internal testing |
+| **Development** | Released when necessary, with raw changes |
+
+For production routers, choose **long-term** or **stable**. Keep testing and development for a lab.
+
+## Upgrading from the command line
+
+Open the update menu, choose a channel, and check for updates:
+
+```
+/system package update
+set channel=stable
+check-for-updates once
+```
+
+If the result says a new version is available, install it with `install`. The router downloads the packages from MikroTik over HTTPS, so **the router itself** must be able to reach the internet. If a firewall sits in front of it, allow TCP port 443. Leave `check-certificate` set to `yes` so the download is verified.
+
+The same steps are available in Winbox under **System → Packages → Check For Updates**. The manual describes two other ways: uploading the package files yourself (through Winbox, WebFig or FTP), and updating several routers from one of them on the local network with `/system package local-update`. RouterOS cannot be upgraded over a serial cable; only the RouterBOOT bootloader supports that.
+
+If the check fails, test the router's own connectivity. MikroTik's suggestions are to resolve the download server's name with `:put [:resolve upgrade.mikrotik.com]`, and to test TCP port 443 towards it.
+
+## Update the bootloader too
+
+RouterOS and the **RouterBOOT** bootloader are separate. After a RouterOS upgrade, MikroTik strongly recommends updating the bootloader, and then rebooting:
+
+```
+/system routerboard upgrade
+```
+
+```
+/system reboot
+```
+
+## You cannot always jump straight to the latest
+
+The documentation states that it is not possible to upgrade from a very old version to the newest in one step. You may have to install an intermediate release first, and then the latest.
+
+**Moving from v6 to v7** is the big one. MikroTik says most setups that run fine on recent v6 versions need no extra steps, because the upgrade converts the configuration automatically. Its [Upgrading to v7](https://help.mikrotik.com/docs/spaces/ROS/pages/115736772/Upgrading+to+v7) page also lists what needs your attention afterwards:
+
+- **BGP** was completely redesigned, with new connection, template and session menus.
+- **OSPF** now uses one menu for both versions, and instances and areas must be created manually.
+- **Routing filters** become script-like `if ... then` rules.
+- **PIM-SM** configuration is not preserved and must be redone.
+- **MPLS** should be upgraded with caution.
+- **User Manager** must be set up again from scratch.
+
+The advice is to first upgrade to the latest stable or long-term release **in v6**, take a backup, and only then move to v7.
+
+## Going back
+
+You can move to an older but more stable release by selecting a channel that offers one. Do not rely on downgrading as your safety net: **restore from a backup taken before the upgrade** (see [backups and resets](/learn/mikrotik-ops/02-backups-exports-and-resets)), and remember that a backup should be restored on the same version it was made on.
+
+## An upgrade checklist
+
+Our recommendations, built on the facts above:
+
+1. Read the changelog for the version you are installing.
+2. Take an encrypted backup and an export, and copy them off the router.
+3. Schedule a maintenance window, and make sure you have console or out-of-band access.
+4. Upgrade a lab or a low-risk router first.
+5. Upgrade RouterOS, reboot, then run `/system routerboard upgrade` and reboot again.
+6. Test: interfaces, routing protocols (`/routing bgp session print`, `/routing ospf neighbor print`), firewall counters, and a customer-facing service.
+7. Export again, and keep the new configuration in version control.
+
+## Check yourself
+
+- Which release channel would you choose for a router that carries customers, and why?
+- Why must the router, not your laptop, have HTTPS access to reach an update?
+- What does `/system routerboard upgrade` update, and when does it take effect?

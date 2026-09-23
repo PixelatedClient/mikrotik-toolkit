@@ -1,0 +1,55 @@
+---
+title: "Wi-Fi Standards, Channels and RF Basics"
+track: "ipv6-wireless"
+module: "11.3"
+order: 3
+duration: "35 min"
+summary: "The 802.11 standards in plain terms, how channels and bands actually work, and the RF ideas that explain why Wi-Fi behaves the way it does."
+status: "sourced"
+verifiedAgainst: "IEEE 802.11 standards"
+sources:
+  - title: "IEEE 802.11: Wireless LAN Medium Access Control (MAC) and Physical Layer (PHY) Specifications"
+    url: "https://standards.ieee.org/standard/802_11-2020.html"
+    publisher: "IEEE"
+    accessed: "2026-09-23"
+---
+
+## The 802.11 alphabet, decoded
+
+Wi-Fi standards are named after their IEEE 802.11 amendment letter, and more recently by a plain generation number:
+
+| Standard | Generation name | Band(s) | Notes |
+|---|---|---|---|
+| 802.11n | Wi-Fi 4 | 2.4 & 5 GHz | introduced MIMO (multiple antennas) |
+| 802.11ac | Wi-Fi 5 | 5 GHz only | wider channels, higher throughput |
+| 802.11ax | Wi-Fi 6 / 6E | 2.4, 5, (6 GHz for 6E) | OFDMA, better performance with many clients |
+| 802.11be | Wi-Fi 7 | 2.4, 5, 6 GHz | multi-link operation, wider channels still |
+
+Newer standards are backward compatible with older clients on the same band, but a mixed network runs at the speed of its slowest connected features unless the AP is configured to isolate them.
+
+## Bands: 2.4 GHz vs 5 GHz vs 6 GHz
+
+- **2.4 GHz**: longest range, best wall penetration, but only 3 non-overlapping 20 MHz channels (1, 6, 11 in most regulatory domains) and heavy competition from other devices (Bluetooth, microwaves, neighbouring networks) — usually the most congested band in a dense area.
+- **5 GHz**: shorter range, more channels, much less congestion, higher achievable throughput. The default choice for most client traffic where range allows.
+- **6 GHz** (Wi-Fi 6E/7 only): the newest band, wide open with many more channels than 5 GHz, but even shorter range and only reachable by 6E/7-capable clients.
+
+## Channels and channel width
+
+A band is divided into channels; wider channels (40/80/160 MHz instead of 20 MHz) carry more data but leave fewer non-overlapping channels available in the same space, and are more prone to interference in a dense deployment. This is a direct throughput-vs-capacity trade-off: a single AP in an isolated house benefits from the widest channel it can get; an office with a dozen APs needs narrower channels so neighbouring APs don't collide.
+
+## Why overlapping channels matter
+
+Two APs on the same or overlapping channels within range of each other contend for the same airtime — every transmission on one is noise the other has to wait out, even if their SSIDs and clients are completely unrelated. This is why 2.4 GHz deployments stick to 1/6/11: any other channel choice overlaps with a neighbour on one of those.
+
+## RF basics that explain real behaviour
+
+- **Higher frequency = shorter range, better penetration trade-off reversed**: counter to intuition, lower frequencies (2.4 GHz) travel further and through walls better than higher ones (5/6 GHz), because lower frequencies diffract around obstacles more easily.
+- **Signal strength (RSSI)** is measured in dBm, a negative number closer to zero being stronger (-50 dBm is a strong signal, -80 dBm is marginal).
+- **Signal-to-noise ratio (SNR)** matters more than raw signal strength alone: a strong signal in a noisy environment can perform worse than a weaker signal somewhere quiet.
+- **Every device on a channel shares airtime.** Wi-Fi is a shared medium like old Ethernet hubs (see the Layer 2 track): more connected clients doesn't just share bandwidth, it multiplies contention overhead.
+
+## Check yourself
+
+- Why do most 2.4 GHz deployments only ever use channels 1, 6 and 11?
+- Why does 2.4 GHz reach further through walls than 5 GHz, despite 5 GHz usually giving higher throughput?
+- What's the throughput-vs-capacity trade-off in choosing a wider channel width?

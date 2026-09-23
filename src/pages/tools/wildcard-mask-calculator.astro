@@ -1,0 +1,21 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import { WildcardCalculator } from '../../components/calc/SmallCalculators';
+import { SRC } from '../../data/toolSources';
+---
+<ToolPage
+  title="Wildcard Mask Calculator"
+  description="Convert a subnet mask or prefix to a wildcard mask, and back, with the matched address range."
+  heading="Wildcard mask calculator"
+  intro="A wildcard mask is a subnet mask turned inside out. Use it to see which addresses a network and wildcard pair matches."
+  narrow={true}
+  sources={[
+    SRC.cidr,
+  ]}
+  related={[
+    { href: '/tools/cidr-calculator', label: 'CIDR calculator' },
+    { href: '/practice/masks', label: 'Practice masks' },
+  ]}
+>
+  <WildcardCalculator client:load />
+</ToolPage>

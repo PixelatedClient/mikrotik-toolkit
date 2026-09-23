@@ -1,0 +1,277 @@
+[
+  {
+    "dev": "ISP1",
+    "cmd": "/interface bridge add name=loopback",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/interface bridge add name=loopback",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge add name=loopback",
+    "out": ""
+  },
+  {
+    "dev": "R4",
+    "cmd": "/interface bridge add name=loopback",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.255.0.1/32 interface=loopback",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip address add address=10.255.0.2/32 interface=loopback",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address add address=10.255.0.3/32 interface=loopback",
+    "out": ""
+  },
+  {
+    "dev": "R4",
+    "cmd": "/ip address add address=10.255.0.4/32 interface=loopback",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.1.1.1/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip address add address=10.1.1.2/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip address add address=10.1.2.1/30 interface=ether2",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address add address=10.1.2.2/30 interface=ether2",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address add address=10.1.3.1/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R4",
+    "cmd": "/ip address add address=10.1.3.2/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R4",
+    "cmd": "/ip address add address=10.1.4.1/30 interface=ether2",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.1.4.2/30 interface=ether2",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.1",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.2",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.3",
+    "out": ""
+  },
+  {
+    "dev": "R4",
+    "cmd": "/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.4",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1",
+    "out": ""
+  },
+  {
+    "dev": "R4",
+    "cmd": "/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.1.1.0/30 cost=10 type=ptp",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.1.4.0/30 cost=100 type=ptp",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.255.0.1/32 passive",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.1.1.0/30 cost=10 type=ptp",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.1.2.0/30 cost=10 type=ptp",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.255.0.2/32 passive",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.1.2.0/30 cost=10 type=ptp",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.1.3.0/30 cost=10 type=ptp",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.255.0.3/32 passive",
+    "out": ""
+  },
+  {
+    "dev": "R4",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.1.3.0/30 cost=10 type=ptp",
+    "out": ""
+  },
+  {
+    "dev": "R4",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.1.4.0/30 cost=100 type=ptp",
+    "out": ""
+  },
+  {
+    "dev": "R4",
+    "cmd": "/routing ospf interface-template add area=backbone networks=10.255.0.4/32 passive",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "#sleep 25",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf instance print",
+    "out": "Flags: X - disabled, I - inactive \n 0   name=\"ospf1\" version=2 vrf=main router-id=10.255.0.1 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf area print",
+    "out": "Flags: X - disabled, I - inactive, D - dynamic; T - transit-capable \n 0    name=\"backbone\" instance=ospf1 area-id=0.0.0.0 type=default \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf interface-template print",
+    "out": "Flags: X - disabled, I - inactive \n 0   area=backbone instance-id=0 networks=10.1.1.0/30 type=ptp \n     retransmit-interval=5s transmit-delay=1s hello-interval=10s \n     dead-interval=40s priority=128 cost=10 \n\n 1   area=backbone instance-id=0 networks=10.1.4.0/30 type=ptp \n     retransmit-interval=5s transmit-delay=1s hello-interval=10s \n     dead-interval=40s priority=128 cost=100 \n\n 2   area=backbone instance-id=0 networks=10.255.0.1/32 type=broadcast \n     retransmit-interval=5s transmit-delay=1s hello-interval=10s \n     dead-interval=40s priority=128 cost=1 passive \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf interface-template print detail",
+    "out": "Flags: X - disabled, I - inactive \n 0   area=backbone instance-id=0 networks=10.1.1.0/30 type=ptp \n     retransmit-interval=5s transmit-delay=1s hello-interval=10s \n     dead-interval=40s priority=128 cost=10 \n\n 1   area=backbone instance-id=0 networks=10.1.4.0/30 type=ptp \n     retransmit-interval=5s transmit-delay=1s hello-interval=10s \n     dead-interval=40s priority=128 cost=100 \n\n 2   area=backbone instance-id=0 networks=10.255.0.1/32 type=broadcast \n     retransmit-interval=5s transmit-delay=1s hello-interval=10s \n     dead-interval=40s priority=128 cost=1 passive \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf neighbor print",
+    "out": "Flags: V - virtual; D - dynamic \n 0  D instance=ospf1 area=backbone address=10.1.1.2 router-id=10.255.0.2 \n      state=\"Full\" state-changes=6 adjacency=15s timeout=35s \n\n 1  D instance=ospf1 area=backbone address=10.1.4.1 router-id=10.255.0.4 \n      state=\"Full\" state-changes=6 adjacency=15s timeout=35s \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf neighbor print detail",
+    "out": "Flags: V - virtual; D - dynamic \n 0  D instance=ospf1 area=backbone address=10.1.1.2 router-id=10.255.0.2 \n      state=\"Full\" state-changes=6 adjacency=15s timeout=35s \n\n 1  D instance=ospf1 area=backbone address=10.1.4.1 router-id=10.255.0.4 \n      state=\"Full\" state-changes=6 adjacency=15s timeout=35s \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf interface print",
+    "out": "Flags: D - dynamic \n 0 D address=10.1.1.1%ether1 area=backbone state=ptp network-type=ptp cost=10 \n     use-bfd=no retransmit-interval=5s transmit-delay=1s hello-interval=10s \n     dead-interval=40s \n\n 1 D address=10.1.4.2%ether2 area=backbone state=ptp network-type=ptp cost=100 \n     use-bfd=no retransmit-interval=5s transmit-delay=1s hello-interval=10s \n     dead-interval=40s \n\n 2 D address=10.255.0.1%loopback area=backbone state=passive \n     network-type=broadcast cost=1 priority=128 use-bfd=no \n     retransmit-interval=5s transmit-delay=1s hello-interval=10s \n     dead-interval=40s \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print where ospf",
+    "out": "Flags: D - DYNAMIC; A - ACTIVE; o - OSPF\nColumns: DST-ADDRESS, GATEWAY, DISTANCE\n    DST-ADDRESS    GATEWAY          DISTANCE\nDAo 10.1.2.0/30    10.1.1.2%ether1       110\nDAo 10.1.3.0/30    10.1.1.2%ether1       110\nDAo 10.255.0.2/32  10.1.1.2%ether1       110\nDAo 10.255.0.3/32  10.1.1.2%ether1       110\nDAo 10.255.0.4/32  10.1.1.2%ether1       110\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print detail where dst-address=10.255.0.3/32",
+    "out": "Flags: D - dynamic; X - disabled, I - inactive, A - active; \nc - connect, s - static, r - rip, b - bgp, o - ospf, i - is-is, d - dhcp, v - vpn, m - modem, y - bgp-mpls-vpn; \nH - hw-offloaded; + - ecmp \n   DAo   dst-address=10.255.0.3/32 routing-table=main gateway=10.1.1.2%ether1 \n         immediate-gw=10.1.1.2%ether1 distance=110 scope=20 target-scope=10 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print terse where dst-address=10.1.3.0/30",
+    "out": "DAo dst-address=10.1.3.0/30 routing-table=main gateway=10.1.1.2%ether1 immediate-gw=10.1.1.2%ether1 distance=110 scope=20 target-scope=10\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 10.255.0.3 count=2",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 10.255.0.3                                 56  63 5ms65us   \n    1 10.255.0.3                                 56  63 3ms764us  \n    sent=2 received=2 packet-loss=0% min-rtt=3ms764us avg-rtt=4ms414us \n   max-rtt=5ms65us \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/tool traceroute 10.255.0.3 count=1",
+    "out": "Columns: ADDRESS, LOSS, SENT, LAST, AVG, BEST, WORST, STD-DEV\n#  ADDRESS     LOSS  SENT  LAST   AVG  BEST  WORST  STD-DEV\n1  10.1.1.2    0%       1  1.3ms  1.3  1.3   1.3          0\n2  10.255.0.3  0%       1  1.6ms  1.6  1.6   1.6          0\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface disable ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "#sleep 8",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf neighbor print",
+    "out": "Flags: V - virtual; D - dynamic \n 0  D instance=ospf1 area=backbone address=10.1.4.1 router-id=10.255.0.4 \n      state=\"Full\" state-changes=6 adjacency=24s timeout=36s \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print where ospf",
+    "out": "Flags: D - DYNAMIC; A - ACTIVE; o - OSPF\nColumns: DST-ADDRESS, GATEWAY, DISTANCE\n    DST-ADDRESS    GATEWAY          DISTANCE\nDAo 10.1.1.0/30    10.1.4.1%ether2       110\nDAo 10.1.2.0/30    10.1.4.1%ether2       110\nDAo 10.1.3.0/30    10.1.4.1%ether2       110\nDAo 10.255.0.2/32  10.1.4.1%ether2       110\nDAo 10.255.0.3/32  10.1.4.1%ether2       110\nDAo 10.255.0.4/32  10.1.4.1%ether2       110\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing ospf export",
+    "out": "# 2026-09-21 16:31:02 by RouterOS 7.16\n# software id = \n#\n/routing ospf instance\nadd disabled=no name=ospf1 router-id=10.255.0.1\n/routing ospf area\nadd disabled=no instance=ospf1 name=backbone\n/routing ospf interface-template\nadd area=backbone cost=10 disabled=no networks=10.1.1.0/30 type=ptp\nadd area=backbone cost=100 disabled=no networks=10.1.4.0/30 type=ptp\nadd area=backbone disabled=no networks=10.255.0.1/32 passive\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/tool traceroute 10.255.0.3 count=1",
+    "out": "Columns: ADDRESS, LOSS, SENT, LAST, AVG, BEST, WORST, STD-DEV\n#  ADDRESS     LOSS  SENT  LAST   AVG  BEST  WORST  STD-DEV\n1  10.1.4.1    0%       1  1.5ms  1.5  1.5   1.5          0\n2  10.255.0.3  0%       1  3ms    3    3     3            0\n\n"
+  }
+]

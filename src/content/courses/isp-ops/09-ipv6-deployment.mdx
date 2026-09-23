@@ -1,0 +1,122 @@
+---
+title: "IPv6 Deployment in ISP Networks"
+track: "isp-ops"
+module: "6.9"
+order: 9
+duration: "45 min"
+summary: "Plan the address space, hand prefixes to customers, run dual-stack and secure it."
+status: "sourced"
+verifiedAgainst: "RFC 4291, RFC 6177 and RFC 4890"
+sources:
+  - title: "RFC 4291: IP Version 6 Addressing Architecture"
+    url: "https://www.rfc-editor.org/rfc/rfc4291"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 6177: IPv6 Address Assignment to End Sites"
+    url: "https://www.rfc-editor.org/rfc/rfc6177"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 4890: Recommendations for Filtering ICMPv6 Messages in Firewalls"
+    url: "https://www.rfc-editor.org/rfc/rfc4890"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+## Why deploy it
+
+IPv4 is exhausted. IPv6 removes the need for CGNAT for those customers, avoids its cost, and many large content networks serve a large share of traffic over it. Customers on IPv6 use fewer NAT resources and get better performance.
+
+## Basics that matter
+
+- 128-bit addresses in hex: `2001:db8:1234::1`. Leading zeros can be dropped and one run of zero groups shortened to `::`.
+- A **/64** is the standard size of a subnet — RFC 4291 gives global unicast addresses a 64-bit interface ID, which is what makes /64 the norm. Do not use anything else on a LAN.
+- **No broadcast**: neighbour discovery (ICMPv6) replaces ARP, and **router advertisements (RA)** tell hosts the prefix and gateway.
+- **ICMPv6 must not be blocked**: RFC 4890 is explicit that, unlike IPv4's ICMP, ICMPv6 "cannot be treated as an auxiliary function with packets that can be dropped in most cases without damaging the functionality of the network" — neighbour discovery, router advertisements and Packet Too Big (path MTU discovery) all depend on it.
+
+## Address plan
+
+Get a block from your registry, typically a **/32** for an ISP. Plan it like this:
+
+```
+/32  whole ISP allocation
+ └── /36 or /40   per region or POP
+      └── /48     per site or aggregation area
+           └── /56 or /64   per customer
+```
+
+Common customer allocations — RFC 6177 deliberately does **not** mandate a single size (it obsoletes the earlier RFC 3177 advice of always using /48, saying "a one-size-fits-all recommendation... is not nuanced enough"), but does insist a home site gets "significantly more than a single /64." /56 and /48 are the two conventional choices operators actually use within that guidance:
+
+- **/56** for a residential customer (256 subnets) — the more address-conserving of the two common choices.
+- **/48** for a business (65,536 subnets).
+- **/64** only when the customer has a single subnet and no router. Avoid: it prevents them from adding a second network, which is exactly what RFC 6177 argues against.
+
+Keep the plan **aggregatable** so BGP announces the /32 (and only more specifics when needed).
+
+## Giving customers addresses
+
+- **DHCPv6 Prefix Delegation (PD)**: the customer router asks for a prefix (say a /56) and subnets it internally. The standard for residential service.
+- **SLAAC** on the WAN link: hosts (or the customer router) build their address from the advertised /64.
+- The delegated prefix is **routed** to the customer router: the BNG installs a route for it.
+
+### RouterOS examples
+
+```
+/ipv6 address add address=2001:db8:ff::1/64 interface=bridge-customers advertise=yes
+/ipv6 pool add name=cust-pool prefix=2001:db8:1000::/40 prefix-length=56
+/ipv6 dhcp-server add name=pd interface=bridge-customers address-pool=cust-pool
+```
+
+Check the parameter names on your version. The customer router uses a DHCPv6 client with `request=prefix`.
+
+## Dual stack
+
+Run IPv4 and IPv6 in parallel. It is the most compatible and the usual choice.
+
+- Give every customer both, with IPv6 on by default.
+- Use IPv6 in your core: OSPFv3 (or IS-IS) for the IGP, and BGP for both families.
+- Monitor both: an IPv6 outage is easy to miss if you only test IPv4.
+
+## Routing
+
+BGP carries IPv6 alongside IPv4 with the same policy ideas: prefix filters, communities, local-pref. Filter **more specifics than /48** (many networks filter longer than /48).
+
+```
+/ipv6 firewall address-list add list=bgp-announce6 address=2001:db8::/32
+```
+
+Add a **blackhole** route for the aggregate so BGP can originate it, exactly as with IPv4.
+
+## Firewall
+
+IPv6 removes NAT, so **the firewall is the only protection**. Do not assume "no NAT means open":
+
+```
+/ipv6 firewall filter add chain=input action=accept connection-state=established,related
+/ipv6 firewall filter add chain=input action=drop connection-state=invalid
+/ipv6 firewall filter add chain=input action=accept protocol=icmpv6
+/ipv6 firewall filter add chain=input action=accept src-address=2001:db8:ffff::/48 comment="management"
+/ipv6 firewall filter add chain=input action=drop
+```
+
+Apply equivalent rules to forwarded traffic, allowing outbound and established, and dropping new inbound connections towards customers unless they opt in.
+
+## Rollout steps
+
+1. Get an allocation and register the ROAs.
+2. Enable IPv6 in the core and on the edge; test with a small group.
+3. Add IPv6 to your **DNS**, monitoring and logging.
+4. Enable for pilot customers, then all, watching support tickets.
+5. Make your own services reachable over IPv6.
+
+## Common problems
+
+- Blocked ICMPv6 breaks path MTU discovery and neighbour discovery.
+- A /64 handed to a customer who needs several networks.
+- Missing IPv6 default route or RA on the customer VLAN.
+- Firewall rules written for IPv4 only, leaving IPv6 open.
+
+## Check yourself
+
+- Why does blocking ICMPv6 outright break IPv6 in a way that blocking IPv4's ICMP never would?
+- Why does RFC 6177 argue against giving every customer exactly a /48, and against a plain /64 as well?
+- Why is the firewall "the only protection" once a customer has IPv6, when it wasn't the only protection under NAT'd IPv4?

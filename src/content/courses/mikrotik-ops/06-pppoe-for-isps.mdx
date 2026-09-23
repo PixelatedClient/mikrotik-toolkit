@@ -1,0 +1,121 @@
+---
+title: "PPPoE for ISPs"
+track: "mikrotik-ops"
+module: "4.6"
+order: 6
+duration: "40 min"
+summary: "How PPPoE sessions are built, how to run a PPPoE server and client on RouterOS, and where the MTU goes."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation and RFC 2516"
+sources:
+  - title: "PPPoE"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/2031625/PPPoE"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "RFC 2516: A Method for Transmitting PPP Over Ethernet (PPPoE)"
+    url: "https://www.rfc-editor.org/rfc/rfc2516"
+    publisher: "IETF"
+    accessed: "2026-09-20"
+  - title: "PPP AAA"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/132350049/PPP+AAA"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "First Time Configuration (internet connection types)"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328151/First+Time+Configuration"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+---
+
+Many providers do not just hand a customer an address. They make the customer **log in**. The most common way to do that over Ethernet or fibre is **PPPoE**: the old dial-up protocol, PPP, carried inside Ethernet frames.
+
+## What PPPoE does
+
+PPPoE is defined in RFC 2516. A session is built in two phases.
+
+**1. Discovery** finds the server and agrees a session ID. It takes four packets:
+
+1. The client broadcasts **PADI**: "is there an access concentrator?"
+2. A server answers with **PADO**: "I am here."
+3. The client sends **PADR**: "I would like a session with you."
+4. The server confirms with **PADS**, which contains the unique **session ID**.
+
+**2. Session** is ordinary PPP: the two ends negotiate link parameters (**LCP**), the client authenticates with a username and password, and **IPCP** hands the client an IP address.
+
+The server side is called the **access concentrator**. One concentrator can serve thousands of customers, each with their own session. That gives the ISP a per-customer identity to authenticate, meter, rate-limit and disconnect. RouterOS supports the authentication methods MSCHAPv2, MSCHAPv1, CHAP and PAP.
+
+## A PPPoE server on RouterOS
+
+The documentation builds it from four pieces: an address pool for customers, a PPP profile, a customer account (a PPP **secret**), and the server itself.
+
+```
+/ip pool add name=pppoe-pool ranges=10.0.0.2-10.0.0.5
+/ppp profile add local-address=10.0.0.1 name=for-pppoe remote-address=pppoe-pool
+/ppp secret add name=MT-User password=StrongPass profile=for-pppoe service=pppoe
+/interface pppoe-server server add default-profile=for-pppoe interface=ether3 service-name=pppoeservice disabled=no
+```
+
+- The **profile** gives every session the router's address (`local-address`) and a customer address from the pool (`remote-address`).
+- The **secret** is one customer: a name, a password and the profile to use. `service=pppoe` limits it to PPPoE.
+- The **server** listens on one interface, and answers PADI requests that ask for its `service-name`.
+
+Useful server options:
+
+| Option | What it does |
+|---|---|
+| `one-session-per-host` | Allow only one session per MAC address |
+| `max-sessions` | Cap the number of sessions (`0` means unlimited) |
+| `keepalive-timeout` | Disconnect a silent client after twice this many seconds (default 10) |
+
+Use a strong password on real accounts.
+
+### Accounts on a RADIUS server
+
+Keeping every customer in `/ppp secret` does not scale. RouterOS's PPP AAA settings can authenticate PPP, PPPoE, PPTP, L2TP, OpenVPN and SSTP sessions against **RADIUS**:
+
+```
+/ppp aaa set use-radius=yes
+/ppp aaa set accounting=yes
+```
+
+The order matters: the router checks the **local** secrets first, and asks RADIUS only if the name is not found locally. `interim-update` makes it send usage updates during a session, not only when it ends. A PPP **profile** can also carry a `rate-limit`, written `rx-rate[/tx-rate]` with optional burst values, which is how a plan speed is applied per customer.
+
+## A PPPoE client on RouterOS
+
+```
+/interface pppoe-client add interface=ether2 user=MT-User password=StrongPass service-name=pppoeservice name=PPPoE-Out disabled=no
+```
+
+Two options decide how it joins your routing: `add-default-route` (install a default route through the tunnel) and `use-peer-dns` (accept the DNS servers the server sends). Then masquerade out of the new interface, as in the [first-access lesson](/learn/mikrotik-ops/01-first-access-and-cli).
+
+## The MTU
+
+PPPoE wraps every packet, and the wrapper takes space:
+
+```
+Ethernet payload            1500
+minus PPPoE header             6
+minus PPP protocol field       2
+                            ----
+largest packet inside       1492
+```
+
+RouterOS servers default to `max-mtu` and `max-mru` of **1480**, and clients to **1460**, which leaves room and avoids fragmentation. When web pages load but larger transfers stall, suspect the MTU. See [TCP/IP in action](/learn/foundations/07-tcpip-in-action).
+
+## PPPoE or plain DHCP?
+
+This is our design guidance rather than a rule from the documentation.
+
+| Consideration | PPPoE | DHCP with Option 82 |
+|---|---|---|
+| Per-customer login | Yes | No, the port or circuit identifies the customer |
+| Per-customer accounting and disconnect | Built in | Needs extra tooling |
+| Router load | The concentrator holds every session | Lighter, no session state |
+| MTU | Reduced by 8 bytes | Unchanged |
+
+Many ISPs start with PPPoE because it is simple and everything about a customer is in one account. Networks that grow large often move to DHCP-based designs to remove the session bottleneck. See [ISP scaling](/learn/isp-ops/07-isp-scaling).
+
+## Check yourself
+
+- Which of the four discovery packets carries the session ID?
+- Why is the largest packet inside PPPoE 1492 bytes?
+- Which server option stops one customer from opening many sessions from one device?

@@ -1,0 +1,67 @@
+---
+title: "IPv6 Addressing, SLAAC and Neighbour Discovery"
+track: "ipv6-wireless"
+module: "11.1"
+order: 1
+duration: "40 min"
+summary: "How IPv6 addresses are structured, how hosts get one without DHCP, and how IPv6 replaces ARP."
+status: "sourced"
+verifiedAgainst: "RFC 4291, RFC 4862, RFC 4861"
+sources:
+  - title: "RFC 4291: IP Version 6 Addressing Architecture"
+    url: "https://www.rfc-editor.org/rfc/rfc4291"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 4862: IPv6 Stateless Address Autoconfiguration"
+    url: "https://www.rfc-editor.org/rfc/rfc4862"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 4861: Neighbor Discovery for IPv6"
+    url: "https://www.rfc-editor.org/rfc/rfc4861"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+---
+
+## Why IPv6 exists
+
+IPv4's 32-bit address space (about 4.3 billion addresses) has been effectively exhausted for years; the internet keeps running on it mainly through NAT (covered in the Advanced Routing track) hiding many hosts behind few public addresses. IPv6 uses 128-bit addresses — enough that exhaustion isn't a practical concern — and was designed to fix a handful of other IPv4 rough edges at the same time: no more NAT required for basic connectivity, simpler header processing, and address autoconfiguration built into the protocol itself.
+
+## Address notation
+
+An IPv6 address is eight groups of four hex digits, separated by colons:
+
+```
+2001:0db8:0000:0000:0000:0000:0000:0001
+```
+
+Two shortcuts make this readable:
+
+- **Leading zeros in a group can be dropped**: `0db8` → `db8`.
+- **One run of all-zero groups can be collapsed to `::`**, once per address: the address above becomes `2001:db8::1`.
+
+## Address types
+
+- **Global unicast** (`2000::/3`): routable on the public internet, the IPv6 equivalent of a public IPv4 address.
+- **Link-local** (`fe80::/10`): automatically assigned to every interface, valid only on the local link, never routed. Every IPv6 interface has one even with no other configuration — this is what neighbour discovery uses.
+- **Unique local** (`fc00::/7`): the IPv6 equivalent of RFC 1918 private space, not routed on the public internet.
+- **Multicast** (`ff00::/8`): IPv6 has no broadcast at all; multicast covers every case broadcast used to, including neighbour discovery below.
+
+## SLAAC: stateless address autoconfiguration
+
+A host can build its own global address without a DHCP server. The router periodically sends (and answers requests for) a **Router Advertisement** containing the network's prefix, e.g. `2001:db8:1::/64`. A host receiving it combines that prefix with an interface identifier (historically derived from the MAC address, more commonly today a randomised value for privacy) to form its own address — no central table of leases required, unlike DHCPv4.
+
+SLAAC hands out an address and a default route, but not much else. A network that also needs to push DNS servers or other options runs DHCPv6 alongside it (stateless DHCPv6 for just the extra options, or full stateful DHCPv6 to hand out addresses too) — the two aren't mutually exclusive.
+
+## Neighbour Discovery Protocol (NDP)
+
+IPv6 has no ARP. In its place, **Neighbour Discovery Protocol** uses ICMPv6 messages over multicast:
+
+- **Neighbour Solicitation**: "who has this address?" sent to the address's *solicited-node multicast* group, not to the whole link — a narrower version of an ARP broadcast.
+- **Neighbour Advertisement**: the reply, carrying the responder's link-layer address.
+- **Router Solicitation / Router Advertisement**: how SLAAC above actually learns the prefix, and how a host finds its default gateway without any static configuration.
+
+## Check yourself
+
+- What does `::` do in an IPv6 address, and how many times can it appear in one address?
+- What two pieces of information does a host combine to build its own address under SLAAC?
+- Why does IPv6 use multicast for neighbour solicitation instead of a broadcast like ARP?

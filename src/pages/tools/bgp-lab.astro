@@ -1,0 +1,19 @@
+---
+import Base from '../../layouts/Base.astro';
+import BgpLab from '../../components/BgpLab';
+import BgpSession from '../../components/BgpSession';
+---
+<Base title="BGP Lab" description="Interactive BGP simulator: change LOCAL_PREF, prepending and MED, cut links, and watch best-path selection decide.">
+  <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">BGP lab</h1>
+    <p class="mt-2 max-w-2xl text-muted">
+      Four routes lead to the same destination. Change their attributes, cut links, and see which path BGP picks and
+      exactly which rule decided it. Complete the missions to learn the order of the rules.
+    </p>
+    <BgpLab client:load />
+    <h2 class="mt-12 text-2xl font-bold tracking-tight">Why won't my session come up?</h2>
+    <p class="mt-2 max-w-2xl text-muted">Step through a healthy BGP session, then break it in the three most common ways.</p>
+    <BgpSession client:visible />
+    <p class="text-sm text-muted">Full explanations are in <a class="text-accent underline" href="/learn/routing/01-bgp-fundamentals">BGP fundamentals</a>.</p>
+  </div>
+</Base>

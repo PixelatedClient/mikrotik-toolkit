@@ -1,0 +1,45 @@
+---
+title: "SDN Concepts"
+track: "cloud-dc"
+module: "12.3"
+order: 3
+duration: "30 min"
+summary: "The core idea behind software-defined networking: separating the decisions from the boxes that carry them out, and why that separation is useful."
+status: "sourced"
+verifiedAgainst: "RFC 7426, OpenFlow documentation"
+sources:
+  - title: "RFC 7426: Software-Defined Networking (SDN): Layers and Architecture Terminology"
+    url: "https://www.rfc-editor.org/rfc/rfc7426"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "Open Networking Foundation — OpenFlow Switch Specification"
+    url: "https://opennetworking.org/software-defined-infrastructure/"
+    publisher: "Open Networking Foundation"
+    accessed: "2026-09-23"
+---
+
+## The core idea: separating planes
+
+Every networking device has (conceptually) two jobs: the **control plane** decides what should happen — computing routes, building a forwarding table — and the **data plane** actually forwards packets according to that table. On a traditional router, both live on the same box: it computes its own routes (OSPF, BGP, static config — all covered in the Advanced Routing track) and forwards its own traffic.
+
+**Software-Defined Networking (SDN)** separates these: a central controller runs the control-plane logic for many devices at once, and pushes forwarding instructions down to simpler switches that just execute them. The switches become largely dumb forwarders; the intelligence concentrates in the controller.
+
+## Why centralise the control plane
+
+- **A global view.** A distributed protocol like OSPF only knows what it can learn hop by hop. A central controller can see the whole topology at once and compute genuinely optimal paths, or react to a link failure with full knowledge of every alternative simultaneously instead of waiting for the change to propagate.
+- **Programmability.** Network behaviour becomes an API call instead of a device-by-device CLI session — directly the same automation motivation as the Network Automation track, taken further: instead of automating individual device changes, the controller *is* the single point of change.
+- **Consistent policy.** A security or routing policy can be defined once at the controller and enforced identically everywhere, instead of relying on every device being configured correctly and consistently by hand.
+
+## OpenFlow, and the broader "SDN" umbrella
+
+OpenFlow, one of the earliest and best-known SDN protocols, lets a controller install specific match-and-forward rules directly into a switch's flow table ("packets matching this pattern: forward out this port"), bypassing the switch's own independent decision-making entirely. In practice, "SDN" today covers a broader range of designs than pure OpenFlow, including controller-managed fabrics (data centre switch fabrics run by a central controller, sometimes paired with the VXLAN/EVPN concepts from earlier in this track) and network virtualization overlays where the controller manages virtual networks on top of physical infrastructure it doesn't otherwise touch.
+
+## Where this shows up in practice
+
+Most engineers won't configure an SDN controller directly day to day, but its effects are everywhere: a cloud provider's virtual network (previous lesson) is provisioned through an API precisely because a controller, not a human at a CLI, is programming the underlying physical fabric on the provider's behalf. Understanding the control-plane/data-plane split explains *why* that's possible — the same reason a cloud VPC's "router" is really just an API call away from a controller's decision, not a physical box a customer will ever touch.
+
+## Check yourself
+
+- What's the difference between the control plane and the data plane on a traditional router?
+- What does a central SDN controller have access to that a distributed protocol like OSPF, running independently on each router, does not?
+- Why does the control-plane/data-plane split explain why a cloud VPC's networking is configured through an API instead of a device CLI?

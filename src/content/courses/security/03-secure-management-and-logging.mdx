@@ -1,0 +1,57 @@
+---
+title: "Secure Management and Logging"
+track: "security"
+module: "9.3"
+order: 3
+duration: "30 min"
+summary: "Locking down how a device is managed, and building a log trail that actually helps when something goes wrong."
+status: "sourced"
+verifiedAgainst: "RFC 5424, RFC 5905"
+sources:
+  - title: "RFC 5424: The Syslog Protocol"
+    url: "https://www.rfc-editor.org/rfc/rfc5424"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+  - title: "RFC 5905: Network Time Protocol Version 4"
+    url: "https://www.rfc-editor.org/rfc/rfc5905"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+---
+
+## The management plane is a target
+
+A router's data plane carries customer traffic; its management plane is what lets someone configure it. An attacker who reaches the management plane owns the device, and everything behind it. Securing management is a small, repeatable checklist:
+
+- **Disable what you do not use.** Telnet, plain HTTP and old SNMP versions send credentials in clear text. If SSH, HTTPS and SNMPv3 cover your needs, turn the rest off.
+- **Restrict by address.** Management should only be reachable from a known admin network or VPN, never from the internet at large.
+- **Use named accounts, not one shared login.** A shared admin password gives no audit trail of who changed what.
+- **Enforce strong authentication.** Key-based SSH login where possible, RADIUS/TACACS+ centralised accounts for larger teams, and a real password policy otherwise.
+- **Keep firmware current.** Management-plane vulnerabilities are a common target; a device years behind on updates is a known set of open doors.
+- **Rate-limit and log login attempts**, so a brute-force attempt is visible instead of silent.
+
+## Out-of-band management
+
+The safest management path does not depend on the network it manages. If a misconfiguration takes down routing, you still want a way in: a serial console server, a dedicated management VLAN on its own uplink, or a cellular modem as a last resort. This is the same idea behind the conformance harness's ether8 rule in this project's own lab network: the management port is never touched by anything that could lock it.
+
+## What to log, and why
+
+A log that records everything is as useless as one that records nothing — the signal drowns. A reasonable baseline:
+
+- **Authentication events**: every login success and failure, with source address.
+- **Configuration changes**: who changed what, when. Many platforms can log this natively; where they cannot, an export-and-diff workflow (see the Configuration Techniques track) fills the gap.
+- **Interface and routing state changes**: link up/down, a BGP or OSPF neighbour lost.
+- **Firewall drops on rules that should never fire** (not every drop — a default-deny rule on the WAN edge will drop constantly and is not interesting on its own; a drop of traffic that should be impossible internally is).
+
+## Get logs off the device
+
+A device that only logs to its own local buffer loses its history the moment it reboots or is compromised, and an attacker who reaches it can erase the trail. Send logs to a separate log server (syslog is the common protocol) so the record survives independently of the device that generated it.
+
+## Time matters
+
+None of this works without correct time. Two devices with clocks minutes apart make it impossible to line up events during an investigation. Run NTP on every device, against the same time source, before you need the logs to agree with each other.
+
+## Check yourself
+
+- Why disable Telnet even on an internal network, if SSH does the same job?
+- What is the argument for logging to a separate server instead of only the device's own buffer?
+- Why does out-of-band management matter specifically after a misconfiguration, not just after a hardware failure?

@@ -1,0 +1,36 @@
+---
+title: "L3VPN and VRF"
+track: "mpls"
+module: "13.4"
+order: 4
+duration: "40 min"
+summary: "Carrying many customers' separately-routed networks, including overlapping private addresses, over one shared MPLS core."
+---
+
+## The problem, restated in Layer 3 terms
+
+The previous lesson's VPLS keeps customer sites on one shared Layer 2 domain. Many customers instead want each site to keep routing independently — a real router at each site, its own routing table, its own decisions — while still using the provider's core to reach their other sites. And critically: two different customers of the same provider very often use the exact same private address ranges (10.0.0.0/8 is popular), so whatever the provider does has to keep them from ever seeing or colliding with each other's routes.
+
+## VRF: one router, many routing tables
+
+A **VRF (Virtual Routing and Forwarding instance)** is a separate, isolated routing table on the same physical router. A provider edge router serving ten customers can run ten VRFs, each with its own routes, and — this is the key property — customer A's 10.0.0.0/24 and customer B's 10.0.0.0/24 coexist on the same PE without conflict, because each lives in its own VRF and the router never looks in the wrong one. This is the same idea as VLANs separating broadcast domains on one switch (Layer 2 in Depth track), one layer up: VRFs separate routing domains on one router.
+
+## Getting routes between sites of the same customer: MP-BGP
+
+Knowing routes per VRF locally is only half the problem — a customer's site A and site B, attached to different PEs, need to learn about each other's routes across the core. This is done with **MP-BGP (Multiprotocol BGP)** carrying a special address family, VPNv4: each customer route gets prefixed with a **Route Distinguisher (RD)**, an identifier that makes otherwise-identical customer prefixes from different VRFs unique inside the provider's BGP, so BGP can carry customer A's 10.0.0.0/24 and customer B's 10.0.0.0/24 as genuinely distinct routes even though the plain IPv4 prefix is identical.
+
+**Route Targets (RTs)**, a BGP extended community attached to each VPNv4 route, control which VRFs actually import a given route — this is what lets a provider build not just simple point-to-point VPNs but hub-and-spoke and full-mesh topologies by controlling import/export policy per VRF, all from BGP policy rather than reconfiguring the data plane.
+
+## The data plane: two labels again
+
+Once BGP has distributed the routes, forwarding uses the same label-stacking idea from the VPLS lesson: an outer LDP label gets the packet across the core to the right PE (exactly as in plain MPLS forwarding), and an inner VPN label, assigned per VRF route, tells the receiving PE which VRF's routing table (and which customer site) the packet belongs to once it arrives.
+
+## Why providers prefer this over one VPN per customer built from separate physical routers
+
+Before L3VPN, keeping customers' routing separate meant genuinely separate routers, or at minimum, separate physical or logical interfaces managed with painstaking care to prevent leakage. L3VPN lets one PE serve many customers' independent routing on shared hardware, each customer's team configuring their own site router without any awareness that the provider's core is shared infrastructure at all — the isolation the VRF and RD/RT machinery provides is what makes that safe.
+
+## Check yourself
+
+- Why can two different customers use the identical private address range on the same PE router without conflict?
+- What does a Route Distinguisher actually make unique, and why is that necessary before BGP can carry two customers' identical prefixes?
+- What are the two labels involved in forwarding an L3VPN packet across the core, and what does each one tell the receiving router?

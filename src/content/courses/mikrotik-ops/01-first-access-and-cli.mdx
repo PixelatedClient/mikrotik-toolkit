@@ -1,0 +1,146 @@
+---
+title: "First Access and the RouterOS CLI"
+track: "mikrotik-ops"
+module: "4.1"
+order: 1
+duration: "35 min"
+summary: "Reach a new MikroTik, secure it in five steps, and learn how the command line and Safe Mode work."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation"
+sources:
+  - title: "First Time Configuration"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328151/First+Time+Configuration"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "First Time Configuration (RouterOS Manual)"
+    url: "https://manual.mikrotik.com/docs/getting-started/first-time-configuration/"
+    publisher: "MikroTik RouterOS Manual"
+    accessed: "2026-09-20"
+  - title: "Command Line Interface"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328134/Command+Line+Interface"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Configuration Management (Safe Mode)"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328155/Configuration+Management"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Securing your router"
+    url: "https://manual.mikrotik.com/docs/getting-started/securing-your-router/"
+    publisher: "MikroTik RouterOS Manual"
+    accessed: "2026-09-20"
+---
+
+This track follows the topics MikroTik teaches in its entry-level certification course (MTCNA), rebuilt around RouterOS v7. It assumes you know IP addressing and subnetting from the [Foundations track](/learn/foundations/02-ip-addressing-subnetting).
+
+## Reaching a new router
+
+You have four ways in.
+
+- **Winbox**, MikroTik's graphical tool for Windows, Linux and macOS. Its **Neighbors** tab finds routers on your network by broadcast. If the router shows the address `0.0.0.0`, it has no IP yet: connect to it by its **MAC address** instead.
+- **WebFig**, the same interface in a browser.
+- **SSH**, for the command line over IP.
+- **Serial console**, for when nothing else works.
+
+A factory router uses the user `admin`. The password is blank, unless the sticker on the device says otherwise.
+
+## What the default configuration gives you
+
+Most MikroTik devices ship with a default configuration: a basic firewall, a DHCP server and default wireless security. Some professional devices, for example the CCR series, do not, so you build the network yourself.
+
+MikroTik's own warning is worth repeating: removing the default configuration removes its security rules too. Only do that when you are replacing them with rules you understand. The [config generator](/tools/mikrotik-config-generator) produces a complete replacement.
+
+## The first five steps
+
+1. **Set a password.** A blank password gives anyone on the network full control.
+
+   ```
+   /user set 0 password="a-long-unique-password"
+   ```
+
+   The `/password` command does the same interactively. MikroTik suggests creating a second user and removing the default `admin` once you have confirmed the new one works.
+
+2. **Check the firewall.** Confirm the default rules are present, and that management is not open from the internet.
+
+3. **Close what you do not use.** Disable the management services you will not need:
+
+   ```
+   /ip service disable telnet,ftp,www,api
+   ```
+
+   and keep MAC-based access to your LAN only:
+
+   ```
+   /tool mac-server set allowed-interface-list=LAN
+   /tool mac-server mac-winbox set allowed-interface-list=LAN
+   ```
+
+4. **Update RouterOS.** See [upgrading RouterOS](/learn/mikrotik-ops/03-upgrading-routeros).
+
+5. **Save a backup** before you change anything else. See [backups and resets](/learn/mikrotik-ops/02-backups-exports-and-resets).
+
+## Getting online
+
+The guide describes three common kinds of internet connection. Connect the provider's cable to `ether1` and your computer to a different port.
+
+- **DHCP** (the provider hands you an address):
+
+  ```
+  /ip dhcp-client add disabled=no interface=ether1
+  ```
+
+- **Static address:** you enter the address, gateway and DNS yourself.
+- **PPPoE:** a username and password. See [PPPoE for ISPs](/learn/mikrotik-ops/06-pppoe-for-isps).
+
+For the LAN, create a bridge, put the LAN ports in it, give it an address, and start a DHCP server on it:
+
+```
+/interface bridge add name=bridge1
+/interface bridge port add interface=ether2 bridge=bridge1
+/ip address add address=192.168.88.1/24 interface=bridge1
+/ip dhcp-server setup
+```
+
+The `setup` command asks for the interface, address space, gateway, pool, DNS servers and lease time. Finally, share the one public address with source NAT:
+
+```
+/ip firewall nat add chain=srcnat out-interface=ether1 action=masquerade
+```
+
+## How the command line is organised
+
+Commands live in a **menu tree**. `/` jumps to the top, `..` goes up one level, and a full path such as `/ip address print` works from anywhere.
+
+Most menus share the same verbs:
+
+| Command | What it does |
+|---|---|
+| `print` | List items, and give each an item number |
+| `add` | Create an item |
+| `set` | Change an item's parameters |
+| `remove` | Delete an item |
+| `find` | Select items that match a condition |
+| `edit` | Open an editor for a long text value |
+
+Typing saves time:
+
+- **Tab** completes a command when there is only one match. Press it twice to list the options.
+- **Abbreviations** work if they are unambiguous, so the start of a command name is enough.
+- **History:** the up and down arrows recall earlier commands. Commands that carried sensitive data, such as passwords, are deliberately left out of the history.
+- **Help:** the documentation says to use `?` on RouterOS v6, and **F1** on v7.
+
+## Safe Mode: your undo button
+
+Before a risky change, turn on **Safe Mode** with `Ctrl+X` (or `F4`). The prompt shows `SAFE`. While it is on, changes are held in a list, and the configuration is only saved to disk when you leave.
+
+- If your session **ends abnormally** (a cable is pulled, a firewall rule cuts you off), every change made in safe mode is undone automatically. That is exactly the situation it exists for.
+- Leave with `Ctrl+X` again to keep the changes.
+- `Ctrl+D` discards all safe mode changes. `/quit` does not.
+- The list holds roughly the last 100 actions. If you exceed it, safe mode ends without undoing anything, so keep risky sessions short.
+
+Use it whenever you edit firewall rules or change the interface you are connected through.
+
+## Check yourself
+
+- Why connect by MAC address when Winbox shows `0.0.0.0`?
+- Which two commands close management services, and which two keep MAC access on the LAN?
+- What happens to your changes if your connection drops while Safe Mode is on?

@@ -1,0 +1,162 @@
+[
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.0.0.1/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip address add address=10.0.0.2/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 10.0.0.2 count=3",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0                                                              no route ...\n    1 10.0.0.2                                   56  64 4ms243us  \n    2 10.0.0.2                                   56  64 1ms139us  \n    sent=3 received=2 packet-loss=33% min-rtt=1ms139us avg-rtt=2ms691us \n   max-rtt=4ms243us \n\n"
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ping 10.0.0.1 count=3",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 10.0.0.1                                   56  64 495us     \n    1 10.0.0.1                                   56  64 1ms446us  \n    2 10.0.0.1                                   56  64 5ms669us  \n    sent=3 received=3 packet-loss=0% min-rtt=495us avg-rtt=2ms536us \n   max-rtt=5ms669us \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.0.0.1/30 interface=ether1",
+    "out": "failure: already have such address\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.0.0.9/99 interface=ether1",
+    "out": "value of netmask out of range (0..32)\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.1.1.1/24 interface=ether9",
+    "out": "input does not match any value of interface\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address print where interface=ether1",
+    "out": "Columns: ADDRESS, NETWORK, INTERFACE\n# ADDRESS      NETWORK   INTERFACE\n0 10.0.0.1/30  10.0.0.0  ether1   \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print where dst-address=10.0.0.0/30",
+    "out": "Flags: D - DYNAMIC; A - ACTIVE; c - CONNECT\nColumns: DST-ADDRESS, GATEWAY, DISTANCE\n    DST-ADDRESS  GATEWAY  DISTANCE\nDAc 10.0.0.0/30  ether1          0\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 10.0.0.2 count=2",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 10.0.0.2                                   56  64 887us     \n    1 10.0.0.2                                   56  64 1ms767us  \n    sent=2 received=2 packet-loss=0% min-rtt=887us avg-rtt=1ms327us \n   max-rtt=1ms767us \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 10.9.9.9 count=2",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0                                                              no route ...\n    1                                                              no route ...\n    sent=2 received=0 packet-loss=100% \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route add dst-address=192.168.50.0/24 gateway=10.0.0.2",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route add dst-address=192.168.60.0/24 gateway=10.7.7.7",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print where dst-address~\"^192.168.[56]\"",
+    "out": "Flags: I - INACTIVE, A - ACTIVE; s - STATIC; H - HW-OFFLOADED\nColumns: DST-ADDRESS, GATEWAY, DISTANCE\n#     DST-ADDRESS      GATEWAY   DISTANCE\n0 As  192.168.50.0/24  10.0.0.2         1\n1 IsH 192.168.60.0/24  10.7.7.7         1\n\n"
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip address add address=192.168.50.1/24 interface=ether3",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 192.168.50.1 count=3",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 192.168.50.1                               56  64 401us     \n    1 192.168.50.1                               56  64 2ms288us  \n    2 192.168.50.1                               56  64 1ms33us   \n    sent=3 received=3 packet-loss=0% min-rtt=401us avg-rtt=1ms240us \n   max-rtt=2ms288us \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 192.168.50.1 count=2",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 192.168.50.1                               56  64 1ms445us  \n    1 192.168.50.1                               56  64 849us     \n    sent=2 received=2 packet-loss=0% min-rtt=849us avg-rtt=1ms147us \n   max-rtt=1ms445us \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 192.168.60.1 count=2",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0                                                              no route ...\n    1                                                              no route ...\n    sent=2 received=0 packet-loss=100% \n\n"
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip firewall filter add chain=input action=drop protocol=icmp",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 10.0.0.2 count=3",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 10.0.0.2                                                     timeout     \n    1 10.0.0.2                                                     timeout     \n    2 10.0.0.2                                                     timeout     \n    sent=3 received=0 packet-loss=100% \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 10.0.0.2 count=2",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 10.0.0.2                                                     timeout     \n    1 10.0.0.2                                                     timeout     \n    sent=2 received=0 packet-loss=100% \n\n"
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip firewall filter remove [find]",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip firewall filter add chain=input action=reject protocol=icmp reject-with=icmp-host-unreachable",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 10.0.0.2 count=3",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 10.0.0.2                                   84  64 971us      host unre...\n    1 10.0.0.2                                   84  64 9ms22us    host unre...\n    2 10.0.0.2                                   84  64 2ms80us    host unre...\n    sent=3 received=0 packet-loss=100% \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ping 10.0.0.2 count=2",
+    "out": "  SEQ HOST                                     SIZE TTL TIME       STATUS      \n    0 10.0.0.2                                   84  64 2ms4us     host unre...\n    1 10.0.0.2                                   84  64 1ms62us    host unre...\n    sent=2 received=0 packet-loss=100% \n\n"
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip firewall filter print",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n 0    chain=input action=reject reject-with=icmp-host-unreachable protocol=icmp \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route remove [find where dst-address=192.168.50.0/24]",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print count-only where dst-address~\"^192.168.[56]\"",
+    "out": "1\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/interface disable ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print where dst-address=10.0.0.0/30",
+    "out": "Flags: D - DYNAMIC; I - INACTIVE; c - CONNECT; H - HW-OFFLOADED\nColumns: DST-ADDRESS, GATEWAY, DISTANCE\n     DST-ADDRESS  GATEWAY  DISTANCE\nDIcH 10.0.0.0/30  ether1          0\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/system identity set name=edge-a",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/system identity print",
+    "out": "  name: edge-a\n\n"
+  }
+]

@@ -1,0 +1,187 @@
+[
+  {
+    "dev": "ISP1",
+    "cmd": "/interface bridge add name=lan comment=announce",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=198.51.100.1/24 interface=lan",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip address add address=10.1.1.1/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route add dst-address=198.51.100.0/24 blackhole comment=anchor",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip firewall address-list add list=announce address=198.51.100.0/24",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing filter rule add chain=out-filter rule=\"if (dst == 198.51.100.0/24) { accept }\"",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing filter rule add chain=out-filter rule=\"reject\"",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing filter rule add chain=in-filter rule=\"accept\"",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/interface bridge add name=lan comment=announce",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip address add address=203.0.113.1/24 interface=lan",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip address add address=10.1.1.2/30 interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip route add dst-address=203.0.113.0/24 blackhole comment=anchor",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip firewall address-list add list=announce address=203.0.113.0/24",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing filter rule add chain=out-filter rule=\"if (dst == 203.0.113.0/24) { accept }\"",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing filter rule add chain=out-filter rule=\"reject\"",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing filter rule add chain=in-filter rule=\"set bgp-local-pref 200; accept\"",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing bgp template add name=main as=64500 router-id=10.255.0.1",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing bgp connection add name=to-isp2 templates=main local.address=10.1.1.1 local.role=ebgp remote.address=10.1.1.2 remote.as=64501 output.network=announce output.filter-chain=out-filter input.filter=in-filter",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing bgp template add name=main as=64501 router-id=10.255.0.2",
+    "out": ""
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing bgp connection add name=to-isp1 templates=main local.address=10.1.1.2 local.role=ebgp remote.address=10.1.1.1 remote.as=64500 output.network=announce output.filter-chain=out-filter input.filter=in-filter",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "#sleep 15",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing bgp template print",
+    "out": "Flags: * - default; X - disabled, I - inactive \n 0 *  name=\"default\" routing-table=main as=65530 \n\n 1    name=\"main\" routing-table=main router-id=10.255.0.1 as=64500 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing bgp template print detail",
+    "out": "Flags: * - default; X - disabled, I - inactive \n 0 *  name=\"default\" routing-table=main as=65530 \n\n 1    name=\"main\" routing-table=main router-id=10.255.0.1 as=64500 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing bgp connection print",
+    "out": "Flags: D - dynamic, X - disabled, I - inactive \n 0   name=\"to-isp2\" \n     remote.address=10.1.1.2 .as=64501 \n     local.address=10.1.1.1 .role=ebgp \n     routing-table=main router-id=10.255.0.1 templates=main as=64500 \n     output.filter-chain=out-filter .network=announce \n     input.filter=in-filter \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing bgp connection print detail",
+    "out": "Flags: D - dynamic, X - disabled, I - inactive \n 0   name=\"to-isp2\" \n     remote.address=10.1.1.2 .as=64501 \n     local.address=10.1.1.1 .role=ebgp \n     routing-table=main router-id=10.255.0.1 templates=main as=64500 \n     output.filter-chain=out-filter .network=announce \n     input.filter=in-filter \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing bgp session print",
+    "out": "Flags: E - established \n 0 E name=\"to-isp2-1\" \n     remote.address=10.1.1.2 .as=64501 .id=10.255.0.2 \n     .capabilities=mp,rr,gr,as4 .afi=ip .messages=2 .bytes=67 .eor=\"\" \n     local.address=10.1.1.1 .as=64500 .id=10.255.0.1 .cluster-id=10.255.0.1 \n     .capabilities=mp,rr,gr,as4 .afi=ip .messages=2 .bytes=67 .eor=\"\" \n     output.procid=20 .filter-chain=out-filter .network=announce \n     input.procid=20 .filter=in-filter ebgp \n     hold-time=3m keepalive-time=1m uptime=14s510ms \n     last-started=2026-09-22 00:38:20 prefix-count=0 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing bgp session print detail",
+    "out": "Flags: E - established \n 0 E name=\"to-isp2-1\" \n     remote.address=10.1.1.2 .as=64501 .id=10.255.0.2 \n     .capabilities=mp,rr,gr,as4 .afi=ip .messages=2 .bytes=67 .eor=\"\" \n     local.address=10.1.1.1 .as=64500 .id=10.255.0.1 .cluster-id=10.255.0.1 \n     .capabilities=mp,rr,gr,as4 .afi=ip .messages=2 .bytes=67 .eor=\"\" \n     output.procid=20 .filter-chain=out-filter .network=announce \n     input.procid=20 .filter=in-filter ebgp \n     hold-time=3m keepalive-time=1m uptime=14s510ms \n     last-started=2026-09-22 00:38:20 prefix-count=0 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print where bgp",
+    "out": "Flags: D - DYNAMIC; A - ACTIVE; b - BGP\nColumns: DST-ADDRESS, GATEWAY, DISTANCE\n    DST-ADDRESS     GATEWAY   DISTANCE\nDAb 203.0.113.0/24  10.1.1.2        20\n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print detail where dst-address=203.0.113.0/24",
+    "out": "Flags: D - dynamic; X - disabled, I - inactive, A - active; \nc - connect, s - static, r - rip, b - bgp, o - ospf, i - is-is, d - dhcp, v - vpn, m - modem, y - bgp-mpls-vpn; \nH - hw-offloaded; + - ecmp \n   DAb   dst-address=203.0.113.0/24 routing-table=main gateway=10.1.1.2 \n         immediate-gw=10.1.1.2%ether1 distance=20 scope=40 target-scope=10 \n\n"
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip route print where bgp",
+    "out": "Flags: D - DYNAMIC; A - ACTIVE; b - BGP\nColumns: DST-ADDRESS, GATEWAY, DISTANCE\n    DST-ADDRESS      GATEWAY   DISTANCE\nDAb 198.51.100.0/24  10.1.1.1        20\n\n"
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/ip route print detail where dst-address=198.51.100.0/24",
+    "out": "Flags: D - dynamic; X - disabled, I - inactive, A - active; \nc - connect, s - static, r - rip, b - bgp, o - ospf, i - is-is, d - dhcp, v - vpn, m - modem, y - bgp-mpls-vpn; \nH - hw-offloaded; + - ecmp \n   DAb   dst-address=198.51.100.0/24 routing-table=main gateway=10.1.1.1 \n         immediate-gw=10.1.1.1%ether1 distance=20 scope=40 target-scope=10 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing filter rule print",
+    "out": "Flags: X - disabled, I - inactive \n 0   chain=out-filter rule=\"if (dst == 198.51.100.0/24) { accept }\" \n\n 1   chain=out-filter rule=\"reject\" \n\n 2   chain=in-filter rule=\"accept\" \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/routing bgp advertisements print",
+    "out": " 0 peer=to-isp2-1 dst=198.51.100.0/24 afi=ip nexthop=10.1.1.1 origin=0 \n   as-path=sequence 64500 \n\n"
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/export",
+    "out": "# 2026-09-22 00:38:35 by RouterOS 7.16\n# software id = \n#\n/interface bridge\nadd comment=announce name=lan\n/interface ethernet\nset [ find default-name=ether1 ] disable-running-check=no\nset [ find default-name=ether2 ] disable-running-check=no\nset [ find default-name=ether3 ] disable-running-check=no\nset [ find default-name=ether4 ] disable-running-check=no\nset [ find default-name=ether5 ] disable-running-check=no\nset [ find default-name=ether6 ] disable-running-check=no\nset [ find default-name=ether7 ] disable-running-check=no\nset [ find default-name=ether8 ] disable-running-check=no\n/port\nset 0 name=serial0\n/routing bgp template\nadd as=64500 name=main router-id=10.255.0.1\n/ip neighbor discovery-settings\nset discover-interface-list=all\n/ip address\nadd address=198.51.100.1/24 interface=lan network=198.51.100.0\nadd address=10.1.1.1/30 interface=ether1 network=10.1.1.0\n/ip dhcp-client\nadd add-default-route=no interface=ether8\n/ip firewall address-list\nadd address=198.51.100.0/24 list=announce\n/ip route\nadd blackhole comment=anchor dst-address=198.51.100.0/24\n/routing bgp connection\nadd input.filter=in-filter local.address=10.1.1.1 .role=ebgp name=to-isp2 \\\n    output.filter-chain=out-filter .network=announce remote.address=10.1.1.2 \\\n    .as=64501 templates=main\n/routing filter rule\nadd chain=out-filter rule=\"if (dst == 198.51.100.0/24) { accept }\"\nadd chain=out-filter rule=reject\nadd chain=in-filter rule=accept\n/system note\nset show-at-login=no\n/tool mac-server\nset allowed-interface-list=*2000015\n/tool mac-server mac-winbox\nset allowed-interface-list=*2000015\n/tool sniffer\nset filter-interface=ether1 filter-ip-protocol=udp,icmp memory-limit=1000KiB\n"
+  },
+  {
+    "dev": "ISP2",
+    "cmd": "/routing filter rule add chain=out-filter rule=\"set bgp-path-prepend 3; if (dst == 203.0.113.0/24) { accept }\" place-before=0",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "#sleep 8",
+    "out": ""
+  },
+  {
+    "dev": "ISP1",
+    "cmd": "/ip route print detail where dst-address=203.0.113.0/24",
+    "out": "Flags: D - dynamic; X - disabled, I - inactive, A - active; \nc - connect, s - static, r - rip, b - bgp, o - ospf, i - is-is, d - dhcp, v - vpn, m - modem, y - bgp-mpls-vpn; \nH - hw-offloaded; + - ecmp \n   DAb   dst-address=203.0.113.0/24 routing-table=main gateway=10.1.1.2 \n         immediate-gw=10.1.1.2%ether1 distance=20 scope=40 target-scope=10 \n\n"
+  }
+]

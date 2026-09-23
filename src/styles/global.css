@@ -1,0 +1,354 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource/press-start-2p";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Pixel-adventure theme. Dark navy is the default; parchment is the light variant. */
+:root {
+  --bg: #f4ecd8;
+  --surface: #fffdf6;
+  --surface-2: #efe5c8;
+  --border: #b9ad86;
+  --fg: #1c1b33;
+  --muted: #55536f;
+  --accent: #f5b301;
+  --accent-fg: #1a1400;
+  --accent-soft: #fff0bf;
+  --accent-text: #8a4b00;
+  --accent-edge: #a87b00;
+  --edge: rgba(70, 50, 0, 0.28);
+  --dot: rgba(60, 40, 0, 0.06);
+  --good: #0f7a3a;
+  --danger: #b3261e;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0a0e2a;
+  --surface: #131a44;
+  --surface-2: #1b2456;
+  --border: #35429a;
+  --fg: #f2f4ff;
+  --muted: #aab4e0;
+  --accent: #ffd23f;
+  --accent-fg: #1a1400;
+  --accent-soft: #33300f;
+  --accent-text: #ffd23f;
+  --accent-edge: #b8860b;
+  --edge: rgba(0, 0, 0, 0.5);
+  --dot: rgba(255, 255, 255, 0.055);
+  --good: #5cf28a;
+  --danger: #ff7b88;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-pixel: "Press Start 2P", ui-monospace, monospace;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-good: var(--good);
+  --color-danger: var(--danger);
+  /* 8-bit: no rounded corners anywhere (rounded-full stays for dots and avatars) */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+body {
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--dot) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+  color: var(--fg);
+  font-family: var(--font-sans);
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Text that uses the accent colour must stay readable in both themes. */
+.text-accent { color: var(--accent-text); }
+.hover\:text-accent:hover { color: var(--accent-text); }
+
+/* Pixel display titles */
+main h1 {
+  font-family: var(--font-pixel) !important;
+  font-weight: 400 !important;
+  font-size: clamp(1.05rem, 2.4vw, 1.6rem) !important;
+  line-height: 1.6 !important;
+  letter-spacing: 0 !important;
+  text-wrap: balance;
+}
+main h1.hero-title {
+  font-size: clamp(1.15rem, 3.6vw, 2.3rem) !important;
+  line-height: 1.35 !important;
+}
+.pixel { font-family: var(--font-pixel); font-weight: 400; letter-spacing: 0; }
+
+/* Cards: chunky border with a hard drop shadow, like a game panel. */
+.bg-surface.border {
+  border-width: 2px;
+  box-shadow: 0 4px 0 var(--edge);
+}
+a.bg-surface.border:hover, a.bg-accent-soft.border:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--edge);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bg-surface.border { transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease; }
+}
+
+/* Primary buttons and links */
+.bg-accent.text-accent-fg {
+  border: 2px solid var(--accent-edge);
+  box-shadow: 0 4px 0 var(--accent-edge);
+  font-weight: 700;
+  position: relative;
+}
+a.bg-accent.text-accent-fg:hover, button.bg-accent.text-accent-fg:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--accent-edge);
+  opacity: 1;
+}
+a.bg-accent.text-accent-fg:active, button.bg-accent.text-accent-fg:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--accent-edge);
+}
+button:not(:disabled), select { cursor: pointer; }
+
+/* Header: a solid bar with a pixel edge */
+header.site-header { border-bottom-width: 3px; }
+
+/* Game HUD chip in the header */
+.hud { font-family: var(--font-pixel); font-size: 0.6rem; }
+
+/* Prose theming (typography plugin) */
+.prose {
+  --tw-prose-body: var(--fg);
+  --tw-prose-headings: var(--fg);
+  --tw-prose-lead: var(--muted);
+  --tw-prose-links: var(--accent-text);
+  --tw-prose-bold: var(--fg);
+  --tw-prose-counters: var(--muted);
+  --tw-prose-bullets: var(--muted);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--fg);
+  --tw-prose-quote-borders: var(--accent);
+  --tw-prose-captions: var(--muted);
+  --tw-prose-code: var(--fg);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+}
+.prose :where(code):not(:where(pre *))  {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-weight: 500;
+}
+.prose :where(code):not(:where(pre *))::before,
+.prose :where(code):not(:where(pre *))::after { content: none; }
+.prose pre {
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+}
+.prose h2 { scroll-margin-top: 5rem; }
+
+/* Shiki dual-theme switching */
+.astro-code { background-color: var(--shiki-light-bg) !important; }
+.astro-code span { color: var(--shiki-light) !important; }
+.dark .astro-code { background-color: var(--shiki-dark-bg) !important; }
+.dark .astro-code span { color: var(--shiki-dark) !important; }
+
+/* Animated traffic flow along the best path */
+@keyframes dash { to { stroke-dashoffset: -28; } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes hit { 0% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } 100% { transform: translateX(0); } }
+@keyframes pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: no-preference) {
+  .flow { animation: dash 1s linear infinite; }
+  .bob { animation: bob 2.4s steps(4) infinite; }
+  .hit { animation: hit 0.25s steps(4) 1; }
+  .pop { animation: pop 0.35s steps(5) 1; }
+}
+
+/* Ambient life: tiny packets drift up the page behind everything. */
+.ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.ambient i { position: absolute; bottom: -12px; width: 6px; height: 6px; background: var(--accent); opacity: 0; }
+.ambient i:nth-child(3n) { background: var(--good); }
+.ambient i:nth-child(5n) { background: var(--danger); }
+header.site-header, main, footer { position: relative; z-index: 1; }
+@keyframes rise { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 0.35; } 90% { opacity: 0.35; } 100% { transform: translateY(-110vh); opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  .ambient i { animation: rise linear infinite; }
+}
+@media (prefers-reduced-motion: reduce) { .ambient { display: none; } }
+
+/* Victory confetti */
+.confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.confetti i { position: absolute; top: -10px; width: 8px; height: 8px; opacity: 0; }
+@keyframes fall { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx), 320px) rotate(360deg); opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) { .confetti i { animation: fall 1.6s ease-in forwards; } }
+
+/* Region banners on the world map */
+.rg { image-rendering: pixelated; }
+@keyframes rg-run { from { transform: translateX(-10px); } to { transform: translateX(210px); } }
+@keyframes rg-flame { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.6); } }
+@keyframes rg-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: no-preference) {
+  .rg .run { animation: rg-run 4s linear infinite; }
+  .rg .flame { transform-box: fill-box; transform-origin: 50% 100%; animation: rg-flame 0.5s steps(2) infinite; }
+  .rg .glow { animation: rg-glow 1.4s steps(2) infinite; }
+}
+
+/* Level cards react when hovered */
+a.bg-surface.border .pixel { transition: color 0.12s; }
+a.bg-surface.border:hover .pixel { color: var(--accent-text); }
+
+/* Companion mascot */
+@keyframes companion-float { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-36px); opacity: 0; } }
+.companion { background: none; border: 0; padding: 0; image-rendering: pixelated; }
+.companion:focus-visible { outline: 3px solid var(--accent); }
+@keyframes c-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@keyframes c-jump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
+@keyframes c-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@keyframes c-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+.companion .c-eyes { transform-box: fill-box; transform-origin: 50% 50%; }
+@media (prefers-reduced-motion: no-preference) {
+  .companion.idle { animation: c-bob 1.8s steps(3) infinite; }
+  .companion.happy { animation: c-jump 0.5s steps(4) 3; }
+  .companion.sad { animation: c-shake 0.3s steps(4) 3; }
+  .companion .c-eyes { animation: c-blink 4s steps(1) infinite; }
+}
+
+
+/* ===================== Retro layer ===================== */
+
+/* Pixel-font navigation with a moving caret, like a game menu. */
+header.site-header nav a,
+#mobile-nav a {
+  font-family: var(--font-pixel);
+  font-size: 0.6rem;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+header.site-header nav a { position: relative; }
+/* The caret is drawn with borders: the pixel font has no arrow glyph. */
+header.site-header nav a:hover::before,
+header.site-header nav a[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border-style: solid;
+  border-width: 4px 0 4px 6px;
+  border-color: transparent transparent transparent var(--accent-text);
+}
+header.site-header nav a:hover, header.site-header nav a[aria-current='page'] { padding-left: 1.1rem; }
+
+/* A strip of colour blocks under the header, like the HUD bar of an old game.
+   The header must stay sticky and above the page: menus and this strip hang below it. */
+header.site-header { position: sticky; top: 0; z-index: 40; box-shadow: 0 3px 0 var(--edge); }
+header.site-header::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: -9px;
+  height: 6px;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 24px, var(--good) 24px 48px, var(--danger) 48px 72px, var(--accent-edge) 72px 96px);
+  opacity: 0.85;
+}
+
+/* Section titles in the pixel font, small enough to read. Component titles that already use .pixel keep their size. */
+main h2:not(.pixel) {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  font-size: clamp(0.75rem, 1.4vw, 0.95rem);
+  line-height: 1.8;
+  letter-spacing: 0;
+}
+.prose h2:not(.pixel) { font-size: clamp(0.8rem, 1.5vw, 1rem); margin-top: 2.4em; }
+main h2:not(.pixel)::before { content: ''; display: inline-block; width: 0.55em; height: 0.55em; margin-right: 0.6em; background: var(--accent-text); }
+
+/* Blinking cursor after page titles. */
+main h1::after { content: '_'; color: var(--accent-text); margin-left: 0.15em; }
+@keyframes cursor { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) { main h1::after { animation: cursor 1.1s steps(1) infinite; } }
+
+/* Code blocks become little terminals. */
+.prose pre, .prose pre.astro-code {
+  background: #050814 !important;
+  border: 2px solid var(--accent-edge);
+  box-shadow: 0 4px 0 var(--edge), inset 0 0 28px rgba(92, 242, 138, 0.07);
+  border-radius: 0;
+}
+.prose pre code, .astro-code span, .dark .astro-code span { color: #b6ffcc !important; }
+.prose pre::before {
+  content: '$_ terminal';
+  display: block;
+  margin: -0.4rem 0 0.6rem;
+  font-family: var(--font-pixel);
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
+  color: #6fdc96;
+}
+
+/* CRT scanlines over everything, very light. They never capture clicks and switch off for high-contrast users. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, 0.22) 100%);
+}
+.dark body::after {
+  background:
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 58%, rgba(0, 0, 0, 0.4) 100%);
+}
+@media (prefers-contrast: more) { body::after { display: none; } }
+
+/* Blocky footer and pixel scrollbars */
+footer { border-top-width: 4px; border-top-style: dashed; }
+footer p.font-semibold { font-family: var(--font-pixel); font-size: 0.6rem; font-weight: 400; text-transform: uppercase; }
+footer ul a:hover::before { content: ''; display: inline-block; margin-right: 0.4em; border-style: solid; border-width: 4px 0 4px 6px; border-color: transparent transparent transparent var(--accent-text); }
+* { scrollbar-color: var(--accent-edge) var(--surface); }
+::-webkit-scrollbar { width: 14px; height: 14px; }
+::-webkit-scrollbar-track { background: var(--surface); border-left: 2px solid var(--border); }
+::-webkit-scrollbar-thumb { background: var(--accent-edge); border: 3px solid var(--surface); }
+::selection { background: var(--accent); color: var(--accent-fg); }
+
+/* Inputs and selects look like game menu fields */
+input, select, textarea { border-radius: 0; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* Tables read like stat sheets */
+.prose table { border: 2px solid var(--border); }
+.prose thead th { font-family: var(--font-pixel); font-size: 0.6rem; font-weight: 400; text-transform: uppercase; background: var(--surface-2); }

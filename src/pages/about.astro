@@ -1,0 +1,30 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="About" description="What Network Academy is, who it is for, and how to use it well.">
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">About Network Academy</h1>
+    <div class="prose prose-neutral mt-6 dark:prose-invert">
+      <p>Network Academy is a free curriculum that takes you from "what is an IP address?" to running BGP on a production edge router, the way internet service providers actually build and operate networks.</p>
+      <h2>What is here</h2>
+      <ul>
+        <li><strong>Four tracks:</strong> Foundations, MikroTik, Advanced Routing and ISP Operations.</li>
+        <li><strong>Interactive tools:</strong> a BGP lab, a subnetting trainer, a subnet calculator and a MikroTik config generator.</li>
+        <li><strong>Labs:</strong> downloadable RouterOS configs you can load into GNS3 or on real hardware.</li>
+      </ul>
+      <h2>How to use it well</h2>
+      <ol>
+        <li>Read a lesson, then <em>do</em> the exercise in it. Networking is learned with your hands.</li>
+        <li>Break things in a lab, not in production.</li>
+        <li>Check anything you plan to deploy against the vendor's documentation for your exact software version.</li>
+      </ol>
+      <h2>A note on accuracy</h2>
+      <p>Lessons target RouterOS v7. Command syntax changes between releases and vendors, and generated configurations are starting points. Read the <a href="/terms">terms</a> before using them on a live network.</p>
+      <h2 id="pkt">Who builds this</h2>
+      <p>Network Academy is developed by <strong>PKT</strong> (Pocket), a small team named after Pkt, the yellow router mascot who guides you through the site.</p>
+
+      <h2>Your data</h2>
+      <p>There are no accounts and no tracking. Your progress lives only in your browser. See the <a href="/privacy">privacy notice</a>.</p>
+    </div>
+  </div>
+</Base>

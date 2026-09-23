@@ -1,0 +1,28 @@
+---
+import Base from '../../layouts/Base.astro';
+const tools = [
+  { href: '/tools/bgp-lab', name: 'BGP lab', tag: 'Interactive', desc: 'Cut links, change LOCAL_PREF, prepending and MED, and see which path BGP chooses and why. Five missions.' },
+  { href: '/tools/stp-lab', name: 'Spanning tree lab', tag: 'Interactive', desc: 'Change bridge priorities and link speeds, cut links, and watch root election, port roles and blocking, with the reason for each.' },
+  { href: '/tools/vlan-designer', name: 'VLAN designer', tag: 'Interactive', desc: 'Assign switch ports, set who may talk to whom, send test pings, and export RouterOS scripts for the switch and router.' },
+  { href: '/tools/subnet-trainer', name: 'Subnetting trainer', tag: 'Game', desc: 'Ten-question rounds with instant feedback, worked solutions and streaks.' },
+  { href: '/tools/subnet-calculator', name: 'Subnet calculator', tag: 'Tool', desc: 'IPv4 network, broadcast, masks, host ranges and subnet splitting.' },
+  { href: '/tools/mikrotik-config-generator', name: 'MikroTik config generator', tag: 'Tool', desc: 'Device + role in, hardened RouterOS v7 .rsc out. Office gateway, ISP edge with BGP, or VLAN switch.' },
+];
+---
+<Base title="Tools" description="Free interactive networking tools: BGP lab, subnetting trainer, subnet calculator and MikroTik config generator.">
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">Tools</h1>
+    <p class="mt-2 text-muted">Everything runs in your browser. Nothing you type is sent anywhere.</p>
+    <div class="mt-8 grid gap-4">
+      {tools.map((t) => (
+        <a href={t.href} class="rounded-xl border border-line bg-surface p-5 transition hover:border-accent">
+          <div class="flex items-center justify-between">
+            <h2 class="font-semibold">{t.name}</h2>
+            <span class="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent">{t.tag}</span>
+          </div>
+          <p class="mt-1 text-sm text-muted">{t.desc}</p>
+        </a>
+      ))}
+    </div>
+  </div>
+</Base>

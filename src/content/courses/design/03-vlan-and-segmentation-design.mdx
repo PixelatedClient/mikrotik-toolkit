@@ -1,0 +1,63 @@
+---
+title: "VLAN and Segmentation Design"
+track: "design"
+module: "7.3"
+order: 3
+duration: "35 min"
+summary: "Decide which devices share a network, where traffic is allowed to cross, and how to keep the design simple enough to operate."
+---
+
+## Why segment
+
+A segment is a broadcast domain with its own subnet. You split a network to:
+
+- **contain problems**: a loop or a broadcast storm stays in one VLAN,
+- **enforce policy**: a firewall sits between segments and decides what may cross,
+- **reduce noise**: less broadcast traffic per device,
+- **meet rules**: payment or medical devices often must be isolated.
+
+You do not split just because you can. Each segment adds an address block, a gateway and firewall rules to look after.
+
+## A simple method
+
+1. **Group by role and trust.** Staff, guests, servers, cameras, printers, phones, management.
+2. **Give each group a VLAN ID and a subnet** using your addressing plan (VLAN 10 staff is 10.x.10.0/24).
+3. **Draw the allowed flows** as arrows. Everything without an arrow is denied.
+4. **Place the routing.** Small designs route between VLANs on the gateway router. Larger ones use a layer 3 switch or a routed core.
+5. **Write the firewall from the arrows.** Allow the arrows, drop the rest.
+
+Example flows for a small office:
+
+| From | To | Allowed |
+|---|---|---|
+| Staff | Servers | yes (specific ports) |
+| Staff | Internet | yes |
+| Guest | Internet | yes |
+| Guest | Staff, servers | no |
+| Cameras | Recorder | yes |
+| Cameras | Internet | no |
+| Management | everything | yes, from admin PCs only |
+
+## Design choices
+
+**Where to route.** Router on a stick (one trunk to a router with a VLAN interface per VLAN) is simple and fine for small networks. It makes the router link a bottleneck for traffic between VLANs. Beyond a handful of VLANs and heavy inter-VLAN traffic, route on a layer 3 switch.
+
+**Trunks and access ports.** Trunks carry many VLANs between switches and to the router. Access ports carry one VLAN to a device. Keep the list of VLANs on each trunk to what is needed.
+
+**Native or untagged VLAN.** Avoid using VLAN 1 for anything real. Give management its own VLAN and do not leave unused ports in a user VLAN.
+
+**Unused ports.** Put them in an unused VLAN with no gateway, and disable them if you can.
+
+## Management is a segment too
+
+Devices need to be managed even when something else is broken. Put them in a management VLAN, reachable only from admin PCs, and give every device an address there. This is also why VLAN filtering is switched on last when you configure a bridge: the management path must exist before the filter closes.
+
+## Try it
+
+The VLAN designer on this site turns a list of VLANs into an addressing plan and the scripts for a switch and a router. Use it to check a design before you type any commands, and the inter-VLAN lab lets you build and test one.
+
+## Check yourself
+
+- Draw the flows for your own home network. What does the guest network need to reach?
+- What is the risk of router on a stick in a busy network?
+- Why should management traffic have its own VLAN?

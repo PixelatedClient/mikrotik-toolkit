@@ -1,0 +1,23 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import CidrCalculator from '../../components/calc/CidrCalculator';
+import { SRC } from '../../data/toolSources';
+---
+<ToolPage
+  title="CIDR Calculator"
+  description="Convert between prefix length, subnet mask and host counts. Includes a table of every IPv4 prefix from /0 to /32."
+  heading="CIDR calculator"
+  intro="Start from a prefix, a mask, or how many hosts you need, and see everything else. The table lists every prefix length."
+  narrow={false}
+  sources={[
+    SRC.cidr,
+    SRC.p2p,
+  ]}
+  related={[
+    { href: '/tools/subnet-calculator', label: 'Subnet calculator' },
+    { href: '/tools/wildcard-mask-calculator', label: 'Wildcard mask calculator' },
+    { href: '/practice/masks', label: 'Practice masks' },
+  ]}
+>
+  <CidrCalculator client:load />
+</ToolPage>

@@ -1,0 +1,402 @@
+[
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall address-list add list=bad address=1.2.3.4",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface list add name=WAN",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop src-address-list=bad",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop dst-address-list=bad",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop in-interface-list=WAN",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop out-interface-list=WAN",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop in-interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop out-interface=ether2",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop src-address=1.1.1.1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop dst-address=2.2.2.2",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop src-port=1000",
+    "out": "failure: ports can be specified if proto is tcp,udp,udp-lite,dccp,sctp\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop dst-port=2000",
+    "out": "failure: ports can be specified if proto is tcp,udp,udp-lite,dccp,sctp\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop protocol=tcp",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop connection-state=new",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop connection-nat-state=dstnat",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop tcp-flags=syn",
+    "out": "failure: tcp-flags works only with tcp\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop icmp-options=8:0",
+    "out": "failure: icmp-options can be specified if proto is icmp\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop connection-limit=10,32",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop limit=5,5",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop packet-mark=x",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop connection-mark=y",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop routing-mark=main",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop src-mac-address=00:11:22:33:44:55",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop tcp-mss=1:100",
+    "out": "expected - (line 1 column 64)\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop dscp=4",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop ttl=equal:64",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop nth=2,1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop random=10",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop address-type=local",
+    "out": "expected end of command (line 1 column 51)\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop hotspot=auth",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop in-bridge-port=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop out-bridge-port=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop port=80",
+    "out": "failure: ports can be specified if proto is tcp,udp,udp-lite,dccp,sctp\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop content=abc",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop packet-size=100-200",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop ipsec-policy=in,ipsec",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop fragment=yes",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop time=1h-2h,mon",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop dst-limit=5,5,dst-address/1m",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop src-address-type=local",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop dst-address-type=local",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop layer7-protocol=x",
+    "out": "input does not match any value of protocol\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop ingress-priority=1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop per-connection-classifier=both-addresses:2/0",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop ipv4-options=any",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop psd=21,3s,3,1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop protocol=icmp",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=drop comment=all",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter print detail",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n 0    chain=forward action=drop src-address-list=bad \n\n 1    chain=forward action=drop dst-address-list=bad \n\n 2    chain=forward action=drop in-interface-list=WAN \n\n 3    chain=forward action=drop out-interface-list=WAN \n\n 4    chain=forward action=drop in-interface=ether1 \n\n 5    chain=forward action=drop out-interface=ether2 \n\n 6    chain=forward action=drop src-address=1.1.1.1 \n\n 7    chain=forward action=drop dst-address=2.2.2.2 \n\n 8    chain=forward action=drop protocol=tcp \n\n 9    chain=forward action=drop connection-state=new \n\n10    chain=forward action=drop connection-nat-state=dstnat \n\n11    chain=forward action=drop connection-limit=10,32 \n\n12    chain=forward action=drop limit=5,5 \n\n13    chain=forward action=drop packet-mark=x \n\n14    chain=forward action=drop connection-mark=y \n\n15    chain=forward action=drop routing-mark=main \n\n16    chain=forward action=drop src-mac-address=00:11:22:33:44:55 \n\n17    chain=forward action=drop dscp=4 \n\n18    chain=forward action=drop ttl=equal:64 \n\n19    chain=forward action=drop nth=2,1 \n\n20    chain=forward action=drop random=10 \n\n21    chain=forward action=drop hotspot=auth \n\n22 I  ;;; in/out-bridge-port matcher not possible when interface (ether1) is not \nslave\n      ;;; in-bridge-port matcher not possible when bridge use-ip-firewall is di\nsabled\n      chain=forward action=drop in-bridge-port=ether1 \n\n23 I  ;;; in/out-bridge-port matcher not possible when interface (ether1) is not \nslave\n      ;;; out-bridge-port matcher not possible when bridge use-ip-firewall is d\nisabled\n      chain=forward action=drop out-bridge-port=ether1 \n\n24    chain=forward action=drop content=abc \n\n25    chain=forward action=drop packet-size=100-200 \n\n26    chain=forward action=drop ipsec-policy=in,ipsec \n\n27    chain=forward action=drop fragment=yes \n\n28 I  ;;; inactive time\n      chain=forward action=drop time=1h-2h,mon \n\n29    chain=forward action=drop dst-limit=5,5,dst-address/1m \n\n30    chain=forward action=drop src-address-type=local \n\n31    chain=forward action=drop dst-address-type=local \n\n32    chain=forward action=drop ingress-priority=1 \n\n33    chain=forward action=drop per-connection-classifier=both-addresses:2/0 \n\n34    chain=forward action=drop ipv4-options=any \n\n35    chain=forward action=drop psd=21,3s,3,1 \n\n36    chain=forward action=drop protocol=icmp \n\n37 I  ;;; all\n      chain=forward action=drop \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter export",
+    "out": "# 2026-09-21 16:32:36 by RouterOS 7.16\n# software id = \n#\n/ip firewall filter\nadd action=drop chain=forward src-address-list=bad\nadd action=drop chain=forward dst-address-list=bad\nadd action=drop chain=forward in-interface-list=WAN\nadd action=drop chain=forward out-interface-list=WAN\nadd action=drop chain=forward in-interface=ether1\nadd action=drop chain=forward out-interface=ether2\nadd action=drop chain=forward src-address=1.1.1.1\nadd action=drop chain=forward dst-address=2.2.2.2\nadd action=drop chain=forward protocol=tcp\nadd action=drop chain=forward connection-state=new\nadd action=drop chain=forward connection-nat-state=dstnat\nadd action=drop chain=forward connection-limit=10,32\nadd action=drop chain=forward limit=5,5\nadd action=drop chain=forward packet-mark=x\nadd action=drop chain=forward connection-mark=y\nadd action=drop chain=forward routing-mark=main\nadd action=drop chain=forward src-mac-address=00:11:22:33:44:55\nadd action=drop chain=forward dscp=4\nadd action=drop chain=forward ttl=equal:64\nadd action=drop chain=forward nth=2,1\nadd action=drop chain=forward random=10\nadd action=drop chain=forward hotspot=auth\n# in/out-bridge-port matcher not possible when interface (ether1) is not slave\n# in-bridge-port matcher not possible when bridge use-ip-firewall is disabled\nadd action=drop chain=forward in-bridge-port=ether1\n# in/out-bridge-port matcher not possible when interface (ether1) is not slave\n# out-bridge-port matcher not possible when bridge use-ip-firewall is disabled\nadd action=drop chain=forward out-bridge-port=ether1\nadd action=drop chain=forward content=abc\nadd action=drop chain=forward packet-size=100-200\nadd action=drop chain=forward ipsec-policy=in,ipsec\nadd action=drop chain=forward fragment=yes\n# inactive time\nadd action=drop chain=forward time=1h-2h,mon\nadd action=drop chain=forward dst-limit=5,5,dst-address/1m\nadd action=drop chain=forward src-address-type=local\nadd action=drop chain=forward dst-address-type=local\nadd action=drop chain=forward ingress-priority=1\nadd action=drop chain=forward per-connection-classifier=both-addresses:2/0\nadd action=drop chain=forward ipv4-options=any\nadd action=drop chain=forward psd=21,3s,3,1\nadd action=drop chain=forward protocol=icmp\nadd action=drop chain=forward comment=all\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter remove [find]",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=jump jump-target=mychain",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=mychain action=return",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=log log-prefix=zz",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=passthrough",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=add-src-to-address-list address-list=seen address-list-timeout=1h",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=tarpit protocol=tcp",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=input action=reject reject-with=tcp-reset protocol=tcp in-interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter print detail",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n 0    chain=forward action=jump jump-target=mychain \n\n 1    chain=mychain action=return \n\n 2    chain=forward action=log log-prefix=\"zz\" \n\n 3    chain=forward action=passthrough \n\n 4    chain=forward action=add-src-to-address-list address-list=seen \n      address-list-timeout=1h \n\n 5    chain=forward action=tarpit protocol=tcp \n\n 6    chain=input action=reject reject-with=tcp-reset protocol=tcp \n      in-interface=ether1 \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter remove [find]",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat add chain=srcnat action=src-nat to-addresses=1.1.1.1 out-interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat add chain=dstnat action=redirect to-ports=8080 protocol=tcp dst-port=80",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat add chain=srcnat action=netmap to-addresses=10.0.0.0/24 src-address=192.168.0.0/24",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat add chain=srcnat action=masquerade out-interface-list=WAN src-address-list=bad",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat print detail",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n 0    chain=srcnat action=src-nat to-addresses=1.1.1.1 out-interface=ether1 \n\n 1    chain=dstnat action=redirect to-ports=8080 protocol=tcp dst-port=80 \n\n 2    chain=srcnat action=netmap to-addresses=10.0.0.0/24 \n      src-address=192.168.0.0/24 \n\n 3    chain=srcnat action=masquerade src-address-list=bad \n      out-interface-list=WAN \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat remove [find]",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall mangle print",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall raw print",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall address-list print",
+    "out": "Columns: LIST, ADDRESS, CREATION-TIME\n# LIST  ADDRESS  CREATION-TIME      \n0 bad   1.2.3.4  2026-09-21 16:31:57\n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall address-list add list=bad address=10.0.0.0/8 comment=net timeout=1h",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall address-list print detail",
+    "out": "Flags: X - disabled, D - dynamic \n 0   list=bad address=1.2.3.4 creation-time=2026-09-21 16:31:57 dynamic=no \n\n 1 D ;;; net\n     list=bad address=10.0.0.0/8 creation-time=2026-09-21 16:32:52 \n     timeout=59m59s dynamic=yes \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall address-list export",
+    "out": "# 2026-09-21 16:32:54 by RouterOS 7.16\n# software id = \n#\n/ip firewall address-list\nadd address=1.2.3.4 list=bad\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface list member add list=WAN interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface list member print",
+    "out": "Columns: LIST, INTERFACE\n# LIST  INTERFACE\n0 WAN   ether1   \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface list member print detail",
+    "out": "Flags: X - disabled, D - dynamic \n 0   list=WAN interface=ether1 dynamic=no \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface list print",
+    "out": "Flags: * - BUILTIN\nColumns: NAME\n#   NAME   \n;;; contains all interfaces\n0 * all    \n;;; contains no interfaces\n1 * none   \n;;; contains dynamic interfaces\n2 * dynamic\n;;; contains static interfaces\n3 * static \n4   WAN    \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface list export",
+    "out": "# 2026-09-21 16:32:55 by RouterOS 7.16\n# software id = \n#\n/interface list\nadd name=WAN\n/interface list member\nadd interface=ether1 list=WAN\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface list member remove [find]",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface list remove [find where name=WAN]",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall address-list remove [find]",
+    "out": ""
+  }
+]

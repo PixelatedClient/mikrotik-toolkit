@@ -1,0 +1,127 @@
+[
+  {
+    "dev": "R2",
+    "cmd": "/system identity set name=edge-r2",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address add address=10.0.12.1/30 interface=ether1 comment=uplink",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address add address=192.168.1.1/24 interface=ether5",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route add dst-address=0.0.0.0/0 gateway=10.0.12.2",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route add dst-address=10.9.0.0/16 gateway=10.0.12.2 distance=5 comment=far",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route add dst-address=172.16.0.0/16 blackhole",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=input action=accept connection-state=established,related comment=est",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=input action=drop in-interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=forward action=reject protocol=tcp dst-port=23 reject-with=icmp-host-unreachable",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat add chain=dstnat action=dst-nat protocol=tcp dst-port=8080 to-addresses=192.168.1.10 to-ports=80",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge add name=bridge1 vlan-filtering=no",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge port add bridge=bridge1 interface=ether6 pvid=10",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge vlan add bridge=bridge1 vlan-ids=10 tagged=bridge1 untagged=ether6",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface vlan add name=vlan10 interface=bridge1 vlan-id=10",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip pool add name=pool1 ranges=192.168.1.100-192.168.1.200",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip dhcp-server add name=dhcp1 interface=ether5 address-pool=pool1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip dhcp-server network add address=192.168.1.0/24 gateway=192.168.1.1 dns-server=8.8.8.8",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface disable ether7",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip service disable telnet",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/export",
+    "out": "# 2026-09-21 07:21:46 by RouterOS 7.16\n# software id = \n#\n/interface bridge\nadd name=bridge1\n/interface ethernet\nset [ find default-name=ether1 ] disable-running-check=no\nset [ find default-name=ether2 ] disable-running-check=no\nset [ find default-name=ether3 ] disable-running-check=no\nset [ find default-name=ether4 ] disable-running-check=no\nset [ find default-name=ether5 ] disable-running-check=no\nset [ find default-name=ether6 ] disable-running-check=no\nset [ find default-name=ether7 ] disable-running-check=no disabled=yes\nset [ find default-name=ether8 ] disable-running-check=no\n/interface vlan\nadd interface=bridge1 name=vlan10 vlan-id=10\n/ip pool\nadd name=pool1 ranges=192.168.1.100-192.168.1.200\n/port\nset 0 name=serial0\n/interface bridge port\nadd bridge=bridge1 interface=ether6 pvid=10\n/ip neighbor discovery-settings\nset discover-interface-list=all\n/interface bridge vlan\nadd bridge=bridge1 tagged=bridge1 untagged=ether6 vlan-ids=10\n/ip address\nadd address=10.0.12.1/30 comment=uplink interface=ether1 network=10.0.12.0\nadd address=192.168.1.1/24 interface=ether5 network=192.168.1.0\n/ip dhcp-client\nadd add-default-route=no interface=ether8\n/ip dhcp-server\nadd address-pool=pool1 interface=ether5 name=dhcp1\n/ip dhcp-server network\nadd address=192.168.1.0/24 dns-server=8.8.8.8 gateway=192.168.1.1\n/ip firewall filter\nadd action=accept chain=input comment=est connection-state=\\\n    established,related\nadd action=drop chain=input in-interface=ether1\nadd action=reject chain=forward dst-port=23 protocol=tcp reject-with=\\\n    icmp-host-unreachable\n/ip firewall nat\nadd action=masquerade chain=srcnat out-interface=ether1\nadd action=dst-nat chain=dstnat dst-port=8080 protocol=tcp to-addresses=\\\n    192.168.1.10 to-ports=80\n/ip route\nadd dst-address=0.0.0.0/0 gateway=10.0.12.2\nadd comment=far distance=5 dst-address=10.9.0.0/16 gateway=10.0.12.2\nadd blackhole dst-address=172.16.0.0/16\n/ip service\nset telnet disabled=yes\n/system identity\nset name=edge-r2\n/system note\nset show-at-login=no\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/export terse",
+    "out": "# 2026-09-21 07:21:47 by RouterOS 7.16\n# software id = \n#\n/interface bridge add name=bridge1\n/interface ethernet set [ find default-name=ether1 ] disable-running-check=no\n/interface ethernet set [ find default-name=ether2 ] disable-running-check=no\n/interface ethernet set [ find default-name=ether3 ] disable-running-check=no\n/interface ethernet set [ find default-name=ether4 ] disable-running-check=no\n/interface ethernet set [ find default-name=ether5 ] disable-running-check=no\n/interface ethernet set [ find default-name=ether6 ] disable-running-check=no\n/interface ethernet set [ find default-name=ether7 ] disable-running-check=no disabled=yes\n/interface ethernet set [ find default-name=ether8 ] disable-running-check=no\n/interface vlan add interface=bridge1 name=vlan10 vlan-id=10\n/ip pool add name=pool1 ranges=192.168.1.100-192.168.1.200\n/port set 0 name=serial0\n/interface bridge port add bridge=bridge1 interface=ether6 pvid=10\n/ip neighbor discovery-settings set discover-interface-list=all\n/interface bridge vlan add bridge=bridge1 tagged=bridge1 untagged=ether6 vlan-ids=10\n/ip address add address=10.0.12.1/30 comment=uplink interface=ether1 network=10.0.12.0\n/ip address add address=192.168.1.1/24 interface=ether5 network=192.168.1.0\n/ip dhcp-client add add-default-route=no interface=ether8\n/ip dhcp-server add address-pool=pool1 interface=ether5 name=dhcp1\n/ip dhcp-server network add address=192.168.1.0/24 dns-server=8.8.8.8 gateway=192.168.1.1\n/ip firewall filter add action=accept chain=input comment=est connection-state=established,related\n/ip firewall filter add action=drop chain=input in-interface=ether1\n/ip firewall filter add action=reject chain=forward dst-port=23 protocol=tcp reject-with=icmp-host-unreachable\n/ip firewall nat add action=masquerade chain=srcnat out-interface=ether1\n/ip firewall nat add action=dst-nat chain=dstnat dst-port=8080 protocol=tcp to-addresses=192.168.1.10 to-ports=80\n/ip route add dst-address=0.0.0.0/0 gateway=10.0.12.2\n/ip route add comment=far distance=5 dst-address=10.9.0.0/16 gateway=10.0.12.2\n/ip route add blackhole dst-address=172.16.0.0/16\n/ip service set telnet disabled=yes\n/system identity set name=edge-r2\n/system note set show-at-login=no\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter export",
+    "out": "# 2026-09-21 07:21:47 by RouterOS 7.16\n# software id = \n#\n/ip firewall filter\nadd action=accept chain=input comment=est connection-state=\\\n    established,related\nadd action=drop chain=input in-interface=ether1\nadd action=reject chain=forward dst-port=23 protocol=tcp reject-with=\\\n    icmp-host-unreachable\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address export",
+    "out": "# 2026-09-21 07:21:47 by RouterOS 7.16\n# software id = \n#\n/ip address\nadd address=10.0.12.1/30 comment=uplink interface=ether1 network=10.0.12.0\nadd address=192.168.1.1/24 interface=ether5 network=192.168.1.0\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge export",
+    "out": "# 2026-09-21 07:21:47 by RouterOS 7.16\n# software id = \n#\n/interface bridge\nadd name=bridge1\n/interface bridge port\nadd bridge=bridge1 interface=ether6 pvid=10\n/interface bridge vlan\nadd bridge=bridge1 tagged=bridge1 untagged=ether6 vlan-ids=10\n"
+  }
+]

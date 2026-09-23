@@ -1,0 +1,252 @@
+[
+  {
+    "dev": "R2",
+    "cmd": "/ip address print where interface!=ether8",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route print where dst-address=9.9.9.9/32",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter print",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall nat print",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall address-list print",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge print",
+    "out": "Flags: X - disabled, R - running \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge port print",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge vlan print",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface bridge host print",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface vlan print",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip pool print",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip dhcp-server print",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip dhcp-server network print",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip dhcp-server lease print",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface list member print",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter print stats",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter print terse",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter remove 0",
+    "out": "no such item\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address remove 99",
+    "out": "no such item\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address add",
+    "out": "Script Error: missing value(s) of argument(s) address interface\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address add address=1.1.1.1/24",
+    "out": "Script Error: missing value(s) of argument(s) interface\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address add interface=ether1",
+    "out": "Script Error: missing value(s) of argument(s) address\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route add",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip route add dst-address=1.1.1.0/24",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address set 0 address=notanip",
+    "out": "invalid value for argument address\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address bogus",
+    "out": "bad command name bogus (line 1 column 13)\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/bogus print",
+    "out": "bad command name bogus (line 1 column 2)\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip bogus print",
+    "out": "bad command name bogus (line 1 column 5)\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address print bogus=1",
+    "out": "expected end of command (line 1 column 19)\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface print where bogus=1",
+    "out": "\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip address print where interface=ether8 or interface=ether1",
+    "out": "Flags: D - DYNAMIC\nColumns: ADDRESS, NETWORK, INTERFACE\n#   ADDRESS             NETWORK        INTERFACE\n0 D 192.168.233.173/24  192.168.233.0  ether8   \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=input action=bogus",
+    "out": "syntax error (line 1 column 44)\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=bogus action=drop",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=input action=drop protocol=bogus",
+    "out": "syntax error (line 1 column 58)\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=input action=drop dst-port=99999 protocol=tcp",
+    "out": "value of range out of range (0..65535)\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=input action=drop src-address=999.1.1.1",
+    "out": "value of range expects range of ip addresses\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface disable ether99",
+    "out": "no such item\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/interface enable ether1",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/system identity set name=\"a b\"",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/system identity print",
+    "out": "  name: a b\n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": ":put hello",
+    "out": "hello\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": ":put (1+2)",
+    "out": "3\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": ":global a 5; :put $a",
+    "out": "5\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter add chain=input action=accept comment=\"with space\"",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter print",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n 0    chain=bogus action=drop \n\n 1    ;;; with space\n      chain=input action=accept \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter move 0 destination=0",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter comment 0 comment=hello",
+    "out": ""
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter print",
+    "out": "Flags: X - disabled, I - invalid; D - dynamic \n 0    ;;; hello\n      chain=bogus action=drop \n\n 1    ;;; with space\n      chain=input action=accept \n\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter unset 0 comment",
+    "out": "input does not match any value of value-name\n"
+  },
+  {
+    "dev": "R2",
+    "cmd": "/ip firewall filter print terse",
+    "out": "0 comment=hello chain=bogus action=drop\n1 comment=with space chain=input action=accept\n\n"
+  }
+]

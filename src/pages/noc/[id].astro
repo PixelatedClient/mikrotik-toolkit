@@ -1,0 +1,10 @@
+---
+import { INCIDENTS } from '../../data/game/nocIncidents';
+import { lessonForIncident } from '../../data/lessonKit';
+
+export function getStaticPaths() {
+  return INCIDENTS.map((i) => ({ params: { id: i.id } }));
+}
+const lesson = lessonForIncident(Astro.params.id!);
+return Astro.redirect(lesson ? `/learn/${lesson}#troubleshooting` : '/learn', 301);
+---

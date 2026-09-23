@@ -1,0 +1,127 @@
+---
+title: "Routing: Static, OSPF and BGP Intro"
+track: "mikrotik"
+module: "3.3"
+order: 3
+duration: "50 min"
+summary: "Static routes, OSPF for internal networks, and a first eBGP session with safe filters."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation and this project's own GNS3 verification on real RouterOS 7.16"
+sources:
+  - title: "OSPF"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/9863229/OSPF"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "BGP"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328220/BGP"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+---
+
+## The routing table
+
+```
+/ip route print
+```
+
+Each route has a destination, a gateway, and a distance. The router picks the **longest matching prefix**; if two routes have the same prefix, the lowest **distance** wins.
+
+| Source | Default distance |
+|---|---|
+| Connected | 0 |
+| Static | 1 |
+| eBGP | 20 |
+| OSPF | 110 |
+| iBGP | 200 |
+
+These specific values (and the ordering rule: for the same prefix, connected beats static beats OSPF beats iBGP) were confirmed directly on a real RouterOS 7.16 router as part of this project's own GNS3 verification work.
+
+## Static routes
+
+```
+/ip route add dst-address=192.168.3.0/24 gateway=10.0.12.2
+/ip route add dst-address=0.0.0.0/0 gateway=203.0.113.1
+```
+
+Simple and predictable, but they do not react to failures. Use them for stub sites and default routes.
+
+## OSPF
+
+OSPF is a link-state protocol for inside one organisation. Routers flood link information and each runs SPF to compute best paths.
+
+```
+/routing ospf instance add name=ospf1 version=2 router-id=1.1.1.1
+/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1
+/routing ospf interface-template add networks=10.0.12.0/30 area=backbone
+/routing ospf interface-template add networks=192.168.1.0/24 area=backbone passive
+```
+
+Verify:
+
+```
+/routing ospf neighbor print
+/ip route print where ospf
+```
+
+Mark customer- or LAN-facing interfaces **passive** so no neighbours form there but the network is still advertised. Note `passive` is written bare, with no `=yes` — real RouterOS 7.16 rejects `passive=yes` as a syntax error; clear it again with `!passive` if you ever need to.
+
+## BGP in one page
+
+BGP connects **autonomous systems** (AS). Each AS has a number (ASN) and announces the prefixes it owns. Your upstream announces your prefix to the world; you learn the internet from them.
+
+```
+/routing bgp template add name=main as=64512 router-id=203.0.113.2
+/routing bgp connection add name=upstream templates=main \
+    local.address=203.0.113.2 local.role=ebgp \
+    remote.address=203.0.113.1 remote.as=64500 \
+    output.network=bgp-announce output.filter-chain=upstream-out \
+    input.filter=upstream-in
+```
+
+
+On RouterOS 7.20 and later the AS number and router ID live on a BGP instance instead: use `/routing bgp instance add name=main as=... router-id=...` and `instance=main` on each connection. The template form above was checked on RouterOS 7.16.
+
+MikroTik's BGP documentation defines the AS number and router ID on an explicit **instance** (since RouterOS 7.20), and each connection refers to it with `instance=`. The connection does not need `remote.as` — MikroTik's own documentation confirms "RouterOS can determine a remote AS number dynamically from the first received OPEN message" — but we set it anyway so the intent is written down. On releases before 7.20, the AS number and router ID were set on the connection (or a template) instead; this project's own device testing confirms the template form works on 7.16 and that `/routing bgp instance` does not exist there at all (`bad command name instance`). Check which your router runs.
+
+Where `bgp-announce` is an address list holding your prefix, and a matching **blackhole route** exists so BGP has something to originate:
+
+```
+/ip firewall address-list add list=bgp-announce address=198.51.100.0/24
+/ip route add dst-address=198.51.100.0/24 blackhole
+```
+
+## Filters are not optional
+
+Without filters, one typo can leak routes to the internet or accept garbage from it. At minimum:
+
+- **Outbound**: announce only your own prefixes.
+- **Inbound**: reject bogons, your own prefixes, and anything longer than /24.
+
+```
+/routing filter rule add chain=upstream-out rule="if (dst == 198.51.100.0/24) { accept }"
+/routing filter rule add chain=upstream-out rule="reject"
+/routing filter rule add chain=upstream-in rule="if (dst in 10.0.0.0/8 || dst in 192.168.0.0/16) { reject }"
+/routing filter rule add chain=upstream-in rule="if (dst-len > 24) { reject }"
+/routing filter rule add chain=upstream-in rule="accept"
+```
+
+Also allow TCP 179 only from the peer in the input firewall chain.
+
+## Verify
+
+```
+/routing bgp session print
+/routing route print where bgp
+```
+
+The session should show `established`. If it stays in `active` or `connect`, check reachability to the peer, the ASNs, and the firewall.
+
+## Try it
+
+Import the [three-router lab](/labs/three-router) and replace the static routes with OSPF, or try the [OSPF triangle](/labs/ospf-triangle) and the [two-upstream BGP lab](/labs/bgp-two-isp). Then generate an **ISP edge router** config and identify each block above in the output.
+
+## Check yourself
+
+- For the same destination prefix, which wins: a static route or an OSPF route, and why?
+- Why does marking an interface passive still let its network be advertised, even though no OSPF neighbour ever forms there?
+- Why doesn't a BGP connection strictly need `remote.as` set, even though this lesson sets it anyway?

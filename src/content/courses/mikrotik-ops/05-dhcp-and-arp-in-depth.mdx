@@ -1,0 +1,131 @@
+---
+title: "DHCP and ARP in Depth"
+track: "mikrotik-ops"
+module: "4.5"
+order: 5
+duration: "40 min"
+summary: "Build a DHCP server by hand, manage leases, and control how the router uses ARP."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation"
+sources:
+  - title: "DHCP"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/24805500/DHCP"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "ARP"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/100892687/ARP"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "RFC 2131: Dynamic Host Configuration Protocol"
+    url: "https://www.rfc-editor.org/rfc/rfc2131"
+    publisher: "IETF"
+    accessed: "2026-09-20"
+  - title: "RFC 826: An Ethernet Address Resolution Protocol"
+    url: "https://www.rfc-editor.org/rfc/rfc826"
+    publisher: "IETF"
+    accessed: "2026-09-20"
+  - title: "RFC 3046: DHCP Relay Agent Information Option"
+    url: "https://www.rfc-editor.org/rfc/rfc3046"
+    publisher: "IETF"
+    accessed: "2026-09-20"
+---
+
+The [Foundations lesson on DHCP](/learn/foundations/06-dns-and-dhcp) explained the four-step exchange. This lesson is about running it on a MikroTik and about the protocol that sits underneath every local network: ARP.
+
+## A DHCP server, step by step
+
+The quick way is a wizard that asks for the interface, network, gateway, pool, DNS servers and lease time:
+
+```
+/ip dhcp-server setup
+```
+
+Doing it by hand teaches you the three parts a server needs: a **pool** of addresses, a **network** description, and the **server** that ties them to an interface.
+
+```
+/ip pool add name=dhcp_pool0 ranges=192.168.88.2-192.168.88.254
+/ip dhcp-server network add address=192.168.88.0/24 dns-server=192.168.88.1 gateway=192.168.88.1
+/ip dhcp-server add address-pool=dhcp_pool0 disabled=no interface=bridge1 name=dhcp1
+```
+
+One rule from the documentation: **do not put the server's own address in the pool.** In this example the router is `192.168.88.1`, which is why the range starts at `.2`. Also keep any other static address you use out of the range.
+
+- The **default lease time is 3 days**. Short leases suit guest Wi-Fi; longer ones suit stable offices.
+- `authoritative` controls whether the server answers requests for an address that is not available, with options such as `yes`, `no` and versions that wait two or ten seconds.
+- `use-radius` can hand authorisation to a RADIUS server.
+
+## Leases
+
+Every client that gets an address appears in the lease table:
+
+```
+/ip dhcp-server lease print
+```
+
+Servers and printers should keep the same address. Turn a dynamic lease into a permanent reservation:
+
+```
+/ip dhcp-server lease make-static 0
+```
+
+or create one directly from a MAC address:
+
+```
+/ip dhcp-server lease add mac-address=AA:BB:CC:DD:EE:FF address=192.168.88.100
+```
+
+Keep reserved addresses **outside** the dynamic pool, so the two never collide.
+
+## The DHCP client (the WAN side)
+
+```
+/ip dhcp-client add interface=ether1 disabled=no
+```
+
+Two options matter: `use-peer-dns` (accept the DNS servers the provider sends, on by default) and `add-default-route` (install the default route the provider sends, also on by default). Turn either off when you want to control them yourself.
+
+## DHCP relay and Option 82
+
+A DHCP request is a broadcast, so it cannot cross a router. A **relay** forwards requests to a server elsewhere:
+
+```
+/ip dhcp-relay add name=relay1 interface=local1 dhcp-server=192.168.0.1 local-address=192.168.1.1
+```
+
+With `add-relay-info=yes` the relay also adds **Option 82** (RFC 3046), which records where the request came from, including the MAC address of the relay's interface. ISPs use it to tell customers apart by port or circuit rather than by MAC address, which a customer can change.
+
+## ARP: how IP finds Ethernet
+
+A device that wants to send to `192.168.88.10` needs that host's MAC address. **ARP** (RFC 826) asks the whole segment "who has this IP?", and the owner answers with its MAC. The result is cached in the **ARP table**. RouterOS lets you inspect it and control how it behaves:
+
+```
+/ip arp print
+```
+
+Entries have a status such as `reachable`, `stale`, `delay`, `probe`, `incomplete` or `failed`, and a flag showing whether they were created dynamically.
+
+## ARP modes
+
+Each interface has an `arp` setting, and it changes how the router behaves on that link:
+
+| Mode | Behaviour |
+|---|---|
+| **enabled** (default) | Normal ARP |
+| **disabled** | The interface does not use ARP, so clients need a static entry for the router's MAC |
+| **proxy-arp** | The router answers ARP requests on behalf of hosts reachable through *other* interfaces |
+| **local-proxy-arp** | Proxy ARP, with replies sent back out of the *same* interface |
+| **reply-only** | The router answers only for combinations you entered as static entries, and adds no dynamic entries |
+
+You can also create static entries yourself with `/ip arp add`, and `published` makes an entry answer as a static proxy for that one address.
+
+### Why use reply-only?
+
+With `reply-only`, the router answers ARP requests only for the IP and MAC combinations you have entered as static entries, and it stores no dynamic ones. A laptop you have not registered gets no answer when it asks for the router's MAC address, so it cannot use the router. The DHCP server has an `add-arp` option (off by default) that adds ARP entries for the leases it hands out, and network operators commonly combine the two so that only leased addresses work. Test this in a lab first: it also blocks any device with a static address you forgot to list.
+
+Treat it as one layer of control, not as security on its own. MAC and IP addresses can be forged.
+
+## Check yourself
+
+- Why can a DHCP request not reach a server on another network without a relay?
+- Which ARP mode would you pick for a link where the router must answer ARP for hosts behind another interface, and which for the same interface?
+- Why keep static reservations outside the dynamic pool?

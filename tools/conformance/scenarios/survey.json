@@ -1,0 +1,186 @@
+{
+ "name": "survey",
+ "description": "Commands learners are likely to type. Shows which ones the simulator lacks.",
+ "devices": [
+  "ISP1",
+  "ISP2"
+ ],
+ "steps": [
+  [
+   "ISP1",
+   "/ip address add address=10.0.0.1/30 interface=ether1 comment=wan"
+  ],
+  [
+   "ISP2",
+   "/ip address add address=10.0.0.2/30 interface=ether1"
+  ],
+  [
+   "ISP1",
+   "/ip route add dst-address=0.0.0.0/0 gateway=10.0.0.2"
+  ],
+  [
+   "ISP1",
+   "/ping 10.0.0.2 count=3",
+   "warm"
+  ],
+  [
+   "ISP1",
+   "/ip address print detail where interface!=ether8"
+  ],
+  [
+   "ISP1",
+   "/ip address print terse where interface!=ether8"
+  ],
+  [
+   "ISP1",
+   "/ip address print without-paging where interface!=ether8"
+  ],
+  [
+   "ISP1",
+   "/ip address print brief where interface!=ether8"
+  ],
+  [
+   "ISP1",
+   "/ip address print as-value where interface!=ether8"
+  ],
+  [
+   "ISP1",
+   "/ip route print detail where dst-address=0.0.0.0/0"
+  ],
+  [
+   "ISP1",
+   "/ip route print terse where dst-address=0.0.0.0/0"
+  ],
+  [
+   "ISP1",
+   "/interface print detail where name=ether1"
+  ],
+  [
+   "ISP1",
+   "/interface ethernet print where name=ether1"
+  ],
+  [
+   "ISP1",
+   "/interface print stats where name=ether1"
+  ],
+  [
+   "ISP1",
+   "/ip arp print where address=10.0.0.2"
+  ],
+  [
+   "ISP1",
+   "/system resource print",
+   "warm"
+  ],
+  [
+   "ISP1",
+   "/system clock print",
+   "warm"
+  ],
+  [
+   "ISP1",
+   "/system identity print"
+  ],
+  [
+   "ISP1",
+   "/system package print"
+  ],
+  [
+   "ISP1",
+   "/user print",
+   "warm"
+  ],
+  [
+   "ISP1",
+   "/ip dns print"
+  ],
+  [
+   "ISP1",
+   "/ip dns set servers=8.8.8.8 allow-remote-requests=yes"
+  ],
+  [
+   "ISP1",
+   "/ip dns print"
+  ],
+  [
+   "ISP1",
+   "/ip firewall address-list add list=blocked address=1.2.3.4"
+  ],
+  [
+   "ISP1",
+   "/ip firewall address-list print"
+  ],
+  [
+   "ISP1",
+   "/interface list print"
+  ],
+  [
+   "ISP1",
+   "/interface list member print"
+  ],
+  [
+   "ISP1",
+   "/ip firewall filter add chain=forward action=drop src-address-list=blocked"
+  ],
+  [
+   "ISP1",
+   "/ip firewall filter print"
+  ],
+  [
+   "ISP1",
+   "/tool ping 10.0.0.2 count=2"
+  ],
+  [
+   "ISP1",
+   "/tool traceroute 10.0.0.2 count=1"
+  ],
+  [
+   "ISP1",
+   "/ip service print"
+  ],
+  [
+   "ISP1",
+   "/ip service print where name=ssh"
+  ],
+  [
+   "ISP1",
+   "/routing table print"
+  ],
+  [
+   "ISP1",
+   "/ip route check 10.0.0.2"
+  ],
+  [
+   "ISP1",
+   "/interface bridge print"
+  ],
+  [
+   "ISP1",
+   "/queue simple print"
+  ],
+  [
+   "ISP1",
+   "/system script print"
+  ],
+  [
+   "ISP1",
+   "/interface wireguard print"
+  ],
+  [
+   "ISP1",
+   "/routing ospf instance print"
+  ],
+  [
+   "ISP1",
+   "/routing bgp connection print"
+  ],
+  [
+   "ISP1",
+   "/ip address"
+  ],
+  [
+   "ISP1",
+   "/ip"
+  ]
+ ]
+}

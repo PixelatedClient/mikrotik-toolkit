@@ -1,0 +1,118 @@
+---
+title: "BGP Fundamentals"
+track: "routing"
+module: "5.1"
+order: 1
+duration: "45 min"
+summary: "Autonomous systems, peering, the session state machine, path attributes and best-path selection."
+status: "sourced"
+verifiedAgainst: "RFC 4271 and this project's own BGP best-path engine, tested against real RouterOS 7.16"
+sources:
+  - title: "RFC 4271: A Border Gateway Protocol 4 (BGP-4)"
+    url: "https://www.rfc-editor.org/rfc/rfc4271"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "BGP"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328220/BGP"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+---
+
+import BgpSession from '../../../components/BgpSession';
+import BgpLab from '../../../components/BgpLab';
+import Challenge from '../../../components/Challenge';
+
+## What BGP is for
+
+BGP (Border Gateway Protocol) is the protocol of the internet. It exchanges **reachability between autonomous systems**, not internal topology. Where OSPF asks "what is the shortest path?", BGP asks "what does policy say we should prefer?".
+
+An **autonomous system (AS)** is a network under one administration with a common routing policy. It has an **ASN**. Private ASNs are 64512-65534 (and 4200000000-4294967294 for 32-bit); public ASNs are allocated by the regional registries.
+
+## eBGP and iBGP
+
+- **eBGP**: between different ASNs, usually directly connected. Learned routes get your neighbour's ASN prepended.
+- **iBGP**: between routers **inside** your AS to carry external routes across your network. iBGP does not modify the AS path, and a route learned from one iBGP peer is **not** passed to another iBGP peer. That rule forces a full mesh, or route reflectors (see [route reflection](/learn/routing/05-route-reflection-confederations)).
+
+## Session states
+
+BGP runs over TCP port 179 — RFC 4271 states this directly. A session moves through:
+
+| State | Meaning |
+|---|---|
+| Idle | Not trying yet |
+| Connect / Active | Trying TCP; failing here means no reachability, a firewall, or wrong address |
+| OpenSent / OpenConfirm | TCP is up, exchanging OPEN messages; failing here means an ASN or parameter mismatch |
+| **Established** | Routes are exchanged |
+
+### Watch it happen
+
+Pick a scenario and step through the packets. Then break the session in the three most common ways and see exactly where it gets stuck.
+
+<BgpSession client:visible />
+
+## What BGP carries
+
+Each route (a **prefix**) comes with **path attributes**:
+
+- **AS_PATH**: RFC 4271 defines this as identifying "the autonomous systems through which routing information... has passed" — the ASNs the route crossed. Also loop prevention: a router rejects a route containing its own ASN.
+- **NEXT_HOP**: RFC 4271 defines this as the IP address that "SHOULD be used as the next hop" for the route's destinations — where to send the traffic.
+- **LOCAL_PREF**: your preference inside the AS. Higher wins. RFC 4271 is explicit that a router "MUST NOT include this attribute in UPDATE messages it sends to external peers" (outside BGP confederations) — it never leaves your AS.
+- **MED**: RFC 4271 calls this MULTI_EXIT_DISC, "intended to be used on external (inter-AS) links to discriminate among multiple exit or entry points to the same neighboring AS" — a hint to a neighbour AS about which of your entry points you prefer. Lower wins.
+- **COMMUNITY**: tags used to trigger policy (e.g. `64512:100` = "set local-pref 100").
+- **ORIGIN**: how the route was first injected (IGP, EGP or incomplete, per RFC 4271).
+
+## Best-path selection (simplified)
+
+When several routes to the same prefix exist, BGP picks one in this order:
+
+1. Highest **weight** (vendor-specific, local only)
+2. Highest **LOCAL_PREF**
+3. Locally originated
+4. **Shortest AS_PATH**
+5. Lowest ORIGIN
+6. Lowest **MED** (between routes from the same neighbour AS)
+7. eBGP over iBGP
+8. Lowest IGP cost to the next hop
+9. Oldest / lowest router ID as tie-breakers
+
+In practice, operators control traffic with **local-pref** (outbound) and **AS-path prepending / communities** (inbound). This exact order is what this project's own best-path engine implements, and it was checked against seven attribute scenarios on a real RouterOS 7.16 router — all matched, including that MED is genuinely only ever compared within the same neighbour AS.
+
+<Challenge client:visible
+  question="Route X has LOCAL_PREF 100 and an AS_PATH of 5 ASes. Route Y has LOCAL_PREF 90 and an AS_PATH of 1 AS. Which does BGP prefer?"
+  options={["Y, because its AS path is shorter", "X, because LOCAL_PREF is checked first", "Whichever was learned first", "Neither: BGP load-balances"]}
+  answer={1}
+  explain="LOCAL_PREF is compared before AS_PATH length. A higher LOCAL_PREF wins even when the path is much longer, which is why operators use it to express policy."
+/>
+
+<Challenge client:visible
+  question="Two routes come from different neighbouring ASes. One has MED 10, the other MED 500. Does MED decide the winner?"
+  options={["Yes, the lower MED wins", "Yes, the higher MED wins", "No, MED is only compared between routes from the same neighbouring AS", "No, MED is ignored entirely by BGP"]}
+  answer={2}
+  explain="MED is a hint from one neighbour AS about its own entry points. Comparing MED values from two different ASes would be meaningless, so BGP skips the rule and moves on to the next one."
+/>
+
+### Try it yourself
+
+Change the attributes below and watch which rule decides. For the full set of missions, open the [BGP lab](/tools/bgp-lab).
+
+<BgpLab compact client:visible />
+
+## A first look on RouterOS
+
+```
+/routing bgp connection print
+/routing bgp session print
+/routing route print where bgp
+```
+
+## Key rules to remember
+
+- BGP does what you tell it. It has no notion of "best" other than your policy, so **filter everything in and out**.
+- A prefix must exist in the routing table before you can originate it.
+- Announce the most specific prefix you own, but no longer than /24 for IPv4: most networks filter longer.
+
+## Check yourself
+
+- Why does LOCAL_PREF never leave your own AS, and what does that mean for who it can influence?
+- Between two routes learned from two different neighbouring ASes, does the one with the lower MED always win? Why or why not?
+- What message exchange takes a session from OpenSent to Established, and what usually fails if it gets stuck before Established?

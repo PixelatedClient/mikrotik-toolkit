@@ -1,0 +1,232 @@
+{
+ "name": "ospf",
+ "description": "OSPF on the ISP1 - ISP2 - R2 - R4 square: menus, neighbours, learned routes, failover.",
+ "devices": [
+  "ISP1",
+  "ISP2",
+  "R2",
+  "R4"
+ ],
+ "steps": [
+  [
+   "ISP1",
+   "/interface bridge add name=loopback"
+  ],
+  [
+   "ISP2",
+   "/interface bridge add name=loopback"
+  ],
+  [
+   "R2",
+   "/interface bridge add name=loopback"
+  ],
+  [
+   "R4",
+   "/interface bridge add name=loopback"
+  ],
+  [
+   "ISP1",
+   "/ip address add address=10.255.0.1/32 interface=loopback"
+  ],
+  [
+   "ISP2",
+   "/ip address add address=10.255.0.2/32 interface=loopback"
+  ],
+  [
+   "R2",
+   "/ip address add address=10.255.0.3/32 interface=loopback"
+  ],
+  [
+   "R4",
+   "/ip address add address=10.255.0.4/32 interface=loopback"
+  ],
+  [
+   "ISP1",
+   "/ip address add address=10.1.1.1/30 interface=ether1"
+  ],
+  [
+   "ISP2",
+   "/ip address add address=10.1.1.2/30 interface=ether1"
+  ],
+  [
+   "ISP2",
+   "/ip address add address=10.1.2.1/30 interface=ether2"
+  ],
+  [
+   "R2",
+   "/ip address add address=10.1.2.2/30 interface=ether2"
+  ],
+  [
+   "R2",
+   "/ip address add address=10.1.3.1/30 interface=ether1"
+  ],
+  [
+   "R4",
+   "/ip address add address=10.1.3.2/30 interface=ether1"
+  ],
+  [
+   "R4",
+   "/ip address add address=10.1.4.1/30 interface=ether2"
+  ],
+  [
+   "ISP1",
+   "/ip address add address=10.1.4.2/30 interface=ether2"
+  ],
+  [
+   "ISP1",
+   "/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.1"
+  ],
+  [
+   "ISP2",
+   "/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.2"
+  ],
+  [
+   "R2",
+   "/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.3"
+  ],
+  [
+   "R4",
+   "/routing ospf instance add name=ospf1 version=2 router-id=10.255.0.4"
+  ],
+  [
+   "ISP1",
+   "/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1"
+  ],
+  [
+   "ISP2",
+   "/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1"
+  ],
+  [
+   "R2",
+   "/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1"
+  ],
+  [
+   "R4",
+   "/routing ospf area add name=backbone area-id=0.0.0.0 instance=ospf1"
+  ],
+  [
+   "ISP1",
+   "/routing ospf interface-template add area=backbone networks=10.1.1.0/30 cost=10 type=ptp"
+  ],
+  [
+   "ISP1",
+   "/routing ospf interface-template add area=backbone networks=10.1.4.0/30 cost=100 type=ptp"
+  ],
+  [
+   "ISP1",
+   "/routing ospf interface-template add area=backbone networks=10.255.0.1/32 passive"
+  ],
+  [
+   "ISP2",
+   "/routing ospf interface-template add area=backbone networks=10.1.1.0/30 cost=10 type=ptp"
+  ],
+  [
+   "ISP2",
+   "/routing ospf interface-template add area=backbone networks=10.1.2.0/30 cost=10 type=ptp"
+  ],
+  [
+   "ISP2",
+   "/routing ospf interface-template add area=backbone networks=10.255.0.2/32 passive"
+  ],
+  [
+   "R2",
+   "/routing ospf interface-template add area=backbone networks=10.1.2.0/30 cost=10 type=ptp"
+  ],
+  [
+   "R2",
+   "/routing ospf interface-template add area=backbone networks=10.1.3.0/30 cost=10 type=ptp"
+  ],
+  [
+   "R2",
+   "/routing ospf interface-template add area=backbone networks=10.255.0.3/32 passive"
+  ],
+  [
+   "R4",
+   "/routing ospf interface-template add area=backbone networks=10.1.3.0/30 cost=10 type=ptp"
+  ],
+  [
+   "R4",
+   "/routing ospf interface-template add area=backbone networks=10.1.4.0/30 cost=100 type=ptp"
+  ],
+  [
+   "R4",
+   "/routing ospf interface-template add area=backbone networks=10.255.0.4/32 passive"
+  ],
+  [
+   "ISP1",
+   "#sleep 25"
+  ],
+  [
+   "ISP1",
+   "/routing ospf instance print"
+  ],
+  [
+   "ISP1",
+   "/routing ospf area print"
+  ],
+  [
+   "ISP1",
+   "/routing ospf interface-template print"
+  ],
+  [
+   "ISP1",
+   "/routing ospf interface-template print detail"
+  ],
+  [
+   "ISP1",
+   "/routing ospf neighbor print"
+  ],
+  [
+   "ISP1",
+   "/routing ospf neighbor print detail"
+  ],
+  [
+   "ISP1",
+   "/routing ospf interface print"
+  ],
+  [
+   "ISP1",
+   "/ip route print where ospf"
+  ],
+  [
+   "ISP1",
+   "/ip route print detail where dst-address=10.255.0.3/32"
+  ],
+  [
+   "ISP1",
+   "/ip route print terse where dst-address=10.1.3.0/30"
+  ],
+  [
+   "ISP1",
+   "/ping 10.255.0.3 count=2"
+  ],
+  [
+   "ISP1",
+   "/tool traceroute 10.255.0.3 count=1"
+  ],
+  [
+   "ISP1",
+   "/interface disable ether1"
+  ],
+  [
+   "ISP1",
+   "#sleep 8"
+  ],
+  [
+   "ISP1",
+   "/routing ospf neighbor print"
+  ],
+  [
+   "ISP1",
+   "/ip route print where ospf"
+  ],
+  [
+   "ISP1",
+   "/routing ospf export"
+  ],
+  [
+   "ISP1",
+   "/tool traceroute 10.255.0.3 count=1"
+  ]
+ ]
+}

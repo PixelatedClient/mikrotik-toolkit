@@ -1,0 +1,105 @@
+---
+title: "FTTH & GPON Architecture"
+track: "isp-ops"
+module: "6.1"
+order: 1
+duration: "40 min"
+summary: "OLT, ODN, splitters and ONT: how fibre to the home is built and how its optical budget works."
+status: "sourced"
+verifiedAgainst: "ITU-T G.984 GPON standard (verified via a secondary technical summary; the ITU's own PDF could not be extracted as readable text — see the note in this lesson)"
+sources:
+  - title: "G.984 (Gigabit-capable Passive Optical Networks)"
+    url: "https://en.wikipedia.org/wiki/G.984"
+    publisher: "Wikipedia"
+    accessed: "2026-09-22"
+  - title: "Passive optical network"
+    url: "https://en.wikipedia.org/wiki/Passive_optical_network"
+    publisher: "Wikipedia"
+    accessed: "2026-09-22"
+---
+
+A note on sourcing this lesson: the ITU-T G.984.2 recommendation (the actual GPON physical-layer standard) is freely published, but its PDF could not be extracted as readable text by this project's fetch tooling — unlike ITU-T X.200 earlier in this course, which did extract cleanly. Rather than guess at what the standard says, the line rates, wavelengths and optical budget classes below were checked against a secondary technical summary instead, and are flagged as such.
+
+## The pieces
+
+**FTTH** (fibre to the home) with **GPON** is a point-to-multipoint passive network: one fibre from the central office serves many homes through passive splitters. No powered equipment sits in the field.
+
+```
+OLT ── feeder fibre ── splitter ── drop fibres ── ONT (customer)
+                          └───────── ONT
+                          └───────── ONT
+```
+
+- **OLT** (Optical Line Terminal): the head-end device in your POP. Has PON ports, an uplink to the core, and the management plane.
+- **ODN** (Optical Distribution Network): everything passive between: fibre, splitters, connectors, patch panels.
+- **Splitter**: divides light. Common ratios are 1:8, 1:16, 1:32 and 1:64, sometimes in two stages.
+- **ONT / ONU**: the device at the customer premises that terminates the fibre and provides Ethernet, Wi-Fi or voice ports.
+
+## How it shares one fibre
+
+GPON uses different wavelengths for each direction on the same fibre:
+
+| Direction | Wavelength | Line rate |
+|---|---|---|
+| Downstream | 1490 nm | 2.488 Gbps |
+| Upstream | 1310 nm | 1.244 Gbps |
+| Optional video (RF overlay) | 1550 nm | n/a |
+
+- **Downstream** is broadcast to all ONTs on the PON; each ONT decrypts only its own traffic.
+- **Upstream** is **TDMA**: the OLT measures each ONT's delay via ranging and sets a register in each ONT "to equalize its delay with respect to all of the other ONUs," then hands out "grants" — permission to transmit in a specific time window — recalculated dynamically every few milliseconds so ONTs at different distances never collide.
+
+The bandwidth of one PON port is **shared** by all ONTs on it. With 32 subscribers each on a 300 Mbps plan you are over-subscribed at the port and rely on statistical sharing. Plan the ratio.
+
+## Optical budget
+
+Light loses power along the path. The receiver needs enough power to decode.
+
+Loss sources (typical values):
+
+| Element | Loss |
+|---|---|
+| Fibre 1310 nm | ~0.35 dB/km |
+| Fibre 1490 nm | ~0.25 dB/km |
+| Splitter 1:8 | ~10.5 dB |
+| Splitter 1:16 | ~13.5 dB |
+| Splitter 1:32 | ~17 dB |
+| Splitter 1:64 | ~20.5 dB |
+| Connector / mated pair | ~0.3-0.5 dB |
+| Fusion splice | ~0.1 dB |
+
+GPON optics classes set the **maximum loss** the link may have: Class B+ allows 13-28 dB, Class C+ 17-32 dB (higher classes trade more allowed loss for longer reach, up to 60 km for C+). Add up every element and keep margin (a few dB) for ageing and repairs.
+
+Example: 8 km feeder, 1:32 splitter, 4 connectors, 6 splices:
+
+```
+fibre     8 x 0.35 = 2.8 dB
+splitter            17.0 dB
+connectors 4 x 0.5 = 2.0 dB
+splices   6 x 0.1 = 0.6 dB
+                    -------
+total              22.4 dB   (within 28 dB, 5.6 dB margin)
+```
+
+## Topology choices
+
+- **Centralised split**: splitters at the POP or cabinet. Easier to manage, needs more feeder fibre.
+- **Distributed split (cascaded)**: e.g. 1:4 then 1:8. Saves fibre; harder to test and locate faults.
+
+Choose per area density and how often customers change.
+
+## Documentation is the network
+
+Record every splitter, port, fibre and customer. Label at both ends. In practice, most outage time in FTTH is spent finding which fibre is which. Use GIS or an inventory tool from day one.
+
+## Tools of the trade
+
+- **Optical power meter** and light source: measure loss end to end.
+- **OTDR**: shows the fibre as a trace, locating breaks, bends and bad splices by distance.
+- **Visual fault locator**: a red laser for short drops.
+- **Cleaning kit**: dirty connectors cause a large share of faults. Clean before every connection.
+
+## Check yourself
+
+- Why does the OLT need to measure each ONT's delay (ranging) before upstream transmission can work reliably?
+- Between Class B+ and Class C+ optics, which allows more loss, and what does that trade off for?
+- Why is a PON's port bandwidth described as shared and over-subscribed, even though each subscriber has their own drop fibre?

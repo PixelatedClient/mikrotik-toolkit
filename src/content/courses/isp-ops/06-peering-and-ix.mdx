@@ -1,0 +1,98 @@
+---
+title: "Peering Policies & IX Connections"
+track: "isp-ops"
+module: "6.6"
+order: 6
+duration: "35 min"
+summary: "Transit, peering and internet exchanges: how to cut cost and latency by connecting directly."
+status: "sourced"
+verifiedAgainst: "PeeringDB and MANRS"
+sources:
+  - title: "PeeringDB"
+    url: "https://www.peeringdb.com/"
+    publisher: "PeeringDB"
+    accessed: "2026-09-22"
+  - title: "MANRS for Network Operators"
+    url: "https://manrs.org/netops/"
+    publisher: "MANRS"
+    accessed: "2026-09-22"
+---
+
+## Transit versus peering
+
+- **Transit**: you pay an upstream to carry your traffic to the whole internet.
+- **Peering**: two networks exchange traffic **directly** for their own customers, usually without payment.
+
+Peering shortens the path (lower latency), reduces transit bills, and makes you less dependent on one provider.
+
+## Internet exchanges
+
+An **IX** is a shared Layer 2 switching fabric where many networks connect to one port and peer with each other.
+
+- **Public peering** across the IX fabric: one port, many sessions.
+- **Route server**: the IX runs one that redistributes routes, so you set up one session and receive many peers' routes.
+- **Bilateral sessions**: a direct BGP session with a specific network, for more control.
+- **Private interconnect (PNI)**: a dedicated cross-connect to a big peer when the volume justifies it.
+
+Typical costs: a port fee (by speed) and a cross-connect or a remote-peering fee.
+
+## When it makes sense
+
+Use your flow data (see [network monitoring](/learn/isp-ops/03-network-monitoring)):
+
+1. List the top destination ASNs by traffic.
+2. See which of them are present at an IX you can reach.
+3. Estimate the transit cost saved against the port and transport cost.
+
+Content and cloud providers, CDNs and other access networks are the usual big wins.
+
+## Getting ready to peer
+
+- Have your own **ASN** and **address space**.
+- Register in **PeeringDB** — described on its own site as "the go-to location for interconnection data," used as "the first stop in making interconnection decisions" — with accurate contact details, traffic levels and policy.
+- Publish **IRR** route objects and **RPKI ROAs** so peers can build filters.
+- Decide a **peering policy** (open, selective, restrictive) and write it down.
+
+## Configuration principles
+
+On the IX port:
+
+- Use a Layer 3 interface with the IX-assigned address; **no other traffic** on it.
+- Enable only the protocols the IX allows. Disable neighbour discovery, proxy ARP and other broadcast-noisy features.
+- Filter both directions per neighbour:
+  - **Announce**: only your own prefixes and your customers'.
+  - **Accept**: bogon-free, no default, no more-specific than /24, with a **prefix limit**.
+- Do **not** set a default route towards the IX, and do not let others do it to you: set `next-hop` handling so traffic leaves only for advertised prefixes.
+- Apply the **relationship rule**: never announce transit-learned routes to peers.
+
+```
+/routing filter rule add chain=ix-out rule="if (bgp-communities any 64512:100) { accept }"
+/routing filter rule add chain=ix-out rule="if (dst == 198.51.100.0/24) { accept }"
+/routing filter rule add chain=ix-out rule="reject"
+```
+
+(See [BGP in ISP networks](/learn/routing/03-bgp-in-isp-networks) for the tagging scheme.)
+
+## Preference
+
+Peers are cheaper than transit, so give them a higher local-pref than upstreams. Make sure a peering failure does not push all traffic onto a transit link that cannot take it: check capacity.
+
+## Operating a peering
+
+- Monitor the session state, prefix counts and port errors.
+- Watch **traffic asymmetry** and **port utilisation**; upgrade the port at 70%.
+- Handle maintenance notices: IXs announce work in advance.
+- Follow MANRS — its filtering, coordination and global-validation actions (see [BGP in ISP networks](/learn/routing/03-bgp-in-isp-networks)) apply directly at an IX port — and respond promptly to abuse and route-leak reports.
+
+## Common problems
+
+- Peer sends **more than the limit**: session shut down until they fix it.
+- **Leaked routes** because a peer forgot a filter: your own inbound filters protect you.
+- **Wrong next-hop** on route server routes when you have your own policy.
+- Asymmetric traffic causing stateful firewall drops: do not put stateful firewalls in the peering path.
+
+## Check yourself
+
+- Why does peering shorten the path and reduce transit bills, compared to sending the same traffic via an upstream?
+- What is PeeringDB actually for, and why would a network you want to peer with check it before agreeing?
+- Why should you never announce transit-learned routes to a peer?

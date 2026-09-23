@@ -1,0 +1,132 @@
+---
+title: "VLAN Trunks, Q-in-Q and MTU"
+track: "layer2"
+module: "2.5"
+order: 5
+duration: "40 min"
+summary: "How 802.1Q tags work, how to build trunk and access ports on a RouterOS bridge, how provider tagging (Q-in-Q) stacks tags, and why tags affect MTU."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation and the IANA EtherType registry"
+sources:
+  - title: "VLAN"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/88014957/VLAN"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Bridge VLAN Table"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/28606465/Bridge+VLAN+Table"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Bridge (bridge and bridge port properties)"
+    url: "https://help.mikrotik.com/docs/pages/viewpage.action?pageId=8323229"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Layer2 misconfiguration"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/19136718/Layer2+misconfiguration"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "IEEE 802 Numbers (EtherTypes)"
+    url: "https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml"
+    publisher: "IANA"
+    accessed: "2026-09-20"
+---
+
+import Challenge from '../../../components/Challenge';
+
+You met VLANs in [Switching and VLANs](/learn/foundations/04-switching-and-vlans) and built one in the [bridge lesson](/learn/mikrotik/02-bridge-and-vlans). This lesson looks at what happens on the wire, and at what an ISP does when its customers use VLANs too.
+
+## What a tag is
+
+IEEE 802.1Q defines how to insert a **four-byte** VLAN identifier into the Ethernet header. The identifier carries a **VLAN ID** from 1 to 4094. The frame's type field then carries `8100`, the **customer VLAN tag** value in the IANA registry, to say "a tag follows".
+
+MikroTik's documentation lists three IDs to avoid in ordinary designs: **0, 1 and 4095**, because IEEE 802.1Q reserves them for special uses. It matters, because VLAN **1** is also the default `pvid` of every bridge port, so leaving ports on their defaults puts them in VLAN 1. Pick other numbers for your VLANs (10, 20, 99), and use a different VLAN for management.
+
+## Access, trunk and hybrid ports
+
+| Port type | Carries | On a RouterOS bridge port |
+|---|---|---|
+| **Access** | One VLAN, untagged. For end devices | `pvid=<vlan>` and `frame-types=admit-only-untagged-and-priority-tagged` |
+| **Trunk** | Many VLANs, tagged. Between switches and routers | `frame-types=admit-only-vlan-tagged` |
+| **Hybrid** | Tagged and untagged together | Both tagged and untagged VLANs in the table, on one port |
+
+The **bridge VLAN table** lists, per VLAN, which ports carry it tagged and which untagged:
+
+```
+/interface bridge vlan
+add bridge=bridge1 tagged=ether1 untagged=ether2 vlan-ids=20
+add bridge=bridge1 tagged=ether1 untagged=ether3 vlan-ids=30
+```
+
+Three rules from MikroTik's documentation:
+
+1. **Enable VLAN filtering last.** Configure every port, PVID and table entry first, then run `/interface bridge set bridge1 vlan-filtering=yes`. Turn it on early and you can lock yourself out, because your own management path is not defined yet.
+2. **Never put several VLAN IDs on an access port.** It lets traffic leak between VLANs.
+3. **Use ingress filtering wherever you can.** The documentation says it "adds a significant layer of security":
+
+```
+/interface bridge port set [find where interface=ether1] ingress-filtering=yes
+```
+
+A **hybrid** port is useful for one case: a device that needs an untagged connection for its normal traffic, and a tagged VLAN for management.
+
+## Q-in-Q: tags inside tags
+
+A service provider carrying many customers, each of whom already uses VLANs, cannot make the customers' VLAN IDs unique. Provider bridging (**IEEE 802.1ad**, "Q-in-Q") adds a **second tag**. The outer tag is the **service tag (S-tag)**, which belongs to the provider. The inner tag is the customer's own **C-tag**.
+
+| Tag | Type value | Owner |
+|---|---|---|
+| Customer tag (C-tag) | `8100` | The customer |
+| Service tag (S-tag) | `88A8` | The provider |
+
+Inside the provider network only the S-tag matters. The customer's VLANs travel untouched and come out at the other end. The provider can give each customer, or each service area, one S-VLAN, and the customer can use all 4094 C-VLAN IDs inside it.
+
+On RouterOS there are two ways to do it:
+
+- **Stack VLAN interfaces.** The VLAN interface above another VLAN interface adds a second tag:
+
+  ```
+  /interface vlan
+  add name=vlan1 vlan-id=11 interface=ether1
+  add name=vlan2 vlan-id=12 interface=vlan1
+  ```
+
+  The `use-service-tag` property on a VLAN interface makes it use the IEEE 802.1ad service tag value.
+
+- **Let the bridge use the service tag.** The bridge's `ether-type` is the EtherType the bridge treats as marking a VLAN tag. It can be `0x8100` (the default), `0x88a8` or `0x9100`, and it only has an effect when `vlan-filtering` is on. Set to `0x88a8`, the bridge filters on service tags.
+
+Not every switch chip can filter on service tags in hardware. Check the chip's documentation before you design around it, and be ready for the CPU to do that work.
+
+The bridge port also has a `tag-stacking` property, which forces every ingress packet to be tagged, even if it already carries a tag. That is the "push an S-tag onto customer traffic" operation.
+
+Our design suggestion for an ISP: one **S-VLAN per service or area**, one **C-VLAN per customer** where you need per-customer isolation. Compare that with the [GPON VLAN models](/learn/isp-ops/02-gpon-config-troubleshooting).
+
+## Tags and MTU
+
+A tag adds four bytes, and so does a second tag. A frame that carries a full 1500-byte packet, plus the 14-byte Ethernet header, plus a 4-byte tag, is larger than the classic maximum. MikroTik notes that some hardware cannot handle that and suggests an MTU of **1496** as an alternative, at the cost of fragmenting larger packets.
+
+The better fix is to raise the **L2MTU** where the hardware allows. From MikroTik's own example:
+
+```
+/interface ethernet set ether1,ether2 l2mtu=9000
+/interface vlan set VLAN99 mtu=9000
+```
+
+Remember the rule from the first lesson: an Ethernet interface silently drops a frame that does not fit its L2MTU, and the symptom is that ping works while web pages do not. Every device on the path must agree, including the switches in the middle.
+
+## Two mistakes to avoid
+
+- **Do not create a VLAN interface on top of a bridge and bridge that VLAN interface into a second bridge.** MikroTik documents that it makes the bridge send tagged BPDUs, breaking 802.1w, and it disables hardware offloading on the second bridge.
+- **Do not bridge VLAN interfaces from different physical ports** together, because that creates a loop.
+
+<Challenge client:visible
+  question="Which tag type value identifies an IEEE 802.1ad service tag (S-tag)?"
+  options={["8100", "88A8", "0800", "8847"]}
+  answer={1}
+  explain="8100 is the customer VLAN tag (C-tag), 0800 is IPv4 and 8847 is MPLS. 88A8 is the service VLAN tag used by providers in Q-in-Q."
+/>
+
+## Check yourself
+
+- Why do MikroTik's docs advise avoiding VLAN 1, and what default makes it easy to end up there?
+- What is the difference between a trunk, an access and a hybrid port?
+- Why do you enable VLAN filtering last?
+- Why would a provider use Q-in-Q instead of letting each customer choose VLAN IDs?

@@ -1,0 +1,39 @@
+---
+title: "VPLS: Layer 2 VPN Services"
+track: "mpls"
+module: "13.3"
+order: 3
+duration: "35 min"
+summary: "Making two or more customer sites, anywhere on the provider's MPLS core, behave like they share one Ethernet switch."
+status: "sourced"
+verifiedAgainst: "RFC 4762"
+sources:
+  - title: "RFC 4762: Virtual Private LAN Service (VPLS) Using Label Distribution Protocol (LDP) Signaling"
+    url: "https://www.rfc-editor.org/rfc/rfc4762"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+---
+
+## What VPLS provides
+
+**VPLS (Virtual Private LAN Service)** makes several geographically separate customer sites appear to share a single Ethernet broadcast domain, over an MPLS core the customer never sees. From the customer's point of view, plugging a switch into the provider's handoff at each site looks exactly like plugging into a port on the same physical switch, no matter how many hundreds of kilometres of provider network sit in between. This is the direct MPLS-era answer to a problem the Layer 2 in Depth track's VLAN lessons solve only within one building or campus: VPLS is what a VLAN becomes at the scale of an ISP's entire footprint.
+
+## How it actually works: pseudowires
+
+A VPLS instance is built from **pseudowires**: an MPLS label-switched path between every pair of the provider's edge routers (PEs) serving that VPLS customer, each pseudowire carrying that customer's Ethernet frames as MPLS payload. The customer's Ethernet frame gets wrapped in a second (inner) label identifying the specific pseudowire and VPLS instance, then that whole package gets label-switched across the core using the outer LDP-distributed label from the previous lesson — this is label stacking, the S bit from lesson 1 finally doing real work.
+
+Each PE serving a VPLS instance needs a pseudowire to every other PE serving that same instance — a full mesh. With N provider edges serving one customer, that's `N × (N-1) / 2` pseudowires, which is fine for a handful of sites and becomes an administrative burden at larger scale (a limitation later technologies such as EVPN, covered from a data-centre angle in the Data Centre and Cloud track, address directly).
+
+## MAC learning still happens — just over pseudowires
+
+A VPLS instance behaves like a real switch in one more important way: each PE learns customer MAC addresses on the pseudowires the same way a real bridge learns MACs on physical ports (the Layer 2 in Depth track's bridging lesson). A frame for an unknown destination MAC is flooded out every pseudowire in the instance except the one it arrived on, exactly like an unknown unicast flood on a real switch — split-horizon across pseudowires (never re-flood back out the pseudowire it entered on) is what prevents loops in the full mesh without needing spanning tree between PEs.
+
+## Why a customer would want this over a router-based VPN
+
+A customer with, say, a central office and three branch offices running their own internal routing, VoIP or broadcast-dependent legacy applications across all four sites might specifically want them to look like one LAN rather than four separately-routed sites joined by a router-based VPN (the next lesson's topic) — VPLS is the choice when the customer wants Layer 2 transparency, not Layer 3 separation.
+
+## Check yourself
+
+- What does a customer plugging into a VPLS handoff at two different cities actually experience, compared to plugging into two ports on the same switch?
+- Why does a VPLS instance need a full mesh of pseudowires between PEs, not just a chain?
+- What prevents a Layer 2 loop across a full mesh of pseudowires, given there's no spanning tree running between the PEs?

@@ -1,0 +1,80 @@
+---
+title: "Exports, Diffs and Version Control"
+track: "config"
+module: "8.2"
+order: 2
+duration: "35 min"
+summary: "Keep readable copies of every router configuration, see exactly what changed between two dates, and restore from them."
+---
+
+## Two kinds of copy
+
+RouterOS gives you two ways to save a configuration:
+
+| Feature | Backup | Export |
+|---|---|---|
+| Command | `/system backup save name=before-change` | `/export file=before-change` |
+| Format | Binary | Readable text (`.rsc`) |
+| Restore on | The same device | Any RouterOS device (after review) |
+| Can you read it? | No | Yes |
+| Contains passwords | Yes (protect it) | Not by default in newer versions |
+
+Keep both: a backup to rebuild the same router quickly, and an export to read, compare and reuse.
+
+## What an export looks like
+
+An export lists only settings that differ from the defaults, grouped by menu, with properties in alphabetical order. This site's browser lab prints exports in the same layout, so you can practise reading one:
+
+```
+/ip address
+add address=10.0.12.1/30 comment=uplink interface=ether1 network=10.0.12.0
+/ip route
+add dst-address=0.0.0.0/0 gateway=10.0.12.2
+/system identity
+set name=edge-r2
+```
+
+Long lines wrap with a backslash. `/export terse` puts one complete command on each line, which is the form to use when you compare or search.
+
+You can export one menu only, for example `/ip firewall filter export`, which is handy in a change note.
+
+## The diff habit
+
+Save an export before and after each change and compare the two. On a computer with `diff` or a code editor, differences show as added and removed lines:
+
+```
+- add chain=input action=accept in-interface=ether2
++ add chain=input action=accept in-interface=ether2 comment=admin
+```
+
+A diff answers "what did I really change?" and "what changed since last week when nobody says they changed anything?"
+
+## Version control
+
+Put the exports in a git repository, one file per router:
+
+1. Copy `name.rsc` from each router regularly (a scheduled job, next lessons).
+2. Commit with a message such as "edge-r2: allow SNMP from monitor".
+3. Read history with `git log -p` to see who changed what and when.
+
+You get an audit trail, easy rollback of a single file, and a second copy off the router.
+
+## Restore
+
+To apply an export:
+
+```
+/import file-name=before-change.rsc verbose=yes
+```
+
+`verbose=yes` shows each line as it runs so you see the first error. An import applies commands on top of the current configuration, it does not erase what is there. For a clean rebuild, reset the router with no default configuration first and then import.
+
+## Protect the files
+
+Exports and backups reveal your network. Store them where only admins can read them, and never post an unedited export publicly: remove keys, secrets and public addresses first.
+
+## Check yourself
+
+- Why keep an export as well as a backup?
+- What does `verbose=yes` add to an import?
+- What can you learn from `git log -p` on a config repository?

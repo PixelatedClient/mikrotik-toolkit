@@ -1,0 +1,63 @@
+---
+title: "Requirements and Site Survey"
+track: "design"
+module: "7.1"
+order: 1
+duration: "30 min"
+summary: "Turn what the customer says into numbers you can design against: users, applications, uptime, growth and budget."
+---
+
+## Design starts with questions, not routers
+
+A design is a promise: "this network will do X for Y users at Z availability." You can only keep that promise if you write X, Y and Z down before you buy anything. Most bad networks were not built badly. They were built for the wrong requirements.
+
+Ask, in this order:
+
+1. **Who uses it?** Count users and devices today, and guess the count in three years. Phones, cameras and printers count as devices.
+2. **What do they run?** Web and email are light. Video calls, backups, cameras and VoIP need bandwidth or low delay, and some need to stay up even when the internet does not.
+3. **How much downtime is acceptable?** A shop that closes at night can survive a night repair. A clinic cannot. Availability targets drive how much redundancy you pay for.
+4. **What must be kept apart?** Guests from staff, cameras from the office, payment devices from everything.
+5. **What is the budget and who will run it?** A network nobody can operate is a bad design, however elegant.
+
+## Turn answers into numbers
+
+| Requirement | Number you design with |
+|---|---|
+| Users and devices | Hosts per segment, now and in 3 years |
+| Applications | Peak bandwidth per segment and to the internet |
+| Availability | Allowed downtime per year |
+| Separation | Number of segments (VLANs) |
+| Growth | Spare addresses and spare ports (aim for 30 to 50 percent) |
+
+A useful rule: **design for the peak, plan for the growth, and write the assumptions down.** When something changes later, you can see which assumption broke.
+
+Availability is easier to feel as time. Allowed downtime per year: 99 percent is about 3.7 days, 99.9 percent about 8.8 hours, 99.99 percent about 53 minutes.
+
+## The site survey
+
+Before drawing anything, walk the site. Note:
+
+- where the internet arrives and where power is available,
+- cable routes, distances and what is already installed,
+- rooms that will hold equipment, and how they are cooled and locked,
+- where wireless is needed and what could block it,
+- who owns each decision (landlord, ISP, security).
+
+Take photos. A simple table of rooms, devices and cable runs is worth more than a beautiful diagram made later from memory.
+
+## A worked example
+
+A dental clinic with 3 floors: 25 staff, 8 treatment rooms, a reception, guests waiting, 6 cameras and one X-ray server. It cannot lose patient records and must open every day.
+
+- Segments: staff, clinical devices, guest, cameras, servers, management (6).
+- Hosts: staff 60 devices, clinical 20, guest 40, cameras 6, servers 4, management 10. Add growth and round up.
+- Availability: two internet links (fibre plus a backup 4G link) and a spare router, because a day of downtime costs real appointments.
+- Uptime for the X-ray server: UPS power and a nightly backup that is tested.
+
+You now have a list you can turn into an address plan, VLANs and a redundancy design. The next lessons do exactly that.
+
+## Check yourself
+
+- What is the difference between a requirement and a solution? ("We need two firewalls" is a solution. "We cannot be down for more than an hour" is a requirement.)
+- Why write assumptions down?
+- What does 99.9 percent availability allow per year?

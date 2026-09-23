@@ -1,0 +1,102 @@
+---
+title: "DDoS Mitigation Basics"
+track: "isp-ops"
+module: "6.8"
+order: 8
+duration: "40 min"
+summary: "Recognise common attacks, prepare in advance, and use blackholing and filtering when it happens."
+status: "sourced"
+verifiedAgainst: "RFC 2827 (BCP 38)"
+sources:
+  - title: "RFC 2827 / BCP 38: Network Ingress Filtering"
+    url: "https://www.rfc-editor.org/rfc/rfc2827"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "MANRS for Network Operators"
+    url: "https://manrs.org/netops/"
+    publisher: "MANRS"
+    accessed: "2026-09-22"
+---
+
+## What a DDoS is
+
+A **distributed denial of service** attack overwhelms a target with traffic or requests from many sources. For an ISP it has two faces: your customers can be victims, and your customers' devices can be the source.
+
+### Common types
+
+| Type | Idea | Example |
+|---|---|---|
+| **Volumetric** | Fill the pipe | UDP floods, DNS/NTP/memcached **amplification** |
+| **Protocol** | Exhaust state | SYN floods, fragment floods |
+| **Application** | Overload a service | HTTP request floods |
+
+**Reflection and amplification** send small spoofed requests to open servers, which reply with much bigger responses to the victim. It only works because some networks allow **spoofed source addresses**.
+
+## Prepare before an attack
+
+1. **Know your capacity**: upstream link sizes and how much traffic your edge can process.
+2. **Have visibility**: flow data to spot the spike and the targeted address. See [network monitoring](/learn/isp-ops/03-network-monitoring).
+3. **Agree procedures**: who decides, who acts, who talks to customers.
+4. **Know your upstream's tools**: blackhole communities, scrubbing services, a 24x7 contact.
+5. **Harden your own devices**: input chain drops by default, so attackers cannot take your routers down.
+
+## Stop being a source: anti-spoofing (BCP38)
+
+The most useful thing every ISP can do for the rest of the internet: **do not let customers send packets with a source address they do not own.** This is BCP 38 (RFC 2827), which recommends filtering at exactly this point — the customer-facing edge — so "packets claiming to originate from outside the customer's assigned address ranges" are dropped rather than forwarded. It also makes real attacks easier to trace: an attacker forced to use their own real address can't hide behind a forged one.
+
+```
+/ip firewall filter add chain=forward action=drop in-interface=bridge-customers \
+    src-address=!198.51.100.0/24 comment="customers may only use our prefix"
+```
+
+Another option is **unicast reverse path filtering** on edge interfaces, which drops packets whose source has no valid route back through that interface.
+
+Also do not run **open resolvers** or open NTP servers.
+
+## Tools during an attack
+
+### Remotely triggered blackhole (RTBH)
+
+Attack traffic to one victim IP fills your upstream link and harms all customers. **Blackholing** asks the upstream to drop all traffic to that address, using a special BGP community. The victim is offline, but everyone else stays up. Use it as a last resort.
+
+### Rate limiting and filtering
+
+If the attack has a clear signature, filter on the edge:
+
+```
+/ip firewall raw add chain=prerouting action=drop protocol=udp src-port=123 \
+    dst-address=198.51.100.10 comment="NTP amplification to victim"
+```
+
+`raw` drops happen before connection tracking, so they cost little CPU.
+
+Limit connection rates to protect services:
+
+```
+/ip firewall filter add chain=input action=drop protocol=tcp connection-limit=100,32 \
+    comment="too many connections from one source"
+```
+
+### Scrubbing
+
+A scrubbing service or on-premises appliance receives traffic for the victim (by BGP announcement or DNS change), removes attack traffic, and returns clean traffic. It is the right answer for sustained, large attacks, and needs a contract *before* the attack.
+
+## During the incident
+
+1. Confirm it is an attack, not a flash crowd or a fault.
+2. Identify the **target** and the **type**.
+3. Protect the rest of the network first (blackhole if needed).
+4. Apply specific filters and communicate with the customer.
+5. Write down times, actions and effects.
+
+## After
+
+- Remove blackholes and temporary filters.
+- Review: what did we see late, what was slow, what would have helped?
+- Improve alerts, runbooks, and upstream agreements.
+
+## Check yourself
+
+- Why does reflection/amplification only work if some network out there allows spoofed source addresses?
+- What does BCP 38 filtering actually check, and where should it be applied?
+- Why is blackholing a victim's address described as "a last resort," even though it works?

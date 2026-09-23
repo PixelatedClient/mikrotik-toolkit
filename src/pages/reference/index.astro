@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import ReferenceHub from '../../components/game/ReferenceHub';
+---
+<Base title="Reference" description="A checked MikroTik RouterOS command reference and a ports reference, with quizzes: what does this command do, build the command, which port.">
+  <div class="mx-auto max-w-4xl px-4 py-10 sm:px-6">
+    <h1 class="text-2xl font-bold">Reference</h1>
+    <p class="mt-3 max-w-2xl text-muted">Commands and ports you will use on the job, each checked against its source, with quick quizzes to make them stick.</p>
+    <div class="mt-8"><ReferenceHub client:load /></div>
+  </div>
+</Base>

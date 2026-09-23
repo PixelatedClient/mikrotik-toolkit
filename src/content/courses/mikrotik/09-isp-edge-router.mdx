@@ -1,0 +1,101 @@
+---
+title: "ISP Edge Router Design"
+track: "mikrotik"
+module: "3.9"
+order: 9
+duration: "50 min"
+summary: "What an ISP edge router must do: BGP to upstreams, customer aggregation, filtering and protection."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation and this project's own GNS3 verification on real RouterOS 7.16"
+sources:
+  - title: "BGP"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328220/BGP"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "RFC 1918: Address Allocation for Private Internets"
+    url: "https://www.rfc-editor.org/rfc/rfc1918"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "BGP Routing Table Analysis Reports"
+    url: "https://bgp.potaroo.net/index-bgp.html"
+    publisher: "APNIC (Geoff Huston)"
+    accessed: "2026-09-22"
+---
+
+Most of this lesson's checklist (hardware sizing questions, the two-upstream policy, the protection checklist, the operations habits) is this project's own design guidance for running an edge router safely, not a rule quoted from MikroTik's documentation — it draws on the same BGP mechanics (distance, dynamic AS learning, instance vs template) already sourced in [Routing: Static, OSPF and BGP Intro](/learn/mikrotik/03-routing-static-ospf-bgp) and this project's own real-router BGP testing.
+
+## The job of the edge
+
+The edge router sits between your network and the rest of the internet. It has four responsibilities:
+
+1. **Carry BGP** to one or more upstreams and announce your prefixes.
+2. **Aggregate customers** and route traffic to them.
+3. **Protect itself and you**: filters, anti-spoofing, rate limits.
+4. **Stay up**: redundancy and monitoring.
+
+The [config generator](/tools/mikrotik-config-generator) ISP edge role builds the single-upstream baseline. This lesson explains the decisions around it.
+
+## Sizing the hardware
+
+A router's limits are **packets per second** and **routing table size**, not just megabits.
+
+| Question | Why it matters |
+|---|---|
+| Full table or default route only? | A full IPv4 table is roughly 1.1 million routes as of this writing (checked against the live count, which only grows over time). It needs enough RAM and CPU for convergence. |
+| Peak Mbps and pps? | Small packets cost more CPU per bit. Size for pps. |
+| Number of BGP sessions? | Each adds memory and update processing. |
+
+If you cannot afford a full table, take **default route plus your upstream's customer routes**, or a partial table. Many small ISPs run on a default route from each of two upstreams.
+
+## Loopback and router ID
+
+Use a loopback-style address for the router ID and iBGP, so sessions survive a physical link failure:
+
+```
+/interface bridge add name=loopback
+/ip address add address=192.0.2.1/32 interface=loopback
+# then create a BGP instance with router-id=192.0.2.1 and your AS, and reference it from each connection
+```
+
+## Two upstreams
+
+With two providers you need policy, not just connectivity:
+
+- Prefer one for outbound with a higher **local-pref**.
+- Announce your prefix to both, and use **AS-path prepending** on the backup so inbound prefers the primary.
+- Never re-announce one upstream's routes to the other, or you become an accidental transit network. Your outbound filter (only your own prefixes) prevents that.
+
+Details are in the Advanced Routing track: [BGP in ISP networks](/learn/routing/03-bgp-in-isp-networks).
+
+## Customer aggregation
+
+Customers connect by VLAN, PPPoE or routed handoff. Regardless of method:
+
+- Give each customer a **/32 or a small block** and route it to them.
+- **Summarise** in BGP: announce your /22 or /24 aggregate, not thousands of /32s.
+- Enforce anti-spoofing on the customer side: drop packets whose source is not the customer's prefix.
+
+## Protection checklist
+
+- Input chain: drop by default; BGP only from peers; management only from a trusted list.
+- BGP filters on input and output.
+- Bogon and martian filtering on the upstream port — nothing claiming to originate from an RFC 1918 private range, or from your own prefixes, should ever arrive from the internet side.
+- Disable unused services and neighbour discovery on the WAN.
+- Rate-limit ICMP and connection attempts to the router.
+
+## Operations
+
+- Back up the export: `/export file=edge-backup` (then copy the file off the router).
+- Monitor BGP sessions, interface errors, CPU, and the temperature.
+- Keep a **console path** that does not depend on the router being healthy.
+- Change on a maintenance window, and use safe mode.
+
+## Exercise
+
+Generate an ISP edge config, then write down: what happens when the upstream link drops? Which of your customers are affected, and how would you make it survive? That question leads to the second upstream and the next track.
+
+## Check yourself
+
+- Why does a router's packet-per-second limit matter separately from its raw megabit throughput?
+- Why should you never re-announce one upstream's routes to the other?
+- Why should traffic claiming to come from an RFC 1918 range never be accepted on the upstream-facing port?

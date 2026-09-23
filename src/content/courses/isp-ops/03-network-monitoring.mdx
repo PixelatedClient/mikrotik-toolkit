@@ -1,0 +1,87 @@
+---
+title: "Network Monitoring: NetFlow, sFlow and Akvorado"
+track: "isp-ops"
+module: "6.3"
+order: 3
+duration: "45 min"
+summary: "See who is using your network with flow data, and how Akvorado turns it into answers."
+status: "sourced"
+verifiedAgainst: "RFC 7011 and the sFlow.org / Wikipedia sFlow protocol description"
+sources:
+  - title: "RFC 7011: Specification of the IP Flow Information Export (IPFIX) Protocol"
+    url: "https://www.rfc-editor.org/rfc/rfc7011"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "sFlow"
+    url: "https://en.wikipedia.org/wiki/SFlow"
+    publisher: "Wikipedia"
+    accessed: "2026-09-22"
+---
+
+## Counters versus flows
+
+- **Counters** (SNMP): how many bits crossed an interface. Tells you *how much*.
+- **Flows**: records of conversations (source, destination, ports, bytes). Tells you *who and what*.
+
+You need both. Counters tell you the link is full; flows tell you which customer or service filled it.
+
+## Flow protocols
+
+| Protocol | Notes |
+|---|---|
+| **NetFlow v5** | Fixed format, IPv4 only, old |
+| **NetFlow v9 / IPFIX** | RFC 7011 describes IPFIX as template-based — "templates greatly enhance the flexibility of the record format" — with native IPv6 support; IPFIX is the IETF standard |
+| **sFlow** | Randomly samples **packets** ("1 out of n") rather than aggregating full flows like NetFlow/IPFIX; low CPU by design; common on switches |
+
+The exporter (router or switch) sends records to a **collector**. High-speed links use **sampling** (e.g. 1 in 1000 packets) so the router is not overloaded. Multiply counts back by the rate to estimate totals.
+
+## Exporting from a MikroTik
+
+RouterOS supports NetFlow v5, v9 and IPFIX (not sFlow):
+
+```
+/ip traffic-flow set enabled=yes interfaces=ether1 cache-entries=128k
+/ip traffic-flow target add dst-address=192.0.2.50 port=2055 version=9
+```
+
+Export on the interfaces that see the traffic you care about (usually the upstream and IX ports) and be careful of exporting the same flow twice on both ingress and egress.
+
+## Akvorado
+
+**Akvorado** is an open-source flow collector, enricher and web console. It receives NetFlow, IPFIX or sFlow, adds context, stores the result in a fast column database, and lets you slice traffic in a browser.
+
+Rough architecture:
+
+1. **Inlet**: receives flow packets, decodes them, and pushes them to Kafka.
+2. **Kafka**: buffers so bursts do not lose data.
+3. **Orchestrator / outlet**: enriches records and inserts them into **ClickHouse**.
+4. **Console**: the web UI that queries ClickHouse.
+
+Enrichment adds what raw flows lack:
+
+- **SNMP** names for exporters and interfaces, so you see `upstream-A` instead of an interface index.
+- **GeoIP and ASN** data: which country and which AS the traffic is to.
+- **Classification rules**: label interfaces as *transit*, *peering*, *customer*, and set their boundary (external or internal).
+
+Once interfaces are classified you can ask direct questions: *top ASNs on transit*, *traffic to a given AS over the last day*, *which customers use the most*, *what changed at 20:00*.
+
+## What to look for
+
+- **Peering decisions**: large traffic to an AS you buy transit for is a candidate for direct peering. See [peering and IX](/learn/isp-ops/06-peering-and-ix).
+- **DDoS**: a sudden spike to one destination, from many sources. See [DDoS mitigation](/learn/isp-ops/08-ddos-mitigation-basics).
+- **Capacity planning**: growth of top services over months.
+- **Abuse**: a customer sending huge volumes of outbound traffic, or scanning.
+
+## Practical tips
+
+- Use consistent **sampling rates** across exporters, or normalise.
+- Sync time with **NTP** everywhere; flow analysis across devices needs it.
+- Retain raw flows short-term and aggregated data long-term to control storage.
+- Protect the collector: restrict the UDP port to your exporters.
+- Keep the flow export off the customer VLANs.
+
+## Check yourself
+
+- Why do counters and flows answer different questions, and why do you need both?
+- What does IPFIX's template-based format let a collector do that a fixed format like NetFlow v5 cannot?
+- Why is sFlow lower overhead than NetFlow/IPFIX, and what do you lose by using it?

@@ -1,0 +1,13 @@
+---
+import Base from '../../layouts/Base.astro';
+import WorldMap from '../../components/game/WorldMap';
+import PixelHero from '../../components/PixelHero.astro';
+---
+<Base title="Play" description="Fix subnets, lay routes and write firewall rules to clear levels, earn stars and beat the bosses. Real networking, played like a game.">
+  <div class="max-h-56 overflow-hidden"><PixelHero /></div>
+  <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+    <h1 class="text-2xl font-bold">World map</h1>
+    <p class="mt-3 max-w-2xl text-muted">Pick a level. Every puzzle uses the same rules real routers use, and the commands you build are real MikroTik RouterOS.</p>
+    <div class="mt-8"><WorldMap client:load /></div>
+  </div>
+</Base>

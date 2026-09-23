@@ -1,0 +1,24 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import { Ipv6Calculator } from '../../components/calc/SmallCalculators';
+import { SRC } from '../../data/toolSources';
+---
+<ToolPage
+  title="IPv6 Calculator"
+  description="Expand and compress IPv6 addresses to the standard shortest form, calculate the network, count /64 subnets, and split prefixes."
+  heading="IPv6 calculator"
+  intro="Paste any IPv6 address to see its shortest and full forms, its network and range, what kind of address it is, and how it splits into subnets."
+  narrow={true}
+  sources={[
+    SRC.v6arch,
+    SRC.v6text,
+    SRC.ula,
+    SRC.v6doc,
+  ]}
+  related={[
+    { href: '/practice/ipv6', label: 'Practice IPv6' },
+    { href: '/learn/isp-ops/09-ipv6-deployment', label: 'Lesson: IPv6 deployment' },
+  ]}
+>
+  <Ipv6Calculator client:load />
+</ToolPage>

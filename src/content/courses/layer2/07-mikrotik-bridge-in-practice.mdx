@@ -1,0 +1,153 @@
+---
+title: "The MikroTik Bridge in Practice"
+track: "layer2"
+module: "2.7"
+order: 7
+duration: "45 min"
+summary: "Put it together: build a redundant switched network with RSTP and bonding on RouterOS, check hardware offloading, and read what the bridge tells you."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS v7 documentation"
+sources:
+  - title: "Bridging and Switching"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328068/Bridging+and+Switching"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Bridge (bridge and bridge port properties)"
+    url: "https://help.mikrotik.com/docs/pages/viewpage.action?pageId=8323229"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Spanning Tree Protocol"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/21725254/Spanning+Tree+Protocol"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Bonding"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/8323193/Bonding"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+  - title: "Layer2 misconfiguration"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/19136718/Layer2+misconfiguration"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-20"
+---
+
+The earlier lessons covered the ideas. This one is the workflow: how you would actually build, verify and troubleshoot a redundant Layer 2 network on RouterOS.
+
+## The RouterOS bridge in one page
+
+A RouterOS **bridge** is a virtual switch inside the router. You add ports to it, and it learns MAC addresses, floods unknown traffic, runs spanning tree, and can filter VLANs. Its bridge interface can also carry an IP address, which is how you reach the switch itself.
+
+Useful defaults from the documentation:
+
+| Setting | Default |
+|---|---|
+| `protocol-mode` | `rstp` |
+| Bridge priority | `32768` (`0x8000`) |
+| `ageing-time` | 5 minutes |
+| `forward-delay` / `max-message-age` | 15 s / 20 s |
+| `vlan-filtering` | `no` |
+| Port `pvid` | `1` |
+| Port `edge`, `point-to-point` | `auto` |
+
+The bridge's **L2MTU** is the lowest of its ports and cannot be set by hand. Its MAC address is taken from a port unless you fix it with `admin-mac`.
+
+## Hardware offloading
+
+Many MikroTik devices have a **switch chip**. When a bridge port has `hw=yes` (the default), the chip forwards frames at wire speed, without involving the CPU. That is why a small switch can move gigabits with almost no load.
+
+Some features force traffic through the CPU instead, and the documentation lists them: **DHCP and DHCPv6 snooping**, **IGMP snooping**, **split horizon** (the `horizon` property), and VLAN configurations the chip does not support. Only one bridge can be hardware-offloaded on many models, so a second bridge on the same device runs in software.
+
+You see the result in the port list: hardware-offloaded ports carry an **H** flag. If it is missing where you expect it, look at which of the features above you have enabled.
+
+```
+/interface bridge port print
+```
+
+For bonds, only 802.3ad, balance-xor and active-backup can be offloaded. See the [bonding lesson](/learn/layer2/04-link-aggregation-and-bonding).
+
+## Build: three switches, RSTP and a bond
+
+Here is the design. Three switches are connected in a triangle. `SW1` is the intended root, `SW2` is the backup root, and `SW3` is a leaf. A customer PC connects to `SW3`.
+
+Step 1: create the bridge on each switch, with the priority that matches its role:
+
+```
+# SW1 (root)
+/interface bridge add name=bridge1 protocol-mode=rstp priority=0x1000
+# SW2 (backup root)
+/interface bridge add name=bridge1 protocol-mode=rstp priority=0x2000
+# SW3 (leaf, default priority)
+/interface bridge add name=bridge1 protocol-mode=rstp
+```
+
+Step 2: add the inter-switch ports to the bridge, and the user port as an edge port:
+
+```
+/interface bridge port add bridge=bridge1 interface=ether1
+/interface bridge port add bridge=bridge1 interface=ether2
+/interface bridge port add bridge=bridge1 interface=ether3 edge=yes bpdu-guard=yes
+```
+
+Step 3: give each switch a management address on the bridge, so you can reach it:
+
+```
+/ip address add address=10.20.0.1/24 interface=bridge1
+```
+
+Step 4: if a link needs more capacity, bond it *before* adding it to the bridge, then add the bond instead of its members:
+
+```
+/interface bonding add name=bond1 mode=802.3ad slaves=ether4,ether5 transmit-hash-policy=layer-2-and-3
+/interface bridge port add bridge=bridge1 interface=bond1
+```
+
+Step 5: **turn on protection last**. Enable `vlan-filtering` only after your VLAN table is complete, exactly as in the [VLAN lesson](/learn/layer2/05-vlan-trunks-qinq-and-mtu).
+
+Work in Safe Mode (see [first access](/learn/mikrotik-ops/01-first-access-and-cli)), because a mistake in a bridge can cut off your own management path.
+
+## Verify
+
+```
+/interface bridge monitor bridge1
+/interface bridge port monitor [find]
+/interface bridge host print
+/interface bridge port print
+```
+
+- The **bridge monitor** shows the `root-bridge` and this switch's `root-port`. Check that the root is the switch you intended. If it is not, a priority is wrong.
+- The **port monitor** shows each port's `role` (root, designated, alternate, backup) and whether it is `forwarding`.
+- The **host table** shows what the bridge has learned. A MAC address that keeps moving between ports is the sign of a loop.
+- The **port list** shows the hardware offload flag.
+
+Now test failure. Pull one inter-switch cable and watch the alternate port take over. With RSTP the interruption should be short. Ping a device continuously while you do it, and count the lost replies.
+
+## Troubleshooting checklist
+
+Map the symptom to the lesson:
+
+| Symptom | Look at |
+|---|---|
+| Network slows to a crawl, every link busy | A loop. Look for a MAC flapping between ports, and for missing or mismatched spanning tree |
+| Ports blocked by RSTP, ports flapping | Bridging that violates 802.1w, such as tagged BPDUs from a VLAN interface bridged into a second bridge |
+| Ping works, large transfers or web pages fail | MTU or L2MTU on some device in the path |
+| The wrong switch is root | Bridge priorities. Set them deliberately |
+| Bridge slower than expected | Hardware offload missing: check the H flag and the features that disable it |
+| One VLAN cannot cross a link | The trunk's tagged list, the port's `frame-types`, and `ingress-filtering` |
+| One user cannot get an address | DHCP snooping: is the port to the DHCP server marked `trusted`? |
+| An access port went down by itself | BPDU Guard or loop protect. Check the log, and find the device that caused it |
+
+MikroTik suggests using its sniffer with a MAC filter to follow a suspicious frame, for example a broadcast that returns on another port:
+
+```
+/tool sniffer set filter-mac-address=4C:5E:0C:4D:12:44/FF:FF:FF:FF:FF:FF filter-interface=ether1
+```
+
+## Do it in the lab
+
+The [RSTP triangle lab](/labs/rstp-triangle) builds exactly this on three CHR switches: predict the root and the blocked port, verify them, cut a link, and measure the outage. The [spanning tree lab](/tools/stp-lab) lets you rehearse the calculation first.
+
+## Check yourself
+
+- What does the H flag on a bridge port tell you, and name two features that remove it.
+- Which command tells you which switch is the root, and which tells you a port's role?
+- Why should a bond, not its members, be added to the bridge?
+- Why do you enable VLAN filtering only after the VLAN table is complete?

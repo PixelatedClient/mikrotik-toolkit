@@ -1,0 +1,20 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import { BinaryCalculator } from '../../components/calc/SmallCalculators';
+import { SRC } from '../../data/toolSources';
+---
+<ToolPage
+  title="Binary, Hex and Decimal Calculator"
+  description="Convert numbers between binary, decimal, hexadecimal and octal, and see an IPv4 address and mask in binary."
+  heading="Binary calculator"
+  intro="Convert between number bases, and see where the network bits of an IPv4 address end and the host bits begin."
+  narrow={true}
+  sources={[
+  ]}
+  related={[
+    { href: '/practice/masks', label: 'Practice masks' },
+    { href: '/tools/subnet-calculator', label: 'Subnet calculator' },
+  ]}
+>
+  <BinaryCalculator client:load />
+</ToolPage>

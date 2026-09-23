@@ -1,0 +1,68 @@
+---
+title: "Git for Configuration"
+track: "automation"
+module: "10.1"
+order: 1
+duration: "30 min"
+summary: "Treat router configs like code: a history you can read, compare and roll back, using the same tool software teams already rely on."
+status: "sourced"
+verifiedAgainst: "Pro Git book and Git documentation"
+sources:
+  - title: "Pro Git: About Version Control"
+    url: "https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control"
+    publisher: "Git (git-scm.com)"
+    accessed: "2026-09-23"
+  - title: "Pro Git: Git Branching — Branches in a Nutshell"
+    url: "https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell"
+    publisher: "Git (git-scm.com)"
+    accessed: "2026-09-23"
+---
+
+## Why version control, not just backups
+
+The Configuration Techniques track already covers exporting configs and diffing them by hand. Git turns that habit into a system: every export becomes a commit, with a message explaining why, a timestamp, and an author. You get for free what a folder of dated files gives you only with discipline: a searchable history, a way to see exactly what changed between any two points, and a safe way to undo a specific change without undoing everything after it.
+
+## The core commands
+
+A small, repeatable loop covers almost everything you need day to day:
+
+```
+git init                     # once, to start a repository
+git add router1.rsc          # stage a changed file
+git commit -m "router1: add guest VLAN"
+git log --oneline            # see the history
+git diff HEAD~1 HEAD         # see exactly what changed in the last commit
+```
+
+For a fleet of routers, one file per device in one repository works well: `router1.rsc`, `router2.rsc`, and so on, all exported the same way and committed after every change.
+
+## Branches for risky changes
+
+A branch is a parallel line of history. Instead of testing a risky change directly against your main record, branch first:
+
+```
+git checkout -b try-new-firewall
+# make the change, test it, export the new config
+git add router1.rsc
+git commit -m "router1: tighter input chain (testing)"
+```
+
+If it works, merge the branch back. If it does not, the main branch never saw the failed attempt, and switching back to it is instant.
+
+## Reading history
+
+`git log -p` shows every commit with its full diff, which is the fastest way to answer "when did this rule appear, and why." `git blame router1.rsc` shows which commit last touched each line, useful for finding who (or what change) introduced a specific rule.
+
+## What not to commit
+
+Passwords, API keys and private certificates should never go into a Git repository, because history keeps them even after you "remove" them in a later commit — the earlier commit still has them. Keep secrets in a password manager or a secrets store, and reference them in configs by name only, or strip them from exports before committing (the earlier note about not posting an unedited export applies here too).
+
+## Where this fits with the other tools
+
+Git is the natural home for the templates from the Configuration Techniques track's templating lesson: one repository holding the baseline, one branch per role or per site's differences, and a clear history of every change made to the fleet.
+
+## Check yourself
+
+- What does a branch let you do that committing directly to your main history does not?
+- Why can't you fully remove a secret from a Git repository just by deleting it in a later commit?
+- What command shows exactly what changed in one specific commit?

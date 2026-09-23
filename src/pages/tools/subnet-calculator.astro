@@ -1,0 +1,25 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import SubnetCalculator from '../../components/SubnetCalculator';
+import { SRC } from '../../data/toolSources';
+---
+<ToolPage
+  title="IPv4 Subnet Calculator"
+  description="Free IPv4 subnet calculator that shows its working: network, broadcast, mask, wildcard, host range, binary view and subnet splitting."
+  heading="IPv4 subnet calculator"
+  intro="Enter an address with a prefix. You get every value, the binary view, and the step-by-step working, so you learn how to do it by hand. /31 links (RFC 3021) and /32 hosts are handled correctly."
+  narrow={true}
+  sources={[
+    SRC.cidr,
+    SRC.p2p,
+    SRC.private,
+  ]}
+  related={[
+    { href: '/practice/subnetting', label: 'Practice subnetting' },
+    { href: '/tools/cidr-calculator', label: 'CIDR calculator' },
+    { href: '/tools/vlsm-calculator', label: 'VLSM calculator' },
+    { href: '/learn/foundations/02-ip-addressing-subnetting', label: 'Lesson: IP addressing and subnetting' },
+  ]}
+>
+  <SubnetCalculator client:load />
+</ToolPage>

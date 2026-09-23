@@ -1,0 +1,21 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import { RangeToCidrCalculator } from '../../components/calc/SmallCalculators';
+import { SRC } from '../../data/toolSources';
+---
+<ToolPage
+  title="IP Range to CIDR Calculator"
+  description="Convert a start and end IPv4 address into the smallest list of CIDR blocks that covers exactly that range."
+  heading="IP range to CIDR"
+  intro="Turn a range like 192.168.1.10 to 192.168.1.200 into the smallest exact list of prefixes, for firewall rules and prefix lists."
+  narrow={true}
+  sources={[
+    SRC.cidr,
+  ]}
+  related={[
+    { href: '/tools/route-summarization-calculator', label: 'Route summarization' },
+    { href: '/tools/subnet-calculator', label: 'Subnet calculator' },
+  ]}
+>
+  <RangeToCidrCalculator client:load />
+</ToolPage>

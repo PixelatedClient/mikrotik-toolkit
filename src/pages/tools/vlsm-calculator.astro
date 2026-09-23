@@ -1,0 +1,22 @@
+---
+import ToolPage from '../../components/ToolPage.astro';
+import VlsmCalculator from '../../components/calc/VlsmCalculator';
+import { SRC } from '../../data/toolSources';
+---
+<ToolPage
+  title="VLSM Calculator"
+  description="Plan variable length subnets: enter how many hosts each network needs and get an aligned allocation with the working shown."
+  heading="VLSM calculator"
+  intro="Give each network a size that fits, not the same size for all. Enter the hosts each subnet needs and get an allocation that wastes as little space as possible."
+  narrow={false}
+  sources={[
+    SRC.cidr,
+  ]}
+  related={[
+    { href: '/tools/subnet-calculator', label: 'Subnet calculator' },
+    { href: '/tools/vlan-designer', label: 'VLAN designer' },
+    { href: '/practice/vlsm', label: 'Practice VLSM' },
+  ]}
+>
+  <VlsmCalculator client:load />
+</ToolPage>

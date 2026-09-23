@@ -1,0 +1,99 @@
+---
+title: "GPON Configuration & Troubleshooting"
+track: "isp-ops"
+module: "6.2"
+order: 2
+duration: "45 min"
+summary: "Provisioning ONTs with profiles and VLANs, and diagnosing the faults you meet most often."
+status: "sourced"
+verifiedAgainst: "G.984 GPON architecture (Wikipedia summary); the provisioning workflow and fault guide are this project's own operational guidance"
+sources:
+  - title: "G.984 (Gigabit-capable Passive Optical Networks)"
+    url: "https://en.wikipedia.org/wiki/G.984"
+    publisher: "Wikipedia"
+    accessed: "2026-09-22"
+  - title: "Passive optical network"
+    url: "https://en.wikipedia.org/wiki/Passive_optical_network"
+    publisher: "Wikipedia"
+    accessed: "2026-09-22"
+---
+
+The provisioning workflow, profile-naming advice, the Rx power thresholds and the whole fault guide below are this project's own design guidance and operational experience, not a rule quoted from a standard — the GPON architecture it's built on (the OLT/ONT/ODN model, the wavelengths and TDMA upstream) is the same one sourced in [FTTH & GPON Architecture](/learn/isp-ops/01-ftth-gpon-architecture).
+
+## Vendor note
+
+OLT command lines differ widely between vendors, but the **model** is the same everywhere. This lesson teaches the model and a safe workflow. Translate the steps to your vendor's syntax.
+
+## The provisioning model
+
+Provisioning an ONT normally means:
+
+1. **Register** the ONT on a PON port, by **serial number** (SN) or by a password/LOID.
+2. Attach a **profile** describing what the ONT gets: bandwidth, ports, services.
+3. Map **service ports**: each service (internet, voice, IPTV) gets a VLAN and a bandwidth template.
+4. Configure the ONT itself (via OMCI, or TR-069 for the home gateway features).
+
+### Profiles
+
+Vendors call them line profile, service profile, or bandwidth profile. Think of them as:
+
+- **Line / traffic profile**: T-CONT and GEM ports, upstream/downstream bandwidth (assured and max).
+- **Service profile**: which ONT ports exist, their VLAN handling, multicast.
+
+Create **a small number of profiles** and reuse them: `int-100M`, `int-300M`, `int-1G`, `int-voice`. Per-customer custom profiles turn into an unmanageable mess.
+
+### VLAN model
+
+Two common designs:
+
+- **N:1**: one **service VLAN** (S-VLAN) per service per area, shared by many customers. Customers are told apart by port, MAC, or DHCP option 82. Scales well.
+- **1:1**: one VLAN per customer (S-VLAN + C-VLAN). Simple isolation, but VLAN numbers run out.
+
+Whichever you pick, document the numbering scheme (for example S-VLAN = `100 + service`, C-VLAN = customer index).
+
+## Auto-find and authorisation
+
+Most OLTs can report **unregistered ONTs** (auto-find). A safe workflow:
+
+1. Install the ONT; it appears as an unregistered SN.
+2. Confirm the SN matches the customer order (a typo can activate a neighbour's ONT).
+3. Register with the right profile.
+4. Verify the light levels and service, then record the SN in your customer database.
+
+## Reading the light
+
+Two numbers matter on every ONT: **Rx power at the ONT** (downstream) and **Rx power at the OLT for that ONT** (upstream).
+
+| Rx power | Meaning |
+|---|---|
+| -8 to -27 dBm | Healthy range for most Class B+ optics |
+| Above -8 dBm | Too strong: check for a missing splitter or attenuator |
+| Below -27 dBm | Too weak: dirty connector, bend, bad splice, or too long |
+
+Check your vendor's exact thresholds.
+
+## Fault guide
+
+| Symptom | Likely cause | First check |
+|---|---|---|
+| ONT offline, **LOS** alarm | Fibre cut, unplugged, or dead ONT | Light at the drop, VFL, patch cord |
+| Online but very low Rx | Dirty or damaged connector, tight bend | Clean and re-seat; measure loss |
+| ONT flapping | Marginal power, bad connector, failing ONT | Trend the Rx power, swap the ONT |
+| **Dying gasp** alarms | Power loss at the customer | Confirm with the customer; not a fibre fault |
+| One ONT disturbs the whole PON | **Rogue ONT** transmitting outside its slot | Isolate by disabling ONTs one at a time |
+| Registered but no internet | Wrong VLAN or profile, service port missing | Service-port table, upstream VLAN, DHCP |
+| Speed lower than the plan | Profile mismatch, port congestion, Wi-Fi limits | Profile, PON utilisation, test wired |
+| Many ONTs down at once | Feeder cut or a splitter/OLT card failure | Group the alarms by PON port and card |
+
+## Good habits
+
+- Trend optical power for every ONT weekly, and alert on a drop of more than 3 dB from baseline. It finds degrading fibres **before** the customer calls.
+- Group alarms by PON: a pattern across one PON points to the feeder; a single ONT points to the drop.
+- Keep a standard test: Rx power, VLAN, DHCP lease, a speedtest, then hand over.
+- Never leave an OLT port or ONT with default management credentials.
+
+## Check yourself
+
+- Why does an N:1 VLAN design scale better than 1:1, and what does it cost you in return?
+- Why does confirming the ONT's serial number against the customer order matter before registering it?
+- If one ONT disturbs an entire PON, what does that suggest, and how do you isolate it?

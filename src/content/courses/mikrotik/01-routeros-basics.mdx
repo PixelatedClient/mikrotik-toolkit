@@ -1,0 +1,96 @@
+---
+title: "RouterOS Basics"
+track: "mikrotik"
+module: "3.1"
+order: 1
+duration: "30 min"
+summary: "Reach a MikroTik, learn the CLI, and apply a safe first configuration."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation"
+sources:
+  - title: "Console"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/8978498/Console"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "Securing your router"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328353/Securing+your+router"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "Interface Lists"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/47579180/Interface+Lists"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+---
+
+## What RouterOS is
+
+RouterOS is MikroTik's router operating system. It runs on RouterBOARD hardware and as a virtual machine (CHR). One licence-level feature set covers routing, firewall, VPN, wireless and more. This track targets **RouterOS v7**.
+
+## Reaching the router
+
+Out of the box, most devices offer:
+
+- **Console / serial**: always works, even when you break networking. Keep it available.
+- **Winbox**: the GUI. Connect by MAC address on a fresh device.
+- **SSH / WebFig**: over IP once addressed.
+
+A factory-default home device (e.g. hAP, hEX) answers on `192.168.88.1`, user `admin`, empty password on older firmware. Set a password immediately.
+
+## The CLI in five minutes
+
+RouterOS commands form a tree of menus.
+
+```
+/ip address print
+/ip address add address=192.168.88.1/24 interface=bridge
+/ip address set 0 comment="LAN"
+/ip address remove 0
+```
+
+- `print` lists, `add` creates, `set` edits, `remove` deletes.
+- Press `Tab` to complete: "the console tries to find the command within the current context that begins with this word." `F1` gives general console help, and `F1` after a specific command gives help on that command and its arguments.
+- `/export` prints the configuration as a script (sensitive values are hidden by default); `/export file=backup` saves a `.rsc` you can read and re-import. See [backups, exports and resets](/learn/mikrotik-ops/02-backups-exports-and-resets) for what an export does and does not contain.
+
+## Safe mode
+
+Before risky changes, press `Ctrl+X` (or `F4`) in the terminal, or click **Safe Mode** in Winbox. The word `SAFE` appears in the prompt while it's active. MikroTik's own documentation explains why it exists: "it is sometimes possible to change router configuration in a way that will make the router inaccessible... there is no way to undo the last change when the connection to the router is already cut" — safe mode exists to minimise that risk. One real limitation: it only covers ordinary configuration changes made in that session; it does **not** protect against something that needs a reboot, such as a config reset or restoring a backup.
+
+## Baseline hardening
+
+MikroTik's own hardening guidance for a new router includes: run the latest RouterOS version, change the default `admin` username, use a genuinely strong password, disable the MAC-based access services (MAC-Telnet, MAC-WinBox, MAC-Ping) and MikroTik Neighbor Discovery unless you need them, and disable services and interfaces you don't use. This project's own convention (see the config generator's output) extends that same "disable what you don't use" principle to the IP services menu directly:
+
+```
+/user set admin password="use-a-long-random-one"
+/ip service set telnet disabled=yes
+/ip service set ftp disabled=yes
+/ip service set www disabled=yes
+/ip service set api disabled=yes
+/ip service set api-ssl disabled=yes
+/tool mac-server set allowed-interface-list=none
+/ip neighbor discovery-settings set discover-interface-list=none
+```
+
+Keep `ssh` and `winbox` enabled, and restrict them by source address in the firewall.
+
+## Interfaces and lists
+
+Physical ports appear as `ether1`, `ether2`, `sfp-sfpplus1`. **Interface lists** group them so firewall rules stay readable — MikroTik's own documentation describes them as easing "interface management in the different interface-based configuration sections such as Neighbor Discovery, Firewall, Bridge, and Internet Detect":
+
+```
+/interface list add name=WAN
+/interface list add name=LAN
+/interface list member add list=WAN interface=ether1
+/interface list member add list=LAN interface=bridge-lan
+```
+
+The IP Filter and NAT documentation pages don't themselves list `in-interface-list=` / `out-interface-list=` among their firewall rule properties (this site's own command reference checked, and uses plain `in-interface=` / `out-interface=` for that reason) — but the property does exist and is confirmed working on real RouterOS 7.16 in this project's own GNS3 verification, so it's safe to use once you've named a list.
+
+## Try it
+
+Open the [config generator](/tools/mikrotik-config-generator), choose **Office gateway**, and read the output line by line. Every command in it is one you can now recognise.
+
+## Check yourself
+
+- What does safe mode protect you from, and what does it explicitly not protect you from?
+- Name two MAC-based access services MikroTik's own hardening guidance recommends disabling.
+- Why do interface lists make firewall rules easier to read than naming individual ports?

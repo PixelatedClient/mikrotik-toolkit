@@ -1,0 +1,20 @@
+---
+import Base from '../../layouts/Base.astro';
+import VlanDesigner from '../../components/VlanDesigner';
+---
+<Base title="VLAN Designer" description="Design VLANs visually: assign ports, set who may talk to whom, test a ping, and export RouterOS scripts for the switch and router.">
+  <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">VLAN designer</h1>
+    <p class="mt-2 max-w-2xl text-muted">
+      Design a small VLAN network end to end. Assign switch ports, decide which VLANs may reach each other, then send
+      test pings and watch exactly where they succeed or get dropped. When you are happy, export scripts for the switch
+      and the router.
+    </p>
+    <div class="mt-8"><VlanDesigner client:load /></div>
+    <p class="mt-6 text-sm text-muted">
+      New to VLANs? Read <a class="text-accent underline" href="/learn/foundations/04-switching-and-vlans">Switching &amp; VLANs</a>{' '}
+      and <a class="text-accent underline" href="/learn/mikrotik/02-bridge-and-vlans">Bridge and VLAN filtering</a>, then build it in the{' '}
+      <a class="text-accent underline" href="/labs/inter-vlan-routing">inter-VLAN routing lab</a>.
+    </p>
+  </div>
+</Base>

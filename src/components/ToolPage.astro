@@ -1,0 +1,42 @@
+---
+import Base from '../layouts/Base.astro';
+
+interface Source { title: string; url: string; publisher: string; accessed: string }
+interface Props {
+  title: string;
+  description: string;
+  heading: string;
+  intro: string;
+  sources?: Source[];
+  related?: { href: string; label: string }[];
+  narrow?: boolean;
+}
+const { title, description, heading, intro, sources = [], related = [], narrow = false } = Astro.props;
+---
+<Base title={title} description={description}>
+  <div class:list={['mx-auto px-4 py-12 sm:px-6', narrow ? 'max-w-2xl' : 'max-w-4xl']}>
+    <nav aria-label="Breadcrumb" class="text-sm text-muted"><a href="/tools" class="hover:text-fg">Tools</a> / {heading}</nav>
+    <h1 class="mt-3 text-4xl font-bold tracking-tight">{heading}</h1>
+    <p class="mt-2 max-w-2xl text-muted">{intro}</p>
+    <slot />
+    {related.length > 0 && (
+      <section aria-labelledby="related" class="mt-2">
+        <h2 id="related" class="text-lg font-semibold">Keep going</h2>
+        <ul class="mt-2 flex flex-wrap gap-2 text-sm">
+          {related.map((r) => <li><a href={r.href} class="inline-block rounded-md border border-line px-3 py-1.5 hover:border-accent">{r.label}</a></li>)}
+        </ul>
+      </section>
+    )}
+    {sources.length > 0 && (
+      <section aria-labelledby="method" class="mt-8 rounded-xl border border-line p-4">
+        <h2 id="method" class="text-lg font-semibold">Method and sources</h2>
+        <p class="mt-1 text-sm text-muted">The rules this tool follows come from these standards. The calculations run in your browser and are covered by automated tests.</p>
+        <ul class="mt-3 space-y-1.5 text-sm">
+          {sources.map((s) => (
+            <li><a class="text-accent underline" href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a><span class="text-muted"> · {s.publisher} · checked {s.accessed}</span></li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </div>
+</Base>

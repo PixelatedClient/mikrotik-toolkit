@@ -1,0 +1,55 @@
+---
+title: "Labels, LSRs and LERs"
+track: "mpls"
+module: "13.1"
+order: 1
+duration: "35 min"
+summary: "Why MPLS forwards on a short label instead of an IP lookup at every hop, and the vocabulary for the routers that do it."
+status: "sourced"
+verifiedAgainst: "RFC 3031"
+sources:
+  - title: "RFC 3031: Multiprotocol Label Switching Architecture"
+    url: "https://www.rfc-editor.org/rfc/rfc3031"
+    publisher: "IETF"
+    accessed: "2026-09-23"
+---
+
+## The problem MPLS solves
+
+A plain IP router makes a full routing-table lookup (longest prefix match, from the Foundations track) at every single hop a packet crosses. MPLS inserts a short, fixed-length **label** between the Layer 2 header and the IP packet, and routers in the middle of the path forward on that label instead of re-running a full IP lookup each time. The label lookup is a simple table index, cheaper than a longest-prefix match, and — more importantly for real deployments — it lets the label carry information a plain IP lookup can't: which VPN a packet belongs to, which explicit path to follow, which service class to apply.
+
+## The label itself
+
+An MPLS label is a 32-bit header inserted before the IP packet:
+
+- **Label** (20 bits): the actual forwarding index.
+- **Traffic class** (3 bits): QoS marking, similar in purpose to IP's DSCP.
+- **S bit** (1 bit): set on the bottom label when more than one label is stacked (label stacking is what makes L2VPN and L3VPN possible — covered in the later lessons of this track).
+- **TTL** (8 bits): behaves like the IP TTL, decremented per hop, so MPLS forwarding still detects and terminates a loop.
+
+## LSR and LER: the two router roles
+
+- **LSR (Label Switch Router)**: a router in the middle of the MPLS network. It receives a labeled packet, looks up the label in its own label table, swaps it for the next hop's label, and forwards — it never inspects the IP header at all for an already-labeled packet.
+- **LER (Label Edge Router)**: a router at the edge of the MPLS network. It's the only place doing IP work: an **ingress LER** looks up the destination IP the normal way and pushes the first label on; an **egress LER** pops the last label off and forwards the plain IP packet onward, out of the MPLS domain.
+
+## The path a packet takes: an LSP
+
+A **Label Switched Path (LSP)** is the specific sequence of labels a packet follows from ingress LER to egress LER — the MPLS equivalent of a route, except it's a path through specific routers rather than just a next hop. Two packets to the same destination prefix, entering from different ingress LERs, can (and often do) ride entirely different LSPs even though they end at the same egress LER.
+
+## Push, swap, pop
+
+The three label operations, matching the three router roles above:
+
+1. **Push**: the ingress LER adds a label to a previously unlabeled IP packet.
+2. **Swap**: an LSR replaces the incoming label with the outgoing one for the next hop — this is the operation that runs at every transit hop and is the entire reason MPLS is fast.
+3. **Pop**: the egress LER (or, with penultimate-hop popping, the router just before it) removes the last label, handing a plain IP packet to the final hop.
+
+## Why this matters beyond speed
+
+Modern high-speed routers do full IP lookups in hardware fast enough that the speed argument alone doesn't justify MPLS the way it did in the 1990s. What still makes MPLS the backbone of ISP and large-enterprise cores today is what the label enables: **traffic engineering** (forcing traffic onto a specific path regardless of what the IGP would otherwise choose) and, covered in the next two lessons, carrying many separate customers' traffic — even with overlapping private addresses — over one shared core without them ever seeing each other.
+
+## Check yourself
+
+- What's the difference in role between an LSR and an LER?
+- Which label operation runs at every transit hop, and why is it cheaper than a full IP lookup?
+- Why can two packets to the same destination prefix travel different LSPs?

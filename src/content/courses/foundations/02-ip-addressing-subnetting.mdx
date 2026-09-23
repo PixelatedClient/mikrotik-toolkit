@@ -1,0 +1,72 @@
+---
+title: "IP Addresses & Subnetting"
+track: "foundations"
+module: "1.2"
+order: 2
+duration: "35 min"
+summary: "IPv4, CIDR notation, subnetting by hand, and a first look at IPv6."
+status: "sourced"
+verifiedAgainst: "RFC 4632 and RFC 4291"
+sources:
+  - title: "RFC 4632: Classless Inter-domain Routing (CIDR): The Internet Address Assignment and Aggregation Plan"
+    url: "https://www.rfc-editor.org/rfc/rfc4632"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+  - title: "RFC 4291: IP Version 6 Addressing Architecture"
+    url: "https://www.rfc-editor.org/rfc/rfc4291"
+    publisher: "IETF"
+    accessed: "2026-09-22"
+---
+
+import SubnetCalculator from '../../../components/SubnetCalculator';
+import SubnetTrainer from '../../../components/SubnetTrainer';
+
+## IPv4 basics
+
+An IPv4 address is 32 bits, written as four decimal octets: `192.168.1.1`. Part of it identifies the **network**, the rest identifies the **host**.
+
+## CIDR notation
+
+`192.168.1.0/24` means the first 24 bits are the network part. The remaining 8 bits give 2^8 = 256 addresses.
+
+| Prefix | Mask | Addresses | Usable hosts |
+|---|---|---|---|
+| /24 | 255.255.255.0 | 256 | 254 |
+| /25 | 255.255.255.128 | 128 | 126 |
+| /26 | 255.255.255.192 | 64 | 62 |
+| /30 | 255.255.255.252 | 4 | 2 |
+| /31 | 255.255.255.254 | 2 | 2 (point-to-point, RFC 3021) |
+
+Usable hosts = total − 2 (network and broadcast addresses), except /31 and /32.
+
+## Subnetting without a calculator
+
+1. Find the **block size**: 256 − last non-255 mask octet. For /26 (mask .192) the block size is 64.
+2. Subnets start at multiples of the block size: .0, .64, .128, .192.
+3. Broadcast = next subnet start − 1.
+
+Example: `192.168.1.100/26` is in block .64, so network `.64`, broadcast `.127`, hosts `.65`-`.126`.
+
+## Try it
+
+<SubnetCalculator client:load initial="192.168.1.100/26" />
+
+## Practise
+
+Knowing the trick is not the same as being fast. Play a round of the [subnetting trainer](/tools/subnet-trainer) here or in its own page.
+
+<SubnetTrainer client:visible />
+
+## IPv6 in one minute
+
+An IPv6 address is 128 bits, written in hex, e.g. `2001:db8::1` — RFC 4291 defines it as "a 128-bit identifier for interfaces and sets of interfaces." A global unicast address normally reserves the last 64 bits for the interface identifier, which is why a LAN subnet is almost always handed a /64. There is no broadcast address in IPv6 at all — RFC 4291 states its function "is superseded by multicast addresses" — so there is no NAT-driven address scarcity the way there is in IPv4.
+
+## Lab: design a 5-site network
+
+Given `10.10.0.0/22`, plan subnets for: HQ (200 hosts), Branch A (100), Branch B (50), Branch C (25), and 4 point-to-point WAN links. Use the calculator to split and verify. Allocate largest first (VLSM) so blocks stay aligned.
+
+## Check yourself
+
+- Why does a /31 subnet not follow the usual "usable = total minus 2" rule, and where is that exception defined?
+- How many bits of an IPv6 global unicast address are normally the interface ID, and what does that make the typical LAN prefix length?
+- What replaces IPv4's broadcast address in IPv6?

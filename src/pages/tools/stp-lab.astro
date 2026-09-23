@@ -1,0 +1,20 @@
+---
+import Base from '../../layouts/Base.astro';
+import StpLab from '../../components/StpLab';
+---
+<Base title="Spanning Tree Lab" description="Interactive spanning tree simulator: change bridge priorities and link speeds, cut links, and watch root election, port roles and blocking.">
+  <div class="mx-auto max-w-5xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">Spanning tree lab</h1>
+    <p class="mt-2 max-w-2xl text-muted">
+      Four switches are cabled in a ring with a diagonal shortcut, which would be a broadcast storm without spanning
+      tree. Change bridge priorities and link speeds, cut links, and see which bridge becomes root, which ports
+      forward, and which are blocked, with the reason for each. Complete the missions to learn the rules.
+    </p>
+    <StpLab client:load />
+    <p class="text-sm text-muted">
+      Read the theory in <a class="text-accent underline" href="/learn/layer2/02-loops-and-spanning-tree">Loops and the Spanning Tree Protocol</a>{' '}
+      and <a class="text-accent underline" href="/learn/layer2/03-rstp-and-mstp">RSTP and MSTP</a>, then build it in the{' '}
+      <a class="text-accent underline" href="/labs/rstp-triangle">RSTP triangle lab</a>.
+    </p>
+  </div>
+</Base>

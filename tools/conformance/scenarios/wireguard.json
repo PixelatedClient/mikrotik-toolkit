@@ -1,0 +1,26 @@
+{
+  "name": "wireguard",
+  "description": "A WireGuard tunnel between ISP1 and ISP2: interface, peer, handshake, and the allowed-address route. Keys are real key pairs captured from RouterOS 7.16 so the handshake actually establishes on the real routers.",
+  "devices": ["ISP1", "ISP2"],
+  "steps": [
+    ["ISP1", "/interface wireguard add name=wg0 listen-port=13231"],
+    ["ISP1", "/interface wireguard print"],
+    ["ISP1", "/interface wireguard print detail"],
+    ["ISP2", "/interface wireguard add name=wg0 listen-port=13231"],
+    ["ISP1", "/ip address add address=10.9.9.1/30 interface=wg0"],
+    ["ISP2", "/ip address add address=10.9.9.2/30 interface=wg0"],
+    ["ISP1", "/ip address add address=10.1.1.1/30 interface=ether1"],
+    ["ISP2", "/ip address add address=10.1.1.2/30 interface=ether1"],
+    ["ISP1", "/interface wireguard peers add interface=wg0 public-key=\"wCBSeaW8oKLUZxJsxnxlPkT869AEmno1gYQalFQW5wA=\" endpoint-address=10.1.1.2 endpoint-port=13231 allowed-address=10.9.9.2/32,192.168.20.0/24"],
+    ["ISP2", "/interface wireguard peers add interface=wg0 public-key=\"gbBBjNTTNCrNtPlGhUBGiDGaYO3tWRGeoyPeEsE1jHo=\" endpoint-address=10.1.1.1 endpoint-port=13231 allowed-address=10.9.9.1/32,192.168.10.0/24"],
+    ["ISP1", "#sleep 6"],
+    ["ISP1", "/interface wireguard peers print"],
+    ["ISP1", "/interface wireguard peers print detail"],
+    ["ISP1", "/ping 10.9.9.2 count=3"],
+    ["ISP1", "/ip route add dst-address=192.168.20.0/24 gateway=wg0"],
+    ["ISP2", "/ip route add dst-address=192.168.10.0/24 gateway=wg0"],
+    ["ISP1", "/ip route print where dst-address=192.168.20.0/24"],
+    ["ISP1", "/ip route print detail where dst-address=192.168.20.0/24"],
+    ["ISP1", "/export"]
+  ]
+}

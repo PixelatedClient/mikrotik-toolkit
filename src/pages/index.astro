@@ -1,0 +1,117 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import { TRACKS } from '../data/tracks';
+import PixelHero from '../components/PixelHero.astro';
+const quests = [
+  { tag: 'REGION 1', name: 'Subnet Valley', href: '/play/subnet-1', blurb: 'Pick the right mask, find the gate address and size every village. Beat the Subnet Dragon.' },
+  { tag: 'REGION 2', name: 'Route Ridge', href: '/play', blurb: 'Lay static routes, escape loops, and send your army the long way round to storm the enemy tower.' },
+  { tag: 'REGION 3', name: 'Firewall Fortress', href: '/play', blurb: 'Defend with real RouterOS rules, then read an enemy ruleset and breach it. Face the Storm Dragon.' },
+];
+
+const modules = await getCollection('courses');
+const count = (id: string) => modules.filter((m) => m.data.track === id).length;
+const steps = [
+  ['Read', 'Short, precise lessons written by people who run production networks.'],
+  ['Build', 'Copy real RouterOS configs, or generate your own with the built-in tools.'],
+  ['Break', 'Import the lab files, cut a link, and watch what the network does.'],
+];
+---
+<Base title="Network Academy" description="Free, hands-on networking courses built around how ISPs actually run networks: IP, MikroTik, BGP and more.">
+  <section>
+    <div class="mx-auto max-w-6xl px-4 pb-8 pt-14 text-center sm:px-6 sm:pt-20">
+      <p class="pixel text-[0.6rem] text-accent">A FREE NETWORKING GAME</p>
+      <h1 class="hero-title mx-auto mt-5 max-w-3xl">Route the traffic. Break the firewall. Win.</h1>
+      <p class="mx-auto mt-5 max-w-2xl text-lg text-muted">
+        Fix subnets to open the gates, lay routes to storm the enemy tower, and write real MikroTik firewall rules to defend your castle.
+        Every level teaches something an ISP engineer does on the job.
+      </p>
+      <div class="mt-8 flex flex-wrap justify-center gap-3">
+        <a href="/play" class="rounded-md bg-accent px-6 py-3 text-accent-fg">Press play</a>
+        <a href="/learn" class="rounded-md border-2 border-line px-6 py-3 font-medium hover:bg-surface-2">Read the courses</a>
+      </div>
+    </div>
+    <PixelHero />
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 py-14 sm:px-6" aria-labelledby="quests">
+    <h2 id="quests" class="pixel text-sm">Choose your quest</h2>
+    <div class="mt-6 grid gap-4 md:grid-cols-3">
+      {quests.map((q) => (
+        <a href={q.href} class="rounded-xl border bg-surface p-5">
+          <p class="pixel text-[0.55rem] text-accent">{q.tag}</p>
+          <h3 class="mt-3 text-lg font-semibold">{q.name}</h3>
+          <p class="mt-2 text-sm text-muted">{q.blurb}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+    <h2 class="text-2xl font-bold tracking-tight">Learning tracks</h2>
+    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+      {TRACKS.map((t) => {
+        const n = count(t.id);
+        const Tag = t.available ? 'a' : 'div';
+        return (
+          <Tag
+            href={t.available ? `/learn#${t.id}` : undefined}
+            class:list={['rounded-xl border border-line bg-surface p-5', t.available && 'transition hover:border-accent']}
+          >
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold">{t.name}</h3>
+              <span class="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs text-muted">
+                {t.available ? `${n} modules` : 'Coming soon'}
+              </span>
+            </div>
+            <p class="mt-2 text-sm text-muted">{t.blurb}</p>
+            <p class="mt-3 text-xs font-medium text-accent">{t.level}</p>
+          </Tag>
+        );
+      })}
+    </div>
+  </section>
+
+  <section class="border-y border-line bg-surface">
+    <div class="mx-auto grid max-w-6xl gap-8 px-4 py-14 sm:grid-cols-3 sm:px-6">
+      {steps.map(([t, d], i) => (
+        <div>
+          <p class="text-sm font-mono text-accent">0{i + 1}</p>
+          <h3 class="mt-1 text-lg font-semibold">{t}</h3>
+          <p class="mt-1 text-sm text-muted">{d}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+    <h2 class="text-2xl font-bold tracking-tight">Learn by doing</h2>
+    <p class="mt-2 max-w-2xl text-muted">Nothing here is a wall of text. Break a BGP session, cut a link, race the subnet clock.</p>
+    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+      <a href="/tools/bgp-lab" class="rounded-xl border border-accent bg-accent-soft p-5 transition hover:opacity-90">
+        <h3 class="font-semibold">BGP lab <span class="ml-1 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-fg">Try it</span></h3>
+        <p class="mt-2 text-sm">Change LOCAL_PREF, prepending and MED. Cut links. Watch best-path selection decide, one rule at a time. Five missions.</p>
+      </a>
+      <a href="/tools/vlan-designer" class="rounded-xl border border-line bg-surface p-5 transition hover:border-accent">
+        <h3 class="font-semibold">VLAN designer</h3>
+        <p class="mt-2 text-sm text-muted">Assign ports, set the policy between VLANs, send test pings and export scripts.</p>
+      </a>
+      <a href="/tools/subnet-trainer" class="rounded-xl border border-line bg-surface p-5 transition hover:border-accent">
+        <h3 class="font-semibold">Subnetting trainer</h3>
+        <p class="mt-2 text-sm text-muted">Ten-question rounds, streaks, and a worked solution for every miss.</p>
+      </a>
+      <a href="/tools/subnet-calculator" class="rounded-xl border border-line bg-surface p-5 transition hover:border-accent">
+        <h3 class="font-semibold">Subnet calculator</h3>
+        <p class="mt-2 text-sm text-muted">Network, broadcast, masks, host ranges and subnet splitting for IPv4.</p>
+      </a>
+      <a href="/tools/mikrotik-config-generator" class="rounded-xl border border-line bg-surface p-5 transition hover:border-accent">
+        <h3 class="font-semibold">MikroTik config generator</h3>
+        <p class="mt-2 text-sm text-muted">Pick a device and a role. Get a hardened RouterOS v7 .rsc file.</p>
+      </a>
+      <a href="/learn" class="rounded-xl border border-line bg-surface p-5 transition hover:border-accent">
+        <h3 class="font-semibold">Lessons with labs and fix-it tickets</h3>
+        <p class="mt-2 text-sm text-muted">Every lesson ends with a lab you run in the browser, a quiz and a troubleshooting ticket. The labs grow as you do.</p>
+      </a>
+    </div>
+  </section>
+</Base>

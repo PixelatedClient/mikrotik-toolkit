@@ -1,0 +1,95 @@
+---
+title: "QoS & Bandwidth Management"
+track: "mikrotik"
+module: "3.6"
+order: 6
+duration: "40 min"
+summary: "Simple queues, queue trees, and fighting bufferbloat with fq-codel."
+status: "sourced"
+verifiedAgainst: "MikroTik RouterOS documentation and this project's own GNS3 verification on real RouterOS 7.16"
+sources:
+  - title: "Queues"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/328088/Queues"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+  - title: "Queue types"
+    url: "https://help.mikrotik.com/docs/spaces/ROS/pages/196345871/Queue+types"
+    publisher: "MikroTik RouterOS documentation"
+    accessed: "2026-09-22"
+---
+
+## Two jobs
+
+**Rate limiting** caps how much a customer or VLAN can use. **Prioritisation** makes sure voice and DNS are not stuck behind a bulk download. Different tools do each.
+
+## Simple queues
+
+The easiest way to give a host or subnet a speed limit:
+
+```
+/queue simple add name=cust-001 target=192.168.88.10/32 max-limit=20M/50M
+```
+
+For a simple queue, `max-limit` is **upload/download** as seen from the target. `20M/50M` means 20 Mbps up, 50 Mbps down. MikroTik's own documentation describes `max-limit` as the Maximum Information Rate — "the best-case scenario maximum available data rate" the flow can reach if bandwidth is free — while `burst-limit` is the maximum rate allowed only while a temporary "burst" is active.
+
+Add `limit-at` for a guaranteed minimum and `burst-*` values for short bursts.
+
+Queues are evaluated **top to bottom**, so put specific targets above general ones.
+
+## Queue types
+
+The queue type decides how packets wait. The old default (FIFO) fills a big buffer, causing high latency under load: **bufferbloat**. Use a modern AQM: MikroTik describes FQ-CoDel as classifying packets into flows and giving "a fair share of bandwidth to all flows using the queue," each managed with CoDel to keep latency down specifically — a comprehensive answer to bufferbloat, not just a bigger or smaller buffer.
+
+```
+/queue type add name=fqc kind=fq-codel
+/queue simple add name=all target=192.168.88.0/24 max-limit=100M/100M queue=fqc/fqc
+```
+
+Set the limit slightly below your real line rate (say 95%), so the queue builds on your router where you control it, rather than at the ISP.
+
+## Queue trees and mangle
+
+For priorities you first **mark** packets, then build a tree.
+
+```
+/ip firewall mangle add chain=forward action=mark-packet new-packet-mark=voip \
+    protocol=udp dst-port=5060,10000-20000 passthrough=no
+/queue tree add name=up parent=ether1 max-limit=50M
+/queue tree add name=up-voip parent=up packet-mark=voip priority=1 limit-at=5M max-limit=50M
+/queue tree add name=up-other parent=up packet-mark=no-mark priority=8
+```
+
+Lower `priority` number is more important (1 highest, 8 lowest).
+
+A queue that sets `limit-at` must also set `max-limit` at least as large: without `max-limit=50M` on `up-voip`, RouterOS 7.16 rejects the line with "max-limit less than limit" — this project found that error the hard way, running its own lesson snippets line by line on a real 7.16 router, and fixed this exact snippet as a result.
+
+## Hardware notes
+
+Queues run in the CPU and, with FastTrack enabled, are bypassed for accelerated flows. Plan for this: on a high-speed edge, shape only where you must, or use PCQ to share fairly across many hosts.
+
+## PCQ: fair sharing
+
+MikroTik's documentation describes PCQ (Per Connection Queue) as a way to "dynamically equalize or shape traffic for multiple users, using little administration" — exactly the fair-sharing job below.
+
+```
+/queue type add name=pcq-down kind=pcq pcq-classifier=dst-address pcq-rate=0
+/queue type add name=pcq-up kind=pcq pcq-classifier=src-address pcq-rate=0
+/queue simple add name=lan target=192.168.88.0/24 max-limit=100M/100M queue=pcq-up/pcq-down
+```
+
+Each host gets an equal slice of the 100M when the link is full, and can use all of it when others are idle.
+
+## Verify
+
+```
+/queue simple print stats
+/tool torch interface=ether1
+```
+
+Watch the queued and dropped counters. Growing drops on a customer queue mean they are hitting the cap, which is the queue working as designed.
+
+## Check yourself
+
+- What does `max-limit` actually represent, in MikroTik's own terms, versus `burst-limit`?
+- Why does `up-voip` need `max-limit` set even though `limit-at` already gives it a guaranteed rate?
+- What specifically does FQ-CoDel do to fight bufferbloat that a bigger FIFO buffer does not?
