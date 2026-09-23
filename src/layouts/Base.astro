@@ -5,6 +5,7 @@ import AuthBar from '../components/auth/AuthBar';
 import Companion from '../components/game/Companion';
 import SponsorBanner from '../components/SponsorBanner';
 import ErrorBoundary from '../components/ErrorBoundary';
+import BugReportModal from '../components/BugReportModal';
 
 interface Props {
   title: string;
@@ -148,6 +149,7 @@ const active = (href: string) => path === href || path.startsWith(href + '/');
             <li><a class="block px-1 py-0.5 hover:text-fg" href="/sources">Sources</a></li>
             <li><a class="block px-1 py-0.5 hover:text-fg" href="/sponsors">Sponsors</a></li>
             <li><a class="block px-1 py-0.5 hover:text-fg" href="/community">Community</a></li>
+            <li><BugReportModal client:load /></li>
           </ul>
         </div>
         <div>
