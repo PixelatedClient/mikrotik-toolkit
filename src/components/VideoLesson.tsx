@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { finishLevel, useGame } from './game/useGame';
 import type { Badge } from '../lib/gamify';
 
@@ -11,28 +11,21 @@ interface VideoLessonProps {
 
 /**
  * Video player component for lessons.
- * Supports YouTube embeds (iframe) and self-hosted .mp4 files (HTML5 video tag).
+ * Supports self-hosted .mp4 files only (no third-party embeds per project policy).
  * Tracks progress and awards XP when video is marked as watched.
+ * For external videos, link to them instead of embedding.
  */
 export default function VideoLesson({ videoUrl, title, duration, lessonId }: VideoLessonProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { state } = useGame();
-  const [isYouTube, setIsYouTube] = useState(false);
   const [watchedPct, setWatchedPct] = useState(0);
-  const [showCaptions, setShowCaptions] = useState(false);
   const [isWatched, setIsWatched] = useState(false);
   const [badge, setBadge] = useState<Badge | null>(null);
 
   const levelId = lessonId ? `video-${lessonId}` : null;
   const best = levelId ? state.stars[levelId] ?? 0 : 0;
 
-  // Detect if URL is YouTube
-  useEffect(() => {
-    const isYt = videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be');
-    setIsYouTube(isYt);
-  }, [videoUrl]);
-
-  // Track video progress
+  // Track video progress for self-hosted videos
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
     const pct = (videoRef.current.currentTime / videoRef.current.duration) * 100;
@@ -49,20 +42,6 @@ export default function VideoLesson({ videoUrl, title, duration, lessonId }: Vid
     }
   };
 
-  // Get YouTube embed URL from various YouTube URL formats
-  const getYouTubeEmbedUrl = () => {
-    let videoId = '';
-    if (videoUrl.includes('youtube.com/watch')) {
-      const url = new URL(videoUrl);
-      videoId = url.searchParams.get('v') || '';
-    } else if (videoUrl.includes('youtu.be/')) {
-      videoId = videoUrl.split('youtu.be/')[1]?.split('?')[0] || '';
-    } else if (videoUrl.includes('youtube.com/embed/')) {
-      videoId = videoUrl.split('embed/')[1]?.split('?')[0] || '';
-    }
-    return videoId ? `https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0` : videoUrl;
-  };
-
   return (
     <div className="not-prose space-y-4 rounded-xl border border-line bg-surface p-4">
       <div className="flex items-start justify-between">
@@ -75,33 +54,23 @@ export default function VideoLesson({ videoUrl, title, duration, lessonId }: Vid
         )}
       </div>
 
-      {/* Video Container */}
+      {/* Video Container - Local MP4 only (no third-party embeds) */}
       <div className="aspect-video w-full overflow-hidden rounded-lg bg-black">
-        {isYouTube ? (
-          <iframe
-            src={getYouTubeEmbedUrl()}
-            title={title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="h-full w-full"
-          />
-        ) : (
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            className="h-full w-full"
-            controls
-            controlsList="nodownload"
-            onTimeUpdate={handleTimeUpdate}
-          >
-            <track kind="captions" srcLang="en" label="English" />
-            Your browser does not support the video tag.
-          </video>
-        )}
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          className="h-full w-full"
+          controls
+          controlsList="nodownload"
+          onTimeUpdate={handleTimeUpdate}
+        >
+          <track kind="captions" srcLang="en" label="English" />
+          Your browser does not support the video tag.
+        </video>
       </div>
 
-      {/* Self-hosted video controls and progress */}
-      {!isYouTube && videoRef.current && (
+      {/* Video controls and progress tracking */}
+      {videoRef.current && (
         <>
           {/* Progress bar */}
           <div className="space-y-2">
@@ -114,18 +83,6 @@ export default function VideoLesson({ videoUrl, title, duration, lessonId }: Vid
             <p className="text-xs text-muted">
               {isWatched ? 'Watched (80%)' : `${Math.round(watchedPct)}% watched`}
             </p>
-          </div>
-
-          {/* Captions toggle */}
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setShowCaptions(!showCaptions)}
-              className="flex items-center gap-2 rounded-md border border-line px-3 py-2 text-sm font-medium hover:border-accent"
-              aria-pressed={showCaptions}
-            >
-              <span className="text-xs">CC</span>
-              {showCaptions ? 'Captions on' : 'Captions off'}
-            </button>
           </div>
         </>
       )}
