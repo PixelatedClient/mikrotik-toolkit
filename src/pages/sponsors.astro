@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import AffiliateLinks from '../components/AffiliateLinks';
+import NewsletterSignup from '../components/NewsletterSignup';
 import { getAffiliatesByCategory } from '../data/affiliates';
 
 const hardware = getAffiliatesByCategory('hardware');
@@ -113,21 +114,69 @@ const learning = getAffiliatesByCategory('learning');
       </div>
     </section>
 
+    <section aria-labelledby="direct-support" class="mt-12">
+      <h2 id="direct-support" class="text-2xl font-bold mb-4">Support directly</h2>
+      <p class="text-muted mb-6">
+        Prefer to support Network Academy directly? Choose how you'd like to help:
+      </p>
+      <div class="grid gap-6 md:grid-cols-2 mb-8">
+        <div class="rounded-lg border border-line bg-surface p-6">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="text-2xl">❤️</div>
+            <div>
+              <h3 class="font-semibold text-fg text-lg">Become a Patron</h3>
+              <p class="text-sm text-muted mt-1">Recurring support at any level</p>
+            </div>
+          </div>
+          <p class="text-sm text-muted mb-4">
+            Join us on Patreon for early access to new content, direct input on what we build next, and the knowledge that you're keeping Network Academy free for everyone.
+          </p>
+          <a
+            href="https://patreon.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-block text-sm font-medium text-accent hover:underline"
+          >
+            Support on Patreon →
+          </a>
+        </div>
+
+        <div class="rounded-lg border border-line bg-surface p-6">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="text-2xl">🌟</div>
+            <div>
+              <h3 class="font-semibold text-fg text-lg">GitHub Sponsors</h3>
+              <p class="text-sm text-muted mt-1">One-time or monthly</p>
+            </div>
+          </div>
+          <p class="text-sm text-muted mb-4">
+            Sponsor us on GitHub with a one-time gift or monthly recurring support. Every dollar goes toward hosting, content, and tools.
+          </p>
+          <a
+            href="https://github.com/sponsors"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-block text-sm font-medium text-accent hover:underline"
+          >
+            Sponsor on GitHub →
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="newsletter" class="mt-12 rounded-lg border border-line bg-surface p-6">
+      <h2 id="newsletter" class="text-xl font-bold mb-3">Stay updated</h2>
+      <p class="text-sm text-muted mb-4">
+        Get notified when we release new lessons, labs, and tools. Unsubscribe anytime.
+      </p>
+      <NewsletterSignup client:load />
+    </section>
+
     <div class="prose prose-neutral mt-12 dark:prose-invert max-w-none">
       <h2>Become a partner</h2>
       <p>
         If you operate a tool, service, or platform that network engineers use, we'd love to work with you. Email us at <a href="mailto:partners@networkacademy.example">partners@networkacademy.example</a> to discuss partnership opportunities.
       </p>
-
-      <h2>Support directly</h2>
-      <p>
-        Prefer to support Network Academy directly? You can also:
-      </p>
-      <ul>
-        <li><strong>Become a patron on Patreon</strong> (coming soon) — get early access to new content and direct input on what we build next</li>
-        <li><strong>Sponsor via GitHub</strong> (coming soon) — one-time or recurring support</li>
-        <li><strong>Share with others</strong> — the best support is telling colleagues about Network Academy</li>
-      </ul>
 
       <h2>Affiliate disclosure</h2>
       <p>
