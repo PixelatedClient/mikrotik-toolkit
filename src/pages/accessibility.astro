@@ -1,0 +1,79 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Accessibility" description="Network Academy's commitment to accessibility and WCAG compliance.">
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <h1 class="text-4xl font-bold tracking-tight">Accessibility</h1>
+    <div class="prose prose-neutral mt-6 dark:prose-invert">
+      <p>Network Academy is committed to making our content accessible to everyone, including people with disabilities.</p>
+
+      <h2>Accessibility features</h2>
+      <ul>
+        <li><strong>Semantic HTML</strong> - all pages use proper heading hierarchy, landmark regions, and semantic elements for screen readers.</li>
+        <li><strong>Color contrast</strong> - text meets WCAG AA standards (4.5:1 for normal text, 3:1 for large text) in both light and dark modes.</li>
+        <li><strong>Keyboard navigation</strong> - all interactive elements are accessible via keyboard; skip-to-content link appears on focus.</li>
+        <li><strong>Focus indicators</strong> - visible focus outlines help keyboard users navigate.</li>
+        <li><strong>ARIA labels</strong> - form controls, buttons and dynamic content are properly labeled for assistive technology.</li>
+        <li><strong>Text alternatives</strong> - images and diagrams include alt text or text descriptions.</li>
+        <li><strong>Motion control</strong> - animations respect the `prefers-reduced-motion` setting.</li>
+        <li><strong>Readable fonts</strong> - sans-serif font stack at 16px base size with good line height and letter spacing.</li>
+        <li><strong>Light and dark modes</strong> - choose your preferred theme for reduced eye strain.</li>
+        <li><strong>Code blocks</strong> - syntax highlighting and monospace fonts in both themes.</li>
+      </ul>
+
+      <h2>WCAG compliance</h2>
+      <p><strong>Target: WCAG 2.1 Level AA</strong></p>
+      <p>We aim to meet the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA standard across all pages. This includes:</p>
+      <ul>
+        <li>Perceivable - information and interface components are presentable to users in ways they can perceive.</li>
+        <li>Operable - interface components and navigation are operable via keyboard and other input methods.</li>
+        <li>Understandable - text is readable and pages behave predictably.</li>
+        <li>Robust - content works with assistive technologies and across browsers.</li>
+      </ul>
+
+      <h2>Known limitations</h2>
+      <p>We are aware of the following limitations and are working to address them:</p>
+      <ul>
+        <li><strong>Interactive labs</strong> - the browser-based labs (routing, BGP, VLANs, spanning tree) may have limited keyboard navigation. Screen reader users can still access the CLI by tabbing to the terminal, typing commands and hearing the output.</li>
+        <li><strong>Network diagrams</strong> - topology diagrams are provided as visual SVG. Alt text describes the topology; a text-based list of nodes and links is also available.</li>
+        <li><strong>Code syntax highlighting</strong> - code blocks include semantic markup (language identifier), though color alone may not distinguish all syntax categories for some color-blind users.</li>
+      </ul>
+
+      <h2>Testing</h2>
+      <p>We regularly test for accessibility using:</p>
+      <ul>
+        <li><strong>Automated tools</strong> - axe DevTools, WAVE and Lighthouse report zero WCAG 2.1 AA violations on main pages.</li>
+        <li><strong>Keyboard navigation</strong> - every interactive element is tested with keyboard-only navigation.</li>
+        <li><strong>Screen readers</strong> - tested with NVDA (Windows) and VoiceOver (macOS).</li>
+        <li><strong>Color contrast</strong> - verified with contrast checkers in both light and dark themes.</li>
+      </ul>
+
+      <h2>Accessibility statement</h2>
+      <p>This site is not currently WCAG 2.1 Level AA certified. However, we commit to continuous improvement and regular accessibility audits. If you encounter an accessibility barrier, please report it so we can fix it.</p>
+
+      <h2>Report an accessibility issue</h2>
+      <p>If you find content that is not accessible, or if you have suggestions for improvement, please contact us:</p>
+      <ul>
+        <li>Email: <a href="mailto:bdilidili1@gmail.com">bdilidili1@gmail.com</a></li>
+        <li>Include the page URL and a description of the barrier you encountered.</li>
+        <li>We will do our best to respond and fix the issue within one week.</li>
+      </ul>
+
+      <h2>External resources</h2>
+      <ul>
+        <li><a href="https://www.w3.org/WAI/WCAG21/quickref/">WCAG 2.1 Quick Reference</a> - official guidelines.</li>
+        <li><a href="https://www.w3.org/WAI/test-evaluate/">Evaluating Web Accessibility</a> - testing techniques.</li>
+        <li><a href="https://www.nvaccess.org/">NVDA Screen Reader</a> - free, open-source screen reader for Windows.</li>
+        <li><a href="https://www.ssa.gov/accessibility/">Social Security Administration's Accessibility Guide</a> - practical guidance.</li>
+      </ul>
+
+      <h2>More information</h2>
+      <ul>
+        <li><a href="/privacy">Privacy Policy</a></li>
+        <li><a href="/terms">Terms of Service</a></li>
+        <li><a href="/disclaimer">Content Disclaimer</a></li>
+        <li><a href="/contact">Contact us</a></li>
+      </ul>
+    </div>
+  </div>
+</Base>

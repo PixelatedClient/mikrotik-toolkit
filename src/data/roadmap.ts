@@ -79,7 +79,7 @@ export const ROADMAP: RoadmapStep[] = [
   {
     step: 9,
     title: 'Monetization & sponsorship',
-    status: 'next',
+    status: 'done',
     why: 'Affiliate links and Patreon support sustainable maintenance without ads or paywalls.',
     topics: ['Affiliate link infrastructure', 'Patreon/sponsorship banner', 'Email newsletter capture', 'Partner integrations'],
     sources: ['Product affiliate programs'],
