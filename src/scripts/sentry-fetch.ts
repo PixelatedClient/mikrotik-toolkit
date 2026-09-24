@@ -22,7 +22,9 @@ export async function fetchWithSentry(input: RequestInfo | URL, init?: RequestIn
 
     if (!response.ok) {
       // Log failed HTTP responses as errors
-      const errorBody = await response.text();
+      // Clone response before reading body to avoid consuming the stream
+      const cloned = response.clone();
+      const errorBody = await cloned.text();
       captureError(`HTTP ${response.status} ${response.statusText} on ${method} ${url}`, {
         url,
         method,
