@@ -87,10 +87,10 @@ export const ROADMAP: RoadmapStep[] = [
   {
     step: 10,
     title: 'User accounts and progress tracking',
-    status: 'planned',
+    status: 'done',
     why: 'Server-side progress enables persistence across devices and unlocks premium content tiers.',
     topics: ['Authentication (OAuth or email)', 'Progress database schema', 'Session management', 'Premium user tiers'],
-    sources: [],
+    sources: ['Supabase documentation'],
   },
   {
     step: 11,
